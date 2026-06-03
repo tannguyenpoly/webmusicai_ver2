@@ -10,71 +10,99 @@ import com.fpoly.webmusicai.entity.*;
 import com.fpoly.webmusicai.repository.*;
 import com.fpoly.webmusicai.service.MusicGeneratorService;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @CrossOrigin("*")
 @RestController
 @RequestMapping("/api/songs")
 public class SongRestController {
 
-    @Autowired SongRepository songRepo;
-    @Autowired UserRepository userRepo;
-    @Autowired TransactionRepository transRepo;
-    @Autowired MusicGeneratorService musicService;
+	@Autowired
+	SongRepository songRepo;
+	@Autowired
+	UserRepository userRepo;
+	@Autowired
+	TransactionRepository transRepo;
+	@Autowired
+	MusicGeneratorService musicService;
 
-    // 1. API lấy nhạc cho Trang Chủ (Chỉ lấy bài Public)
-    @GetMapping("/public")
-    public ResponseEntity<List<Song>> getPublicSongs() {
-        return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
-    }
+	// 1. API lấy nhạc cho Trang Chủ (Chỉ lấy bài Public)
+	@GetMapping("/public")
+	public ResponseEntity<List<Song>> getPublicSongs() {
+		return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
+	}
 
-    // 2. API Yêu cầu AI Tạo Nhạc
-    @PostMapping("/generate")
-    public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
-        // Tạm thời lấy username từ JSON. (Khi ráp Security vào, ta sẽ lấy từ Token)
-        String username = requestData.get("username"); 
-        String prompt = requestData.get("prompt");
+	// 2. API Yêu cầu AI Tạo Nhạc
+	@PostMapping("/generate")
+	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
+		String username = requestData.get("username");
+		String prompt = requestData.get("prompt");
+		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true")); // ← dùng
+																												// final,
+																												// tên
+																												// khác
+																												// để
+																												// tránh
+																												// conflict
 
-        Optional<User> userOpt = userRepo.findById(username);
-        if (!userOpt.isPresent()) return ResponseEntity.badRequest().body("User không tồn tại!");
+		Optional<User> userOpt = userRepo.findById(username);
+		if (!userOpt.isPresent())
+			return ResponseEntity.badRequest().body("User không tồn tại!");
 
-        User user = userOpt.get();
-        if (user.getTokenBalance() < 1) {
-            return ResponseEntity.badRequest().body("Bạn không đủ Token để tạo nhạc!");
-        }
+		User user = userOpt.get();
+		if (user.getTokenBalance() < 1)
+			return ResponseEntity.badRequest().body("Bạn không đủ Token!");
 
-        // BƯỚC 1: Trừ token của User
-        user.setTokenBalance(user.getTokenBalance() - 1);
-        userRepo.save(user);
+		user.setTokenBalance(user.getTokenBalance() - 1);
+		userRepo.save(user);
 
-        // BƯỚC 2: Ghi vào lịch sử giao dịch (Bảng Transactions)
-        Transaction trans = new Transaction();
-        trans.setUser(user);
-        trans.setAmount(-1);
-        trans.setDescription("Tạo nhạc với nội dung: " + prompt);
-        transRepo.save(trans);
+		Transaction trans = new Transaction();
+		trans.setUser(user);
+		trans.setAmount(-1);
+		trans.setDescription("Tạo nhạc: " + prompt);
+		transRepo.save(trans);
 
-        // BƯỚC 3: Tạo bài hát lưu vào DB với trạng thái "Đang chờ - PENDING"
-        Song song = new Song();
-        song.setTitle("AI Song - " + new Date().getTime());
-        song.setPrompt(prompt);
-        song.setStatus("PENDING");
-        song.setIsPublic(false);
-        song.setUser(user);
-        songRepo.save(song);
+		Song song = new Song();
+		song.setTitle("AI Song - " + new Date().getTime());
+		song.setPrompt(prompt);
+		song.setStatus("PENDING");
+		song.setIsPublic(false);
+		song.setUser(user);
+		songRepo.save(song);
 
-        // BƯỚC 4: Chạy AI ngầm (Dùng Thread để Server không bị đơ khi đợi AI 5 giây)
-        new Thread(() -> {
-            String audioUrl = musicService.generateMusic(prompt);
-            song.setAudioUrl(audioUrl);
-            song.setStatus("COMPLETED");
-            songRepo.save(song); // Cập nhật lại trạng thái thành công
-        }).start();
+		new Thread(() -> {
+			try {
+				String audioUrl = musicService.generateMusic(prompt, isInstrumental); // ← dùng isInstrumental
+				song.setAudioUrl(audioUrl);
+				song.setStatus("COMPLETED");
+				songRepo.save(song);
+			} catch (Exception e) {
+				song.setStatus("FAILED");
+				songRepo.save(song);
+				log.error("Lỗi gen nhạc: {}", e.getMessage());
+			}
+		}).start();
 
-        // BƯỚC 5: Trả về phản hồi cho Postman/Giao diện ngay lập tức
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Đã nhận yêu cầu! AI đang xử lý...");
-        response.put("songId", song.getId());
-        response.put("remaining_tokens", user.getTokenBalance());
-        
-        return ResponseEntity.ok(response);
-    }
+		Map<String, Object> response = new HashMap<>();
+		response.put("message", "Đã nhận yêu cầu! AI đang xử lý...");
+		response.put("songId", song.getId());
+		response.put("remaining_tokens", user.getTokenBalance());
+		return ResponseEntity.ok(response);
+	}
+
+	@GetMapping("/{id}/status")
+	public ResponseEntity<?> getSongStatus(@PathVariable Integer id) {
+		System.out.println("=== GỌI STATUS id=" + id + " ===");
+
+		return songRepo.findById(id).map(song -> {
+			System.out.println("Tìm thấy song: " + song.getStatus());
+			Map<String, Object> result = new HashMap<>();
+			result.put("id", song.getId());
+			result.put("status", song.getStatus());
+			result.put("audio_url", song.getAudioUrl());
+			result.put("title", song.getTitle());
+			return ResponseEntity.ok(result);
+		}).orElse(ResponseEntity.notFound().build());
+	}
 }

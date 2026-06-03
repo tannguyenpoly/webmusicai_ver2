@@ -44,4 +44,7 @@ public class User implements Serializable {
     @JsonIgnore
     @OneToMany(mappedBy = "user")
     private List<Transaction> transactions;
+    
+    @Column(name = "email")
+    private String email;
 }
