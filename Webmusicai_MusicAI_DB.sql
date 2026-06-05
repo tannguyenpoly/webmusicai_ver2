@@ -89,7 +89,8 @@ INSERT INTO Transactions (username, amount, description) VALUES
 ('user1@gmail.com', -1, N'Tạo bài hát #1'),
 ('user1@gmail.com', -1, N'Tạo bài hát #2');
 GO
-
+ALTER TABLE Users
+ADD email VARCHAR(100) NULL;
 
 SELECT * FROM Songs
 SELECT * FROM Transactions
