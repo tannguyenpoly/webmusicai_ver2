@@ -38,12 +38,8 @@ public class SongRestController {
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
 		String username = requestData.get("username");
 		String prompt = requestData.get("prompt");
-		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true")); // ← dùng
-																												// final,tên
-																												// khác
-																												// để
-																												// tránh
-																												// conflict
+		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true"));
+
 
 		Optional<User> userOpt = userRepo.findById(username);
 		if (!userOpt.isPresent())
@@ -104,6 +100,7 @@ public class SongRestController {
 			return ResponseEntity.ok(result);
 		}).orElse(ResponseEntity.notFound().build());
 	}
+
 
 	// Lấy danh sách nhạc của 1 user
 	@GetMapping("/my-songs/{username}")
