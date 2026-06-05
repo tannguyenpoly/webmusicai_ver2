@@ -39,8 +39,7 @@ public class SongRestController {
 		String username = requestData.get("username");
 		String prompt = requestData.get("prompt");
 		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true")); // ← dùng
-																												// final,
-																												// tên
+																												// final,tên
 																												// khác
 																												// để
 																												// tránh
@@ -104,5 +103,16 @@ public class SongRestController {
 			result.put("title", song.getTitle());
 			return ResponseEntity.ok(result);
 		}).orElse(ResponseEntity.notFound().build());
+	}
+
+	// Lấy danh sách nhạc của 1 user
+	@GetMapping("/my-songs/{username}")
+	public ResponseEntity<?> getMySongs(@PathVariable String username) {
+		Optional<User> userOpt = userRepo.findById(username);
+		if (!userOpt.isPresent())
+			return ResponseEntity.badRequest().body("User không tồn tại!");
+
+		List<Song> songs = songRepo.findByUserUsernameOrderByCreatedAtDesc(username);
+		return ResponseEntity.ok(songs);
 	}
 }
