@@ -22,7 +22,8 @@ public class SecurityConfig {
 		http.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**",
 				"/api/songs/public",
 				"/api/songs/generate",
-				"/api/songs/**" 
+				"/api/songs/**",
+				"/api/users/**"
 		).permitAll().requestMatchers("/api/admin/**").hasRole("ADMIN").anyRequest().authenticated());
 
 		return http.build();
