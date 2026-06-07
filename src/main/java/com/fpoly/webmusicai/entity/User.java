@@ -24,6 +24,7 @@ import lombok.NoArgsConstructor;
 public class User implements Serializable {
     @Id
     private String username;
+    @JsonIgnore
     private String password;
     private String fullname;
     private String photo;

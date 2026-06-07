@@ -3,6 +3,8 @@ package com.fpoly.webmusicai.repository;
 import java.sql.Date;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -31,4 +33,6 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
     @Transactional
     @Query("DELETE FROM Song s WHERE s.status = 'PENDING' AND s.createdAt < :cutoff")
     void deleteStuckPendingSongs(@Param("cutoff") Date cutoff);
+    
+    Page<Song> findByUserUsernameOrderByCreatedAtDesc(String username, Pageable pageable);
 }
