@@ -19,13 +19,11 @@ public class DatabaseCleanupTask {
 	public void cleanupDatabase() {
 		log.info("=== Bắt đầu dọn rác DB lúc 12h đêm ===");
 
-		// 1. Xóa bài FAILED quá 7 ngày
 		Calendar cal7 = Calendar.getInstance();
 		cal7.add(Calendar.DAY_OF_MONTH, -7);
 		songRepository.deleteOldFailedSongs(new Date(cal7.getTimeInMillis())); 
 		log.info("Đã xóa bài FAILED quá 7 ngày");
 
-		// 2. Xóa bài PENDING quá 1 giờ
 		Calendar cal1h = Calendar.getInstance();
 		cal1h.add(Calendar.HOUR_OF_DAY, -1);
 		songRepository.deleteStuckPendingSongs(new Date(cal1h.getTimeInMillis())); 

@@ -32,10 +32,10 @@ public class AuthController {
 	UserRepository userRepo;
 
 	@Autowired
-	RoleRepository roleRepo; // ← thêm dòng này
+	RoleRepository roleRepo;
 
 	@Autowired
-	AuthorityRepository authorityRepo; // ← thêm dòng này
+	AuthorityRepository authorityRepo;
 
 	@Autowired
 	MailService mailService;

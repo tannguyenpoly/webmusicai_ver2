@@ -24,7 +24,6 @@ public class AdminRestController {
     @Autowired
     private SongRepository songRepo;
 
-    // 1. Lấy danh sách toàn bộ User (Phân trang, tìm kiếm)
     @GetMapping("/users")
     public ResponseEntity<?> getUsers(
             @RequestParam(defaultValue = "0") int page,
@@ -43,7 +42,6 @@ public class AdminRestController {
         return ResponseEntity.ok(users);
     }
 
-    // 2. Khóa/Mở khóa tài khoản (Update trường enabled của bảng Users)
     @PutMapping("/users/{username}/toggle-status")
     public ResponseEntity<?> toggleUserStatus(@PathVariable String username) {
         return userRepo.findById(username).map(user -> {
@@ -54,7 +52,6 @@ public class AdminRestController {
         }).orElse(ResponseEntity.badRequest().body(Map.of("message", "Không tìm thấy người dùng: " + username)));
     }
 
-    // 3. Truy vấn Thống kê: Tính tổng User, tổng bài hát được tạo
     @GetMapping("/statistics")
     public ResponseEntity<?> getStatistics() {
         return ResponseEntity.ok(Map.of("totalUsers", userRepo.count(), "totalSongs", songRepo.count()));

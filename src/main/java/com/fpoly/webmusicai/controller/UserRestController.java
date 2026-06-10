@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -50,7 +51,28 @@ public class UserRestController {
     @Autowired
     PasswordEncoder passwordEncoder;
 
-    // 1. Xem thông tin cá nhân
+    // === TÍNH NĂNG ĐỒNG BỘ ĐĂNG NHẬP GOOGLE OAUTH2 CỦA THÀNH VIÊN 4 ===
+    @GetMapping("/auth-session")
+    public ResponseEntity<?> getAuthSession() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        // Nếu chưa xác thực hoặc là anonymousUser của Spring Security
+        if (username == null || "anonymousUser".equalsIgnoreCase(username)) {
+            return ResponseEntity.status(401).body(Map.of("message", "Chưa đăng nhập hệ thống"));
+        }
+
+        Optional<User> userOpt = userRepo.findById(username);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            Map<String, Object> sessionData = new HashMap<>();
+            sessionData.put("username", user.getUsername());
+            sessionData.put("fullname", user.getFullname());
+            sessionData.put("email", user.getEmail());
+            sessionData.put("token_balance", user.getTokenBalance());
+            return ResponseEntity.ok(sessionData);
+        }
+        return ResponseEntity.status(404).body(Map.of("message", "Tài khoản session không tồn tại trong DB"));
+    }
+
     @GetMapping("/{username}/profile")
     public ResponseEntity<?> getProfile(@PathVariable String username) {
         Optional<User> userOpt = userRepo.findById(username);
@@ -67,14 +89,12 @@ public class UserRestController {
         return ResponseEntity.ok(profile);
     }
 
-    // 2. Sửa thông tin cá nhân (Có Validation bắt lỗi theo Lab 4 Java 5)
     @PutMapping("/{username}/profile")
     public ResponseEntity<?> updateProfile(
-            @PathVariable String username, 
+            @PathVariable String username,
             @Valid @RequestBody UpdateProfileRequest request,
             BindingResult bindingResult) {
-        
-        // Kiểm tra lỗi Validation (trống hoặc sai định dạng email)
+
         if (bindingResult.hasErrors()) {
             Map<String, String> errors = new HashMap<>();
             for (FieldError error : bindingResult.getFieldErrors()) {
@@ -99,10 +119,9 @@ public class UserRestController {
         return ResponseEntity.ok(Map.of("message", "Cập nhật hồ sơ thành công!"));
     }
 
-    // 3. Đổi mật khẩu
     @PutMapping("/{username}/change-password")
     public ResponseEntity<?> changePassword(
-            @PathVariable String username, 
+            @PathVariable String username,
             @Valid @RequestBody ChangePasswordRequest request,
             BindingResult bindingResult) {
 
@@ -116,50 +135,45 @@ public class UserRestController {
         }
 
         User user = userOpt.get();
-        String currentPassword = user.getPassword().replace("{noop}", ""); 
-        
-        // Kiểm tra mật khẩu cũ
+        String currentPassword = user.getPassword().replace("{noop}", "");
+
         if (!passwordEncoder.matches(request.getOldPassword(), currentPassword) && !request.getOldPassword().equals(currentPassword)) {
             return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu cũ không chính xác!"));
         }
 
-        // Mã hóa và lưu mật khẩu mới
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepo.save(user);
 
         return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công!"));
     }
 
-    // 4. Xem lịch sử bài hát cá nhân (Phân trang theo Lab 6 Java 5)
     @GetMapping("/{username}/songs")
     public ResponseEntity<?> getMySongs(
             @PathVariable String username,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         Pageable pageable = PageRequest.of(page, size);
         Page<Song> songPage = songRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
         return ResponseEntity.ok(songPage);
     }
 
-    // 5. Xem lịch sử nạp Token (Phân trang theo Lab 6 Java 5)
     @GetMapping("/{username}/transactions")
     public ResponseEntity<?> getMyTransactions(
             @PathVariable String username,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         Pageable pageable = PageRequest.of(page, size);
         Page<Transaction> transPage = transRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
         return ResponseEntity.ok(transPage);
     }
 
-    // 6. Nạp Token 
     @PostMapping("/{username}/deposit")
     public ResponseEntity<?> depositToken(
-            @PathVariable String username, 
+            @PathVariable String username,
             @RequestBody Map<String, Integer> request) {
-        
+
         Optional<User> userOpt = userRepo.findById(username);
         if (!userOpt.isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Không tìm thấy người dùng!"));
@@ -181,8 +195,8 @@ public class UserRestController {
         transRepo.save(trans);
 
         return ResponseEntity.ok(Map.of(
-            "message", "Nạp thành công " + amount + " token!", 
-            "token_balance", user.getTokenBalance()
+                "message", "Nạp thành công " + amount + " token!",
+                "token_balance", user.getTokenBalance()
         ));
     }
 }

@@ -32,7 +32,6 @@ public class MailService {
 			log.info("Đã gửi email chào mừng tới: {}", toEmail);
 
 		} catch (Exception e) {
-			// Không throw — lỗi email không nên làm hỏng luồng đăng ký
 			log.error("Lỗi gửi email tới {}: {}", toEmail, e.getMessage());
 		}
 	}

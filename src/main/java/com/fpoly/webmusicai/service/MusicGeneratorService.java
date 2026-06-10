@@ -19,12 +19,12 @@ public class MusicGeneratorService {
 	private final String BASE_URL = "https://api.musicapi.ai";
 
 	public String generateMusic(String prompt, boolean instrumental) {
-		String taskId = createJob(prompt, instrumental); // truyền 2 tham số
+		String taskId = createJob(prompt, instrumental);
 		return waitForAudioUrl(taskId);
 	}
 
 
-private String createJob(String prompt, boolean instrumental) {  // nhận 2 tham số
+private String createJob(String prompt, boolean instrumental) {
     HttpHeaders headers = new HttpHeaders();
     headers.set("Authorization", "Bearer " + apiKey);
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -36,7 +36,7 @@ private String createJob(String prompt, boolean instrumental) {  // nhận 2 tha
           "gpt_description_prompt": "%s",
           "make_instrumental": %b
         }
-        """, prompt.replace("\"", "'"), instrumental);  // dùng %b cho boolean
+        """, prompt.replace("\"", "'"), instrumental);
 
     ResponseEntity<Map> response = restTemplate.postForEntity(
         BASE_URL + "/api/v1/sonic/create",

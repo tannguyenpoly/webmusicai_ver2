@@ -14,28 +14,41 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		http.csrf(csrf -> csrf.disable());
-		http.cors(cors -> cors.disable());
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable());
+        http.cors(cors -> cors.disable());
 
-		http.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**",
-				"/api/songs/public",
-				"/api/songs/generate",
-				"/api/songs/**",
-				"/api/users/**"
-		).permitAll().requestMatchers("/api/admin/**").hasRole("ADMIN").anyRequest().authenticated());
+        http.authorizeHttpRequests(auth -> auth
+                // 1. MỞ KHÓA VIEW GIAO DIỆN (Của bạn Thiện): Cho phép vào xem các trang web và file tĩnh công khai
+                .requestMatchers("/", "/index.html", "/login", "/register", "/js/**", "/css/**", "/images/**", "/favicon.ico").permitAll()
 
-		return http.build();
-	}
+                // 2. MỞ KHÓA API BACKEND (Giữ nguyên gốc cấu hình ban đầu của nhóm để không lỗi AuthController)
+                .requestMatchers("/api/auth/**",
+                        "/api/songs/public",
+                        "/api/songs/generate",
+                        "/api/songs/**",
+                        "/api/users/**"
+                ).permitAll()
 
-	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-		return config.getAuthenticationManager();
-	}
+                // 3. PHÂN QUYỀN TRANG ADMIN
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+                // Các liên kết khác bắt buộc đăng nhập
+                .anyRequest().authenticated()
+        );
+
+        return http.build();
+    }
+
+    // Bean cốt lõi cung cấp quyền cho AuthController xử lý token - KHÔNG ĐƯỢC XÓA DÒNG NÀY
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }

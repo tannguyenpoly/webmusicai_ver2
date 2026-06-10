@@ -27,13 +27,11 @@ public class SongRestController {
 	@Autowired
 	MusicGeneratorService musicService;
 
-	// 1. API lấy nhạc cho Trang Chủ (Chỉ lấy bài Public)
 	@GetMapping("/public")
 	public ResponseEntity<List<Song>> getPublicSongs() {
 		return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
 	}
 
-	// 2. API Yêu cầu AI Tạo Nhạc
 	@PostMapping("/generate")
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
 		String username = requestData.get("username");
