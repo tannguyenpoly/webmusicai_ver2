@@ -1,54 +1,49 @@
 package com.fpoly.webmusicai.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable());
-        http.cors(cors -> cors.disable());
+	@Autowired
+	private JwtFilter jwtFilter;
 
-        http.authorizeHttpRequests(auth -> auth
-                // 1. MỞ KHÓA VIEW GIAO DIỆN (Của bạn Thiện): Cho phép vào xem các trang web và file tĩnh công khai
-                .requestMatchers("/", "/index.html", "/login", "/register", "/js/**", "/css/**", "/images/**", "/favicon.ico").permitAll()
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http.csrf(csrf -> csrf.disable());
+		http.cors(cors -> cors.disable());
 
-                // 2. MỞ KHÓA API BACKEND (Giữ nguyên gốc cấu hình ban đầu của nhóm để không lỗi AuthController)
-                .requestMatchers("/api/auth/**",
-                        "/api/songs/public",
-                        "/api/songs/generate",
-                        "/api/songs/**",
-                        "/api/users/**"
-                ).permitAll()
+		// Dùng JWT → không cần session
+		http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-                // 3. PHÂN QUYỀN TRANG ADMIN
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+		http.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**", "/api/songs/public").permitAll()
+				.anyRequest().authenticated());
 
-                // Các liên kết khác bắt buộc đăng nhập
-                .anyRequest().authenticated()
-        );
+		// Thêm JWT filter trước filter xác thực mặc định
+		http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+		return http.build();
+	}
 
-    // Bean cốt lõi cung cấp quyền cho AuthController xử lý token - KHÔNG ĐƯỢC XÓA DÒNG NÀY
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+		return config.getAuthenticationManager();
+	}
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 }
