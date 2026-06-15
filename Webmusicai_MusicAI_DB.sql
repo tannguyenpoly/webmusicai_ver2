@@ -13,6 +13,30 @@ BEGIN
 END
 GO
 
+
+-- 1. Chuyển sang cơ sở dữ liệu master để tạo Login (tài khoản hệ thống)
+USE master;
+GO
+
+CREATE LOGIN dtbmusic WITH PASSWORD = '123456';
+GO
+
+-- 2. Chuyển sang cơ sở dữ liệu MusicAI_DB để tạo User và cấp quyền
+USE MusicAI_DB;
+GO
+
+-- Tạo User trong database liên kết với Login vừa tạo
+CREATE USER dtbmusic FOR LOGIN dtbmusic;
+GO
+
+-- Cấp quyền kết nối (truy cập) vào database
+GRANT CONNECT TO dtbmusic;
+
+-- Cấp quyền thêm, xóa, sửa và đọc dữ liệu (Toàn quyền thao tác dữ liệu)
+ALTER ROLE db_datareader ADD MEMBER dtbmusic; -- Quyền đọc dữ liệu (Select)
+ALTER ROLE db_datawriter ADD MEMBER dtbmusic; -- Quyền ghi dữ liệu (Insert, Update, Delete)
+GO
+
 -- =============================================
 -- 1. TẠO DATABASE VÀ CÁC BẢNG (TABLES)
 -- =============================================

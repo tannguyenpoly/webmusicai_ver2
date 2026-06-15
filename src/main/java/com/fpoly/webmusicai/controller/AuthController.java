@@ -12,11 +12,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import com.fpoly.webmusicai.config.JwtService;
 import com.fpoly.webmusicai.entity.Authority;
 import com.fpoly.webmusicai.entity.Role;
 import com.fpoly.webmusicai.entity.User;
-import com.fpoly.webmusicai.repository.AuthorityRepository; 
-import com.fpoly.webmusicai.repository.RoleRepository; 
+import com.fpoly.webmusicai.repository.AuthorityRepository;
+import com.fpoly.webmusicai.repository.RoleRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 import com.fpoly.webmusicai.service.MailService;
 
@@ -32,16 +33,20 @@ public class AuthController {
 	UserRepository userRepo;
 
 	@Autowired
-	RoleRepository roleRepo; // ← thêm dòng này
+	RoleRepository roleRepo;
 
 	@Autowired
-	AuthorityRepository authorityRepo; // ← thêm dòng này
+	AuthorityRepository authorityRepo;
 
 	@Autowired
 	MailService mailService;
 
 	@Autowired
 	PasswordEncoder passwordEncoder;
+
+	@Autowired
+	JwtService jwtService;
+
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
 		try {
@@ -53,12 +58,15 @@ public class AuthController {
 
 			User user = userRepo.findById(username).get();
 
+			// Sinh JWT token thật
+			String token = jwtService.generateToken(username);
+
 			Map<String, Object> response = new HashMap<>();
-			response.put("message", "Đăng nhập qua Spring Security chuẩn thành công!");
+			response.put("message", "Đăng nhập thành công!");
+			response.put("token", token); // ← token thật
 			response.put("username", user.getUsername());
 			response.put("fullname", user.getFullname());
 			response.put("token_balance", user.getTokenBalance());
-			response.put("token", "fake-jwt-token-123456");
 
 			return ResponseEntity.ok(response);
 
@@ -69,39 +77,37 @@ public class AuthController {
 
 	@PostMapping("/register")
 	public ResponseEntity<?> register(@RequestBody Map<String, String> data) {
-	    String username = data.get("username");
-	    String password = data.get("password");
-	    String fullname = data.get("fullname");
-	    String email    = data.get("email");
+		String username = data.get("username");
+		String password = data.get("password");
+		String fullname = data.get("fullname");
+		String email = data.get("email");
 
-	    // Kiểm tra username đã tồn tại chưa
-	    if (userRepo.existsById(username)) {
-	        return ResponseEntity.badRequest().body("Username đã tồn tại!");
-	    }
+		// Kiểm tra username đã tồn tại chưa
+		if (userRepo.existsById(username)) {
+			return ResponseEntity.badRequest().body("Username đã tồn tại!");
+		}
 
-	    // Tạo user mới
-	    User user = new User();
-	    user.setUsername(username);
-	    user.setPassword(passwordEncoder.encode(password));
-	    user.setFullname(fullname);
-	    user.setEmail(email);
-	    user.setTokenBalance(5); // tặng 5 token miễn phí
-	    user.setEnabled(true);
-	    userRepo.save(user);
+		// Tạo user mới
+		User user = new User();
+		user.setUsername(username);
+		user.setPassword(passwordEncoder.encode(password));
+		user.setFullname(fullname);
+		user.setEmail(email);
+		user.setTokenBalance(5); // tặng 5 token miễn phí
+		user.setEnabled(true);
+		userRepo.save(user);
 
-	    // Gán role USER
-	    Role role = roleRepo.findById("USER").orElseThrow();
-	    Authority authority = new Authority();
-	    authority.setUser(user);
-	    authority.setRole(role);
-	    authorityRepo.save(authority);
+		// Gán role USER
+		Role role = roleRepo.findById("USER").orElseThrow();
+		Authority authority = new Authority();
+		authority.setUser(user);
+		authority.setRole(role);
+		authorityRepo.save(authority);
 
 		// Gửi email chào mừng (bất đồng bộ, không ảnh hưởng response)
 		mailService.sendWelcomeEmail(email, fullname, username);
 
-	    return ResponseEntity.ok(Map.of(
-	        "message", "Đăng ký thành công! Kiểm tra email của bạn.",
-	        "username", username
-	    ));
+		return ResponseEntity
+				.ok(Map.of("message", "Đăng ký thành công! Kiểm tra email của bạn.", "username", username));
 	}
 }

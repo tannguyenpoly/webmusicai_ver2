@@ -4,6 +4,8 @@ import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import com.fpoly.webmusicai.entity.*;
@@ -27,24 +29,20 @@ public class SongRestController {
 	@Autowired
 	MusicGeneratorService musicService;
 
-	// 1. API lấy nhạc cho Trang Chủ (Chỉ lấy bài Public)
 	@GetMapping("/public")
 	public ResponseEntity<List<Song>> getPublicSongs() {
 		return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
 	}
 
-	// 2. API Yêu cầu AI Tạo Nhạc
 	@PostMapping("/generate")
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
-		String username = requestData.get("username");
+
+		// ← Lấy username từ JWT token thay vì từ Body
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String username = auth.getName();
+
 		String prompt = requestData.get("prompt");
-		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true")); // ← dùng
-																												// final,
-																												// tên
-																												// khác
-																												// để
-																												// tránh
-																												// conflict
+		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true"));
 
 		Optional<User> userOpt = userRepo.findById(username);
 		if (!userOpt.isPresent())
@@ -73,7 +71,7 @@ public class SongRestController {
 
 		new Thread(() -> {
 			try {
-				String audioUrl = musicService.generateMusic(prompt, isInstrumental); // ← dùng isInstrumental
+				String audioUrl = musicService.generateMusic(prompt, isInstrumental);
 				song.setAudioUrl(audioUrl);
 				song.setStatus("COMPLETED");
 				songRepo.save(song);
@@ -93,15 +91,31 @@ public class SongRestController {
 
 	@GetMapping("/{id}/status")
 	public ResponseEntity<?> getSongStatus(@PathVariable Integer id) {
-		System.out.println("=== GỌI STATUS id=" + id + " ===");
-
 		return songRepo.findById(id).map(song -> {
-			System.out.println("Tìm thấy song: " + song.getStatus());
 			Map<String, Object> result = new HashMap<>();
 			result.put("id", song.getId());
-			result.put("status", song.getStatus());
-			result.put("audio_url", song.getAudioUrl());
 			result.put("title", song.getTitle());
+			result.put("prompt", song.getPrompt());
+			result.put("status", song.getStatus());
+			result.put("created_at", song.getCreatedAt());
+
+			switch (song.getStatus()) {
+			case "COMPLETED" -> {
+				result.put("message", " Nhạc đã sẵn sàng!");
+				result.put("audio_url", song.getAudioUrl());
+				result.put("is_public", song.getIsPublic());
+			}
+			case "PENDING" -> {
+				result.put("message", " Đang xử lý, vui lòng chờ...");
+			}
+			case "FAILED" -> {
+				result.put("message", " Gen nhạc thất bại, vui lòng thử lại.");
+			}
+			default -> {
+				result.put("message", "Trạng thái không xác định");
+			}
+			}
+
 			return ResponseEntity.ok(result);
 		}).orElse(ResponseEntity.notFound().build());
 	}

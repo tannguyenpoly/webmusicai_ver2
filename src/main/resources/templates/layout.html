@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="dynamic(view)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicAI - Sáng Tạo Giai Điều Việt</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        [v-cloak] { display: none !important; }
+
+        /* ĐỊNH NGHĨA BIẾN MÀU SẮC TOÀN CỤC CHO KHUNG HỆ THỐNG */
+        :root {
+            /* Mặc định: DARK MODE (Trùng khớp mã màu trang Login sâu) */
+            --bg-gradient: radial-gradient(circle at top right, #112211, #0a0f0d, #050508);
+            --text-color: #ffffff;
+            --card-bg: #111612;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --table-hover: rgba(255, 255, 255, 0.02);
+            --btn-outline-guest: rgba(255, 255, 255, 0.4);
+            --btn-outline-guest-hover: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            /* Khi kích hoạt: LIGHT MODE */
+            --bg-gradient: linear-gradient(135deg, #f4f7f5, #e8ebe9);
+            --text-color: #1a1a1a;
+            --card-bg: #ffffff;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --text-muted: rgba(0, 0, 0, 0.5);
+            --table-hover: rgba(0, 0, 0, 0.02);
+            --btn-outline-guest: rgba(0, 0, 0, 0.4);
+            --btn-outline-guest-hover: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background: var(--bg-gradient) !important;
+            color: var(--text-color) !important;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        #app { display: flex; flex-direction: column; flex: 1; }
+        main.container { flex: 1; position: relative; z-index: 1; }
+
+        /* ĐỒNG BỘ CSS CARD THEO HỆ BIẾN ĐỘNG */
+        .glass-panel, .card {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 20px !important;
+            color: var(--text-color) !important;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .text-muted-sync { color: var(--text-muted) !important; }
+
+        /* Tùy biến thanh cuộn siêu mảnh */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(22, 163, 74, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #16a34a; }
+
+        /* Đồng bộ thông báo SweetAlert2 theo giao diện */
+        .swal2-popup {
+            background: var(--card-bg) !important;
+            color: var(--text-color) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 16px !important;
+        }
+        .swal2-title, .swal2-html-container { color: var(--text-color) !important; }
+
+        /* Thiết kế nút công tắc chuyển chế độ hình tròn công nghệ */
+        .theme-toggle-btn {
+            background: rgba(22, 163, 74, 0.1);
+            color: #16a34a;
+            border: 1px solid rgba(22, 163, 74, 0.25);
+            border-radius: 50%;
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .theme-toggle-btn:hover {
+            background: #16a34a; color: #fff;
+        }
+
+        /* CSS Tùy biến cho nút Đăng ký thích ứng màu chữ theo Theme */
+        .btn-register-sync {
+            color: var(--text-color) !important;
+            border: 1px solid var(--btn-outline-guest) !important;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-register-sync:hover {
+            background-color: var(--btn-outline-guest-hover) !important;
+        }
+    </style>
+
+    <script>
+        const savedTheme = localStorage.getItem('music_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+
+<div id="app">
+    <header class="navbar navbar-expand-lg navbar-dark shadow-sm sticky-top mb-4"
+            style="background: var(--card-bg) !important; border-bottom: 1px solid var(--border-color); transition: background 0.3s;">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-white d-flex align-items-center" href="/" style="color: var(--text-color) !important;">
+                <i class="ti ti-wand text-success me-2" style="filter: drop-shadow(0 0 5px #16a34a);"></i>
+                <span style="color: var(--text-color) !important;">Music<span class="text-success">AI</span></span>
+            </a>
+
+            <div class="d-flex align-items-center ms-auto">
+                <button @click="toggleTheme" class="theme-toggle-btn me-3" title="Chuyển chế độ sáng/tối">
+                    <i :class="isDarkMode ? 'ti ti-moon' : 'ti ti-sun'"></i>
+                </button>
+
+                <div class="d-flex align-items-center" v-cloak>
+                    <template v-if="currentUser !== null">
+                        <div class="px-3 py-1.5 rounded-pill me-3 small" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);">
+                            <i class="ti ti-user text-success me-1"></i> <span class="fw-medium">{{ currentUser }}</span>
+                        </div>
+                        <button @click="handleLogout" class="btn btn-sm btn-outline-danger py-1 px-3" style="border-radius: 20px;">Đăng xuất</button>
+                    </template>
+
+                    <template v-if="currentUser === null">
+                        <a href="/register" class="btn btn-sm btn-register-sync px-3 py-1.5 me-2 text-decoration-none">Đăng ký</a>
+                        <a href="/login" class="btn btn-sm btn-success px-3 py-1.5 fw-medium" style="background: #16a34a; border: 0; border-radius: 10px;">Đăng nhập</a>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div th:replace="${view}"></div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</div>
+
+<script th:src="@{/js/main.js}"></script>
+</body>
+</html>
