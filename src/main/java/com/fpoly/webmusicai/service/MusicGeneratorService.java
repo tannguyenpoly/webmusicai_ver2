@@ -25,85 +25,102 @@ public class MusicGeneratorService {
 	}
 
 	private String createJob(String prompt, boolean instrumental) {
-	    HttpHeaders headers = new HttpHeaders();
-	    headers.set("Authorization", "Bearer " + apiKey);
-	    headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Authorization", "Bearer " + apiKey);
+		headers.setContentType(MediaType.APPLICATION_JSON);
 
-	    String body = String.format("""
-	            {
-	              "custom_mode": false,
-	              "mv": "sonic-v4",
-	              "gpt_description_prompt": "%s",
-	              "make_instrumental": %b
-	            }
-	            """, prompt.replace("\"", "'"), instrumental);
+		String body = String.format("""
+				{
+				  "custom_mode": false,
+				  "mv": "sonic-v4",
+				  "gpt_description_prompt": "%s",
+				  "make_instrumental": %b
+				}
+				""", prompt.replace("\"", "'"), instrumental);
 
-	    ResponseEntity<Map> response;
+		ResponseEntity<Map> response;
 
-	    try {
-	        response = restTemplate.postForEntity(
-	                BASE_URL + "/api/v1/sonic/create",
-	                new HttpEntity<>(body, headers),
-	                Map.class);
+		try {
+			response = restTemplate.postForEntity(BASE_URL + "/api/v1/sonic/create", new HttpEntity<>(body, headers),
+					Map.class);
 
-	    } catch (HttpClientErrorException e) {
+		} catch (HttpClientErrorException e) {
 
-	        String responseBody = e.getResponseBodyAsString();
+			String responseBody = e.getResponseBodyAsString();
 
-	        if (responseBody.contains("not enough")) {
-	            throw new RuntimeException(
-	                    "HẾT CREDITS! Vui lòng nạp thêm tại musicapi.ai");
-	        }
+			if (responseBody.contains("not enough")) {
+				throw new RuntimeException("HẾT CREDITS! Vui lòng nạp thêm tại musicapi.ai");
+			}
 
-	        throw new RuntimeException("Lỗi API: " + e.getMessage());
-	    }
+			throw new RuntimeException("Lỗi API: " + e.getMessage());
+		}
 
-	    Map responseBody = response.getBody();
+		Map responseBody = response.getBody();
 
-	    if (responseBody == null || responseBody.get("task_id") == null) {
-	        throw new RuntimeException("Không tạo được job: " + responseBody);
-	    }
+		if (responseBody == null || responseBody.get("task_id") == null) {
+			throw new RuntimeException("Không tạo được job: " + responseBody);
+		}
 
-	    String taskId = (String) responseBody.get("task_id");
+		String taskId = (String) responseBody.get("task_id");
 
-	    log.info("Tạo job thành công, task_id: {}", taskId);
+		log.info("Tạo job thành công, task_id: {}", taskId);
 
-	    return taskId;
+		return taskId;
 	}
 
 	private String waitForAudioUrl(String taskId) {
+
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Bearer " + apiKey);
+
 		HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-		for (int i = 0; i < 36; i++) {
+		for (int i = 0; i < 40; i++) {
+
 			try {
-				Thread.sleep(5000);
+
+				Thread.sleep(8000);
 
 				ResponseEntity<Map> response = restTemplate.exchange(BASE_URL + "/api/v1/sonic/task/" + taskId,
 						HttpMethod.GET, entity, Map.class);
 
 				Map result = response.getBody();
-				if (result == null || "not_ready".equals(result.get("type")))
+
+				if (result == null) {
 					continue;
+				}
 
 				List<Map> dataList = (List<Map>) result.get("data");
-				if (dataList == null)
+
+				if (dataList == null || dataList.isEmpty()) {
 					continue;
+				}
 
 				for (Map clip : dataList) {
-					if ("succeeded".equals(clip.get("state"))) {
-						String audioUrl = (String) clip.get("audio_url");
-						log.info("Gen nhạc xong! URL: {}", audioUrl);
+
+					String state = String.valueOf(clip.get("state"));
+
+					log.info("Music state: {}", state);
+
+					if ("succeeded".equals(state)) {
+
+						String audioUrl = String.valueOf(clip.get("audio_url"));
+
 						return audioUrl;
+					}
+
+					if ("failed".equals(state)) {
+						throw new RuntimeException("Gen nhạc thất bại từ API");
 					}
 				}
 
 			} catch (InterruptedException e) {
+
 				Thread.currentThread().interrupt();
-				throw new RuntimeException("Bị ngắt");
+				throw new RuntimeException("Thread interrupted");
 			}
 		}
-		throw new RuntimeException("Timeout: gen nhạc quá 3 phút");
+
+		throw new RuntimeException("Timeout khi gen nhạc");
 	}
 }

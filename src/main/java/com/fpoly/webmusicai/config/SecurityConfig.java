@@ -28,9 +28,14 @@ public class SecurityConfig {
 		// Dùng JWT → không cần session
 		http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-		http.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**", "/api/songs/public").permitAll()
-				.anyRequest().authenticated());
+		http.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**", "/api/auth/**",
 
+						"/api/songs/public", "/api/songs/generate", "/api/songs/**"
+
+				).permitAll()
+
+				.anyRequest().authenticated());
 		// Thêm JWT filter trước filter xác thực mặc định
 		http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
