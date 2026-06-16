@@ -4,8 +4,10 @@ import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
 import com.fpoly.webmusicai.entity.*;
 import com.fpoly.webmusicai.repository.*;
 import com.fpoly.webmusicai.service.MusicGeneratorService;
@@ -32,9 +34,10 @@ public class SongRestController {
 		return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
 	}
 
+	@Transactional(rollbackFor = Exception.class)
 	@PostMapping("/generate")
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
-		String username = requestData.get("username");
+		String username = SecurityContextHolder.getContext().getAuthentication().getName();
 		String prompt = requestData.get("prompt");
 		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true")); // ← dùng
 																												// final,

@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.transaction.annotation.Transactional;
 import com.fpoly.webmusicai.entity.ChangePasswordRequest;
 import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.entity.Transaction;
@@ -75,6 +76,11 @@ public class UserRestController {
 
     @GetMapping("/{username}/profile")
     public ResponseEntity<?> getProfile(@PathVariable String username) {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!username.equals(currentUsername) && SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().noneMatch(a -> a.getAuthority().contains("ADMIN"))) {
+            return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
+        }
+
         Optional<User> userOpt = userRepo.findById(username);
         if (!userOpt.isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Không tìm thấy người dùng!"));
@@ -94,6 +100,11 @@ public class UserRestController {
             @PathVariable String username,
             @Valid @RequestBody UpdateProfileRequest request,
             BindingResult bindingResult) {
+
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!username.equals(currentUsername)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
+        }
 
         if (bindingResult.hasErrors()) {
             Map<String, String> errors = new HashMap<>();
@@ -125,6 +136,11 @@ public class UserRestController {
             @Valid @RequestBody ChangePasswordRequest request,
             BindingResult bindingResult) {
 
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!username.equals(currentUsername)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
+        }
+
         if (bindingResult.hasErrors()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng nhập đầy đủ thông tin!"));
         }
@@ -135,9 +151,9 @@ public class UserRestController {
         }
 
         User user = userOpt.get();
-        String currentPassword = user.getPassword().replace("{noop}", "");
+        String currentPassword = user.getPassword();
 
-        if (!passwordEncoder.matches(request.getOldPassword(), currentPassword) && !request.getOldPassword().equals(currentPassword)) {
+        if (!passwordEncoder.matches(request.getOldPassword(), currentPassword)) {
             return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu cũ không chính xác!"));
         }
 
@@ -153,6 +169,11 @@ public class UserRestController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!username.equals(currentUsername)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
+        }
+
         Pageable pageable = PageRequest.of(page, size);
         Page<Song> songPage = songRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
         return ResponseEntity.ok(songPage);
@@ -164,15 +185,25 @@ public class UserRestController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!username.equals(currentUsername)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
+        }
+
         Pageable pageable = PageRequest.of(page, size);
         Page<Transaction> transPage = transRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
         return ResponseEntity.ok(transPage);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/{username}/deposit")
     public ResponseEntity<?> depositToken(
             @PathVariable String username,
             @RequestBody Map<String, Integer> request) {
+
+        if (SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().noneMatch(a -> a.getAuthority().contains("ADMIN"))) {
+            return ResponseEntity.status(403).body(Map.of("message", "Không có quyền thực hiện!"));
+        }
 
         Optional<User> userOpt = userRepo.findById(username);
         if (!userOpt.isPresent()) {

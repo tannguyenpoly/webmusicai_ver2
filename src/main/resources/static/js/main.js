@@ -32,7 +32,23 @@ new Vue({
             confirmPassword: ''
         },
         filters: { keyword: '' },
-        pollingTimer: null
+        pollingTimer: null,
+
+        // Trạng thái hiển thị modal và dữ liệu form Hồ sơ
+        profileModalTab: 'info', // 'info' hoặc 'password'
+        showProfileModal: false,
+        profileForm: {
+            fullname: '',
+            email: '',
+            photo: ''
+        },
+
+        // Form đổi mật khẩu
+        changePasswordForm: {
+            oldPassword: '',
+            newPassword: '',
+            confirmNewPassword: ''
+        }
     },
     computed: {
         filteredSongs() {
@@ -61,32 +77,26 @@ new Vue({
             }
         });
 
-        const savedUser = localStorage.getItem('music_username');
-
-        if (savedUser && savedUser.trim() !== '') {
-            this.currentUser = savedUser;
-            this.generationForm.username = savedUser;
-            this.loadUserTokenBalance(savedUser);
-        } else {
-            axios.get('/api/users/auth-session')
-                .then(response => {
-                    if (response.data && response.data.username) {
-                        const loggedUser = response.data.username;
-                        this.currentUser = loggedUser;
-                        this.generationForm.username = loggedUser;
-                        this.userTokens = response.data.token_balance;
-                        localStorage.setItem('music_username', loggedUser);
-                    } else {
-                        this.currentUser = null;
-                    }
-                })
-                .catch(() => {
-                    this.currentUser = null;
-                });
-        }
-
-        this.loadPublicSongs();
-        this.loadSessionPlaylist();
+        // Luôn kiểm tra session backend làm nguồn tin cậy duy nhất khi tải trang
+        axios.get('/api/users/auth-session')
+            .then(response => {
+                // Người dùng đã đăng nhập
+                const userData = response.data;
+                this.currentUser = userData.username;
+                this.generationForm.username = userData.username;
+                this.userTokens = userData.token_balance;
+                localStorage.setItem('music_username', userData.username); // Đồng bộ lại localStorage
+            })
+            .catch(() => {
+                // Người dùng chưa đăng nhập hoặc session hết hạn
+                this.currentUser = null;
+                localStorage.removeItem('music_username'); // Dọn dẹp localStorage cũ
+            })
+            .finally(() => {
+                // Tải các tài nguyên công khai sau khi đã xác định trạng thái đăng nhập
+                this.loadPublicSongs();
+                this.loadSessionPlaylist();
+            });
     },
     methods: {
         // HÀM CHUYỂN ĐỔI CHẾ ĐỘ SÁNG / TỐI ĐỒNG BỘ TOÀN HỆ THỐNG
@@ -95,18 +105,6 @@ new Vue({
             const currentTheme = this.isDarkMode ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', currentTheme);
             localStorage.setItem('music_theme', currentTheme);
-        },
-
-        loadUserTokenBalance(username) {
-            axios.get(`/api/users/${username}/profile`)
-                .then(response => {
-                    if (response.data && response.data.token_balance !== undefined) {
-                        this.userTokens = response.data.token_balance;
-                    }
-                })
-                .catch(error => {
-                    console.error("Lỗi đồng bộ dữ liệu token cá nhân:", error);
-                });
         },
 
         loadPublicSongs() {
@@ -311,7 +309,19 @@ new Vue({
                 });
         },
 
-        handleLogout() {
+        handleLogout(showConfirm = true) {
+            if (!showConfirm) {
+                // Ép đăng xuất ngay lập tức không cần hỏi (Dùng sau khi đổi mật khẩu)
+                axios.post('/logout').finally(() => {
+                    localStorage.removeItem('music_username');
+                    this.currentUser = null;
+                    this.userTokens = 0;
+                    this.generationForm.username = '';
+                    window.location.href = '/'; 
+                });
+                return;
+            }
+
             Swal.fire({
                 title: 'Xác nhận đăng xuất?',
                 text: "Hệ thống sẽ ngắt kết nối với tài khoản hiện tại.",
@@ -323,13 +333,89 @@ new Vue({
                 cancelButtonText: 'Hủy'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    localStorage.removeItem('music_username');
-                    this.currentUser = null;
-                    this.userTokens = 0;
-                    this.generationForm.username = '';
-                    window.location.href = '/';
+                    // Gọi API logout của Spring Security để hủy session phía backend
+                    axios.post('/logout').finally(() => {
+                        // Dọn dẹp localStorage và trạng thái Vue sau khi gọi API
+                        localStorage.removeItem('music_username');
+                        this.currentUser = null;
+                        this.userTokens = 0;
+                        this.generationForm.username = '';
+                        window.location.href = '/'; // Tải lại trang chủ
+                    });
                 }
             });
+        },
+
+        // --- CÁC HÀM QUẢN LÝ HỒ SƠ CÁ NHÂN ---
+        openProfileModal() {
+            // Reset về trạng thái mặc định mỗi khi mở
+            this.profileModalTab = 'info';
+            this.changePasswordForm = { oldPassword: '', newPassword: '', confirmNewPassword: '' };
+
+            if (!this.currentUser) return;
+            axios.get(`/api/users/${this.currentUser}/profile`)
+                .then(response => {
+                    const data = response.data;
+                    this.profileForm.fullname = data.fullname || '';
+                    this.profileForm.email = data.email || '';
+                    this.profileForm.photo = data.photo || '';
+                    this.showProfileModal = true;
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải thông tin cá nhân' });
+                });
+        },
+
+        closeProfileModal() {
+            this.showProfileModal = false;
+        },
+
+        submitUpdateProfile() {
+            axios.put(`/api/users/${this.currentUser}/profile`, this.profileForm)
+                .then(response => {
+                    this.Toast.fire({ icon: 'success', title: 'Cập nhật hồ sơ thành công!' });
+                    this.showProfileModal = false;
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cập nhật thất bại',
+                        text: error.response && error.response.data ? (error.response.data.message || 'Lỗi dữ liệu') : 'Vui lòng kiểm tra lại thông tin.'
+                    });
+                });
+        },
+
+        submitChangePassword() {
+            if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmNewPassword) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu mới và mật khẩu xác nhận không trùng khớp!' });
+                return;
+            }
+
+            const payload = {
+                oldPassword: this.changePasswordForm.oldPassword,
+                newPassword: this.changePasswordForm.newPassword
+            };
+
+            axios.put(`/api/users/${this.currentUser}/change-password`, payload)
+                .then(response => {
+                    this.showProfileModal = false; // Đóng popup modal ngay lập tức
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.',
+                        confirmButtonColor: '#16a34a'
+                    }).then(() => {
+                        // Gọi logout để xóa session và yêu cầu đăng nhập lại
+                        this.handleLogout(false); // false để không hiện popup hỏi
+                    });
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Đổi mật khẩu thất bại',
+                        text: error.response && error.response.data ? error.response.data.message : 'Đã có lỗi xảy ra.'
+                    });
+                });
         }
     }
 });
