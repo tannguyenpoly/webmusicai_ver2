@@ -19,9 +19,9 @@ public class MusicGeneratorService {
 	private final RestTemplate restTemplate = new RestTemplate();
 	private final String BASE_URL = "https://api.musicapi.ai";
 
-	public String generateMusic(String prompt, boolean instrumental) {
+	public Map generateMusic(String prompt, boolean instrumental) {
 		String taskId = createJob(prompt, instrumental);
-		return waitForAudioUrl(taskId);
+		return waitForResult(taskId);
 	}
 
 	private String createJob(String prompt, boolean instrumental) {
@@ -68,59 +68,36 @@ public class MusicGeneratorService {
 		return taskId;
 	}
 
-	private String waitForAudioUrl(String taskId) {
-
+	private Map waitForResult(String taskId) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.set("Authorization", "Bearer " + apiKey);
-
 		HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-		for (int i = 0; i < 40; i++) {
-
+		for (int i = 0; i < 36; i++) {
 			try {
-
-				Thread.sleep(8000);
-
+				Thread.sleep(5000);
 				ResponseEntity<Map> response = restTemplate.exchange(BASE_URL + "/api/v1/sonic/task/" + taskId,
 						HttpMethod.GET, entity, Map.class);
-
 				Map result = response.getBody();
-
-				if (result == null) {
+				if (result == null || "not_ready".equals(result.get("type")))
 					continue;
-				}
 
 				List<Map> dataList = (List<Map>) result.get("data");
-
-				if (dataList == null || dataList.isEmpty()) {
+				if (dataList == null)
 					continue;
-				}
 
 				for (Map clip : dataList) {
-
-					String state = String.valueOf(clip.get("state"));
-
-					log.info("Music state: {}", state);
-
-					if ("succeeded".equals(state)) {
-
-						String audioUrl = String.valueOf(clip.get("audio_url"));
-
-						return audioUrl;
-					}
-
-					if ("failed".equals(state)) {
-						throw new RuntimeException("Gen nhạc thất bại từ API");
+					if ("succeeded".equals(clip.get("state"))) {
+						log.info("Gen xong! Title: {}, URL: {}", clip.get("title"), clip.get("audio_url"));
+						return clip; // có cả title + audio_url
 					}
 				}
-
 			} catch (InterruptedException e) {
-
 				Thread.currentThread().interrupt();
-				throw new RuntimeException("Thread interrupted");
+				throw new RuntimeException("Bị ngắt");
 			}
 		}
-
-		throw new RuntimeException("Timeout khi gen nhạc");
+		throw new RuntimeException("Timeout sau 3 phút");
 	}
+
 }
