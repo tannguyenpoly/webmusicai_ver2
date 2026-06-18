@@ -1,15 +1,30 @@
 package com.fpoly.webmusicai.controller;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.fpoly.webmusicai.entity.*;
-import com.fpoly.webmusicai.repository.*;
+import com.fpoly.webmusicai.entity.Song;
+import com.fpoly.webmusicai.entity.Transaction;
+import com.fpoly.webmusicai.entity.User;
+import com.fpoly.webmusicai.repository.SongRepository;
+import com.fpoly.webmusicai.repository.TransactionRepository;
+import com.fpoly.webmusicai.repository.UserRepository;
 import com.fpoly.webmusicai.service.MusicGeneratorService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -34,13 +49,11 @@ public class SongRestController {
 		return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
 	}
 
+	@Transactional(rollbackFor = Exception.class)
 	@PostMapping("/generate")
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
-
-		// ← Lấy username từ JWT token thay vì từ Body
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		String username = auth.getName();
-
+		// Sử dụng cú pháp gọn gàng của Hòa
+				String username = SecurityContextHolder.getContext().getAuthentication().getName();
 		String prompt = requestData.get("prompt");
 		String title = requestData.get("title");
 		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true"));
