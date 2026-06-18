@@ -42,6 +42,7 @@ public class SongRestController {
 		String username = auth.getName();
 
 		String prompt = requestData.get("prompt");
+		String title = requestData.get("title");
 		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true"));
 
 		Optional<User> userOpt = userRepo.findById(username);
@@ -62,7 +63,7 @@ public class SongRestController {
 		transRepo.save(trans);
 
 		Song song = new Song();
-		song.setTitle("AI Song - " + new Date().getTime());
+		song.setTitle(title != null && !title.isBlank() ? title : "Đang tạo...");
 		song.setPrompt(prompt);
 		song.setStatus("PENDING");
 		song.setIsPublic(false);
@@ -71,8 +72,8 @@ public class SongRestController {
 
 		new Thread(() -> {
 			try {
-				String audioUrl = musicService.generateMusic(prompt, isInstrumental);
-				song.setAudioUrl(audioUrl);
+				Map audioUrl = musicService.generateMusic(prompt, isInstrumental);
+				song.setAudioUrl(title);
 				song.setStatus("COMPLETED");
 				songRepo.save(song);
 			} catch (Exception e) {
@@ -91,7 +92,19 @@ public class SongRestController {
 
 	@GetMapping("/{id}/status")
 	public ResponseEntity<?> getSongStatus(@PathVariable Integer id) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String currentUser = auth.getName();
+
 		return songRepo.findById(id).map(song -> {
+			boolean isOwner = song.getUser().getUsername().equals(currentUser);
+			boolean isPublic = song.getIsPublic();
+			boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+			if (!isOwner && !isAdmin) {
+				return ResponseEntity.status(403).body("Bạn không có quyền xem bài nhạc này!");
+			}
+			if (!isPublic && !isOwner && !isAdmin) {
+				return ResponseEntity.status(403).body("Bạn không có quyền xem bài nhạc này!");
+			}
 			Map<String, Object> result = new HashMap<>();
 			result.put("id", song.getId());
 			result.put("title", song.getTitle());
@@ -117,6 +130,59 @@ public class SongRestController {
 			}
 
 			return ResponseEntity.ok(result);
+		}).orElse(ResponseEntity.notFound().build());
+	}
+
+	@PutMapping("/{id}/setting")
+	public ResponseEntity<?> renameSong(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth == null || !auth.isAuthenticated()) {
+			return ResponseEntity.status(401).body("Vui lòng đăng nhập!");
+		}
+		String username = auth.getName();
+
+		return songRepo.findById(id).map(song -> {
+			// Chỉ chủ bài nhạc mới được sửa
+			if (!song.getUser().getUsername().equals(username)) {
+				return ResponseEntity.status(403).body("Bạn không có quyền sửa bài nhạc này!");
+			}
+
+			Map<String, Object> changes = new HashMap<>();
+
+			// Đổi tên (nếu có gửi "title")
+			if (body.containsKey("title")) {
+				String newTitle = (String) body.get("title");
+				if (newTitle == null || newTitle.isBlank()) {
+					return ResponseEntity.badRequest().body("Tên bài nhạc không được để trống!");
+				}
+				String oldTitle = song.getTitle();
+				song.setTitle(newTitle.trim());
+				changes.put("old_title", oldTitle);
+				changes.put("new_title", song.getTitle());
+			}
+
+			// Đổi trạng thái public/private (nếu có gửi "is_public")
+			if (body.containsKey("is_public")) {
+				// Chỉ cho public khi bài đã COMPLETED
+				if (!"COMPLETED".equals(song.getStatus())) {
+					return ResponseEntity.badRequest().body("Chỉ có thể public bài nhạc đã hoàn thành!");
+				}
+				boolean newIsPublic = Boolean.parseBoolean(body.get("is_public").toString());
+				song.setIsPublic(newIsPublic);
+				changes.put("is_public", newIsPublic);
+			}
+
+			songRepo.save(song);
+			log.info("User {} cập nhật bài {}: {}", username, id, changes);
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("message", "Cập nhật thành công!");
+			response.put("id", song.getId());
+			response.putAll(changes);
+
+			return ResponseEntity.ok(response);
+
 		}).orElse(ResponseEntity.notFound().build());
 	}
 }
