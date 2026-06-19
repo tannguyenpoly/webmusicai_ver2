@@ -15,20 +15,28 @@ import com.fpoly.webmusicai.entity.Song;
 import jakarta.transaction.Transactional;
 
 public interface SongRepository extends JpaRepository<Song, Integer> {
-    
-    List<Song> findByIsPublicTrueOrderByCreatedAtDesc();
-    
-    List<Song> findByUserUsernameOrderByCreatedAtDesc(String username);
-    
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM Song s WHERE s.status = 'FAILED' AND s.createdAt < :cutoff")
-    void deleteOldFailedSongs(@Param("cutoff") Date cutoff);
 
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM Song s WHERE s.status = 'PENDING' AND s.createdAt < :cutoff")
-    void deleteStuckPendingSongs(@Param("cutoff") Date cutoff);
-    
-    Page<Song> findByUserUsernameOrderByCreatedAtDesc(String username, Pageable pageable);
+	List<Song> findByIsPublicTrueOrderByCreatedAtDesc();
+
+	List<Song> findByUserUsernameOrderByCreatedAtDesc(String username);
+
+	Page<Song> findByUserUsernameOrderByCreatedAtDesc(String username, Pageable pageable);
+
+	long countByStatus(String status);
+
+	long countByIsPublicTrue();
+
+	Page<Song> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
+
+	List<Song> findByParentIdOrderByCreatedAtDesc(Integer parentId);
+
+	@Modifying
+	@Transactional
+	@Query("DELETE FROM Song s WHERE s.status = 'FAILED' AND s.createdAt < :cutoff")
+	void deleteOldFailedSongs(@Param("cutoff") Date cutoff);
+
+	@Modifying
+	@Transactional
+	@Query("DELETE FROM Song s WHERE s.status = 'PENDING' AND s.createdAt < :cutoff")
+	void deleteStuckPendingSongs(@Param("cutoff") Date cutoff);
 }
