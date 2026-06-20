@@ -1,4 +1,4 @@
-﻿-- =============================================
+﻿﻿-- =============================================
 -- 0. XÓA DATABASE CŨ (NẾU CÓ) ĐỂ LÀM LẠI TỪ ĐẦU
 -- =============================================
 USE master;
@@ -374,3 +374,4 @@ SELECT * FROM Favorites;
 SELECT * FROM Song_Comments;
 SELECT * FROM Follows;
 SELECT * FROM Notifications;
+ALTER TABLE Songs ADD image_url VARCHAR(500) NULL;

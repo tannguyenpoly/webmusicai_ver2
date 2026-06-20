@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,9 +20,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fpoly.webmusicai.entity.Favorite;
 import com.fpoly.webmusicai.entity.Song;
+import com.fpoly.webmusicai.entity.SongComment;
 import com.fpoly.webmusicai.entity.Transaction;
 import com.fpoly.webmusicai.entity.User;
+import com.fpoly.webmusicai.repository.FavoriteRepository;
+import com.fpoly.webmusicai.repository.SongCommentRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.TransactionRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
@@ -34,7 +39,12 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/songs")
 public class SongRestController {
+	// Đổi autowired
+	@Autowired
+	FavoriteRepository favoriteRepo; // ← đổi tên biến
 
+	@Autowired
+	SongCommentRepository commentRepo;
 	@Autowired
 	SongRepository songRepo;
 	@Autowired
@@ -53,7 +63,7 @@ public class SongRestController {
 	@PostMapping("/generate")
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
 		// Sử dụng cú pháp gọn gàng của Hòa
-				String username = SecurityContextHolder.getContext().getAuthentication().getName();
+		String username = SecurityContextHolder.getContext().getAuthentication().getName();
 		String prompt = requestData.get("prompt");
 		String title = requestData.get("title");
 		final boolean isInstrumental = Boolean.parseBoolean(requestData.getOrDefault("instrumental", "true"));
@@ -197,5 +207,186 @@ public class SongRestController {
 			return ResponseEntity.ok(response);
 
 		}).orElse(ResponseEntity.notFound().build());
+	}
+
+	@PostMapping("/{id}/like")
+	public ResponseEntity<?> toggleLike(@PathVariable Integer id) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String username = auth.getName();
+
+		return songRepo.findById(id).map(song -> {
+			boolean isOwner = song.getUser().getUsername().equals(username);
+			if (!song.getIsPublic() && !isOwner) {
+				return ResponseEntity.status(403).body(Map.of("message", "Không thể like bài nhạc riêng tư!"));
+			}
+
+			boolean alreadyLiked = favoriteRepo.existsByUserUsernameAndSongId(username, id);
+
+			if (alreadyLiked) {
+				favoriteRepo.deleteByUserUsernameAndSongId(username, id);
+				long totalLikes = favoriteRepo.countBySongId(id);
+				return ResponseEntity
+						.ok(Map.of("message", "Đã bỏ thích bài nhạc", "liked", false, "total_likes", totalLikes));
+			} else {
+				User user = userRepo.findById(username).orElseThrow();
+				Favorite fav = new Favorite();
+				fav.setUser(user);
+				fav.setSong(song);
+				favoriteRepo.save(fav);
+
+				long totalLikes = favoriteRepo.countBySongId(id);
+				return ResponseEntity
+						.ok(Map.of("message", "Đã thích bài nhạc", "liked", true, "total_likes", totalLikes));
+			}
+		}).orElse(ResponseEntity.notFound().build());
+	}
+
+	@GetMapping("/{id}/likes")
+	public ResponseEntity<?> getLikeStatus(@PathVariable Integer id) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String username = (auth != null) ? auth.getName() : null;
+
+		if (!songRepo.existsById(id)) {
+			return ResponseEntity.notFound().build();
+		}
+
+		long totalLikes = favoriteRepo.countBySongId(id);
+		boolean liked = username != null && favoriteRepo.existsByUserUsernameAndSongId(username, id);
+
+		return ResponseEntity.ok(Map.of("song_id", id, "total_likes", totalLikes, "liked_by_me", liked));
+	}
+
+	@GetMapping("/{id}/comments")
+	public ResponseEntity<?> getComments(@PathVariable Integer id) {
+		if (!songRepo.existsById(id)) {
+			return ResponseEntity.notFound().build();
+		}
+
+		List<SongComment> comments = commentRepo.findBySongIdOrderByCreatedAtDesc(id);
+
+		List<Map<String, Object>> result = comments.stream().map(c -> {
+			Map<String, Object> item = new HashMap<>();
+			item.put("id", c.getId());
+			item.put("content", c.getContent());
+			item.put("username", c.getUser().getUsername());
+			item.put("fullname", c.getUser().getFullname());
+			item.put("created_at", c.getCreatedAt());
+			return item;
+		}).toList();
+
+		return ResponseEntity.ok(Map.of("song_id", id, "total_comments", result.size(), "comments", result));
+	}
+
+	@DeleteMapping("/comments/{commentId}")
+	public ResponseEntity<?> deleteComment(@PathVariable Integer commentId) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String username = auth.getName();
+		boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+		return commentRepo.findById(commentId).map(comment -> {
+			// Chỉ chủ comment hoặc admin mới xóa được
+			if (!comment.getUser().getUsername().equals(username) && !isAdmin) {
+				return ResponseEntity.status(403).body(Map.of("message", "Bạn không có quyền xóa bình luận này!"));
+			}
+
+			commentRepo.deleteById(commentId);
+			return ResponseEntity.ok(Map.of("message", "Đã xóa bình luận!"));
+
+		}).orElse(ResponseEntity.notFound().build());
+	}
+
+	@PostMapping("/{id}/remix")
+	public ResponseEntity<?> remixSong(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String username = auth.getName();
+
+		Song original = songRepo.findById(id).orElse(null);
+		if (original == null) {
+			return ResponseEntity.notFound().build();
+		}
+
+		// Chỉ remix được bài public hoặc bài của chính mình
+		boolean isOwner = original.getUser().getUsername().equals(username);
+		if (!original.getIsPublic() && !isOwner) {
+			return ResponseEntity.status(403).body(Map.of("message", "Không thể remix bài nhạc riêng tư!"));
+		}
+		if (!"COMPLETED".equals(original.getStatus())) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Chỉ remix được bài đã hoàn thành!"));
+		}
+
+		User user = userRepo.findById(username).orElseThrow();
+		if (user.getTokenBalance() < 1) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Bạn không đủ Token!"));
+		}
+
+		// Prompt mới cho remix — kế thừa ý tưởng gốc + chỉnh sửa thêm
+		String remixPrompt = body.getOrDefault("prompt", "Remix lại theo phong cách mới từ: " + original.getPrompt());
+		String customTitle = body.get("title");
+		final boolean isInstrumental = Boolean.parseBoolean(body.getOrDefault("instrumental", "true"));
+
+		user.setTokenBalance(user.getTokenBalance() - 1);
+		userRepo.save(user);
+
+		Transaction trans = new Transaction();
+		trans.setUser(user);
+		trans.setAmount(-1);
+		trans.setDescription("Remix nhạc: " + original.getTitle());
+		transRepo.save(trans);
+
+		Song remixSong = new Song();
+		remixSong.setTitle(
+				customTitle != null && !customTitle.isBlank() ? customTitle : original.getTitle() + " (Remix)");
+		remixSong.setPrompt(remixPrompt);
+		remixSong.setStatus("PENDING");
+		remixSong.setIsPublic(false);
+		remixSong.setIsRemix(true);
+		remixSong.setParentId(original.getId());
+		remixSong.setUser(user);
+		songRepo.save(remixSong);
+
+		final String finalCustomTitle = customTitle;
+
+		new Thread(() -> {
+			try {
+				Map result = musicService.generateMusic(remixPrompt, isInstrumental);
+
+				String audioUrl = (String) result.get("audio_url");
+				String aiTitle = (String) result.get("title");
+				String imageUrl = (String) result.get("image_url");
+
+				remixSong.setAudioUrl(audioUrl);
+				remixSong.setImageUrl(imageUrl);
+				remixSong.setStatus("COMPLETED");
+
+				if (finalCustomTitle == null || finalCustomTitle.isBlank()) {
+					remixSong.setTitle(aiTitle != null ? aiTitle : original.getTitle() + " (Remix)");
+				}
+
+				songRepo.save(remixSong);
+				log.info("Remix xong! Title: {}", remixSong.getTitle());
+
+			} catch (Exception e) {
+				remixSong.setStatus("FAILED");
+				songRepo.save(remixSong);
+				log.error("Lỗi remix nhạc: {}", e.getMessage());
+			}
+		}).start();
+
+		Map<String, Object> response = new HashMap<>();
+		response.put("message", "Đã nhận yêu cầu remix! AI đang xử lý...");
+		response.put("songId", remixSong.getId());
+		response.put("parent_id", original.getId());
+		response.put("remaining_tokens", user.getTokenBalance());
+		return ResponseEntity.ok(response);
+	}
+
+	// Xem tất cả bản remix của 1 bài gốc
+	@GetMapping("/{id}/remixes")
+	public ResponseEntity<?> getRemixes(@PathVariable Integer id) {
+		if (!songRepo.existsById(id)) {
+			return ResponseEntity.notFound().build();
+		}
+		List<Song> remixes = songRepo.findByParentIdOrderByCreatedAtDesc(id);
+		return ResponseEntity.ok(remixes);
 	}
 }
