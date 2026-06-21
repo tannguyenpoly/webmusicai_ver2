@@ -39,18 +39,22 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/songs")
 public class SongRestController {
-	// Đổi autowired
+	
 	@Autowired
-	FavoriteRepository favoriteRepo; // ← đổi tên biến
+	FavoriteRepository favoriteRepo;
 
 	@Autowired
 	SongCommentRepository commentRepo;
+	
 	@Autowired
 	SongRepository songRepo;
+	
 	@Autowired
 	UserRepository userRepo;
+	
 	@Autowired
 	TransactionRepository transRepo;
+	
 	@Autowired
 	MusicGeneratorService musicService;
 
@@ -62,7 +66,6 @@ public class SongRestController {
 	@Transactional(rollbackFor = Exception.class)
 	@PostMapping("/generate")
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
-		// Sử dụng cú pháp gọn gàng của Hòa
 		String username = SecurityContextHolder.getContext().getAuthentication().getName();
 		String prompt = requestData.get("prompt");
 		String title = requestData.get("title");
@@ -89,14 +92,20 @@ public class SongRestController {
 		song.setTitle(title != null && !title.isBlank() ? title : "Đang tạo...");
 		song.setPrompt(prompt);
 		song.setStatus("PENDING");
-		song.setIsPublic(false);
+		
+		// [CẬP NHẬT NGHIỆP VỤ]: Tài khoản BASIC ép buộc Public, PRO được quyền Private
+		boolean forcePublic = "BASIC".equals(user.getAccountTier());
+		song.setIsPublic(forcePublic);
+		
 		song.setUser(user);
 		songRepo.save(song);
 
 		new Thread(() -> {
 			try {
-				Map audioUrl = musicService.generateMusic(prompt, isInstrumental);
-				song.setAudioUrl(title);
+				Map result = musicService.generateMusic(prompt, isInstrumental);
+				// [FIX BUG]: Đã sửa lỗi lưu audioUrl bằng title
+				String audioUrl = (String) result.get("audio_url"); 
+				song.setAudioUrl(audioUrl);
 				song.setStatus("COMPLETED");
 				songRepo.save(song);
 			} catch (Exception e) {
@@ -122,12 +131,13 @@ public class SongRestController {
 			boolean isOwner = song.getUser().getUsername().equals(currentUser);
 			boolean isPublic = song.getIsPublic();
 			boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+			
 			if (!isOwner && !isAdmin) {
-				return ResponseEntity.status(403).body("Bạn không có quyền xem bài nhạc này!");
+				if (!isPublic) {
+					return ResponseEntity.status(403).body("Bạn không có quyền xem bài nhạc riêng tư này!");
+				}
 			}
-			if (!isPublic && !isOwner && !isAdmin) {
-				return ResponseEntity.status(403).body("Bạn không có quyền xem bài nhạc này!");
-			}
+			
 			Map<String, Object> result = new HashMap<>();
 			result.put("id", song.getId());
 			result.put("title", song.getTitle());
@@ -136,20 +146,20 @@ public class SongRestController {
 			result.put("created_at", song.getCreatedAt());
 
 			switch (song.getStatus()) {
-			case "COMPLETED" -> {
-				result.put("message", " Nhạc đã sẵn sàng!");
-				result.put("audio_url", song.getAudioUrl());
-				result.put("is_public", song.getIsPublic());
-			}
-			case "PENDING" -> {
-				result.put("message", " Đang xử lý, vui lòng chờ...");
-			}
-			case "FAILED" -> {
-				result.put("message", " Gen nhạc thất bại, vui lòng thử lại.");
-			}
-			default -> {
-				result.put("message", "Trạng thái không xác định");
-			}
+				case "COMPLETED" -> {
+					result.put("message", " Nhạc đã sẵn sàng!");
+					result.put("audio_url", song.getAudioUrl());
+					result.put("is_public", song.getIsPublic());
+				}
+				case "PENDING" -> {
+					result.put("message", " Đang xử lý, vui lòng chờ...");
+				}
+				case "FAILED" -> {
+					result.put("message", " Gen nhạc thất bại, vui lòng thử lại.");
+				}
+				default -> {
+					result.put("message", "Trạng thái không xác định");
+				}
 			}
 
 			return ResponseEntity.ok(result);
@@ -158,7 +168,6 @@ public class SongRestController {
 
 	@PutMapping("/{id}/setting")
 	public ResponseEntity<?> renameSong(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
-
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		if (auth == null || !auth.isAuthenticated()) {
 			return ResponseEntity.status(401).body("Vui lòng đăng nhập!");
@@ -187,11 +196,18 @@ public class SongRestController {
 
 			// Đổi trạng thái public/private (nếu có gửi "is_public")
 			if (body.containsKey("is_public")) {
-				// Chỉ cho public khi bài đã COMPLETED
 				if (!"COMPLETED".equals(song.getStatus())) {
 					return ResponseEntity.badRequest().body("Chỉ có thể public bài nhạc đã hoàn thành!");
 				}
+				
 				boolean newIsPublic = Boolean.parseBoolean(body.get("is_public").toString());
+				
+				// [CẬP NHẬT NGHIỆP VỤ]: Chặn User BASIC chuyển nhạc sang Private (ẩn nhạc)
+				User owner = song.getUser();
+				if ("BASIC".equals(owner.getAccountTier()) && !newIsPublic) {
+					return ResponseEntity.status(403).body(Map.of("message", "Tài khoản BASIC không được phép chuyển nhạc sang Riêng tư!"));
+				}
+				
 				song.setIsPublic(newIsPublic);
 				changes.put("is_public", newIsPublic);
 			}
@@ -225,8 +241,7 @@ public class SongRestController {
 			if (alreadyLiked) {
 				favoriteRepo.deleteByUserUsernameAndSongId(username, id);
 				long totalLikes = favoriteRepo.countBySongId(id);
-				return ResponseEntity
-						.ok(Map.of("message", "Đã bỏ thích bài nhạc", "liked", false, "total_likes", totalLikes));
+				return ResponseEntity.ok(Map.of("message", "Đã bỏ thích bài nhạc", "liked", false, "total_likes", totalLikes));
 			} else {
 				User user = userRepo.findById(username).orElseThrow();
 				Favorite fav = new Favorite();
@@ -235,8 +250,7 @@ public class SongRestController {
 				favoriteRepo.save(fav);
 
 				long totalLikes = favoriteRepo.countBySongId(id);
-				return ResponseEntity
-						.ok(Map.of("message", "Đã thích bài nhạc", "liked", true, "total_likes", totalLikes));
+				return ResponseEntity.ok(Map.of("message", "Đã thích bài nhạc", "liked", true, "total_likes", totalLikes));
 			}
 		}).orElse(ResponseEntity.notFound().build());
 	}
@@ -319,7 +333,6 @@ public class SongRestController {
 			return ResponseEntity.badRequest().body(Map.of("message", "Bạn không đủ Token!"));
 		}
 
-		// Prompt mới cho remix — kế thừa ý tưởng gốc + chỉnh sửa thêm
 		String remixPrompt = body.getOrDefault("prompt", "Remix lại theo phong cách mới từ: " + original.getPrompt());
 		String customTitle = body.get("title");
 		final boolean isInstrumental = Boolean.parseBoolean(body.getOrDefault("instrumental", "true"));
@@ -334,11 +347,14 @@ public class SongRestController {
 		transRepo.save(trans);
 
 		Song remixSong = new Song();
-		remixSong.setTitle(
-				customTitle != null && !customTitle.isBlank() ? customTitle : original.getTitle() + " (Remix)");
+		remixSong.setTitle(customTitle != null && !customTitle.isBlank() ? customTitle : original.getTitle() + " (Remix)");
 		remixSong.setPrompt(remixPrompt);
 		remixSong.setStatus("PENDING");
-		remixSong.setIsPublic(false);
+		
+		// [CẬP NHẬT NGHIỆP VỤ]: Tài khoản BASIC ép buộc Public
+		boolean forcePublic = "BASIC".equals(user.getAccountTier());
+		remixSong.setIsPublic(forcePublic);
+		
 		remixSong.setIsRemix(true);
 		remixSong.setParentId(original.getId());
 		remixSong.setUser(user);
@@ -352,10 +368,9 @@ public class SongRestController {
 
 				String audioUrl = (String) result.get("audio_url");
 				String aiTitle = (String) result.get("title");
-				String imageUrl = (String) result.get("image_url");
+				// [FIX BUG]: Xóa hoàn toàn dòng lấy và gán imageUrl cũ
 
 				remixSong.setAudioUrl(audioUrl);
-				remixSong.setImageUrl(imageUrl);
 				remixSong.setStatus("COMPLETED");
 
 				if (finalCustomTitle == null || finalCustomTitle.isBlank()) {

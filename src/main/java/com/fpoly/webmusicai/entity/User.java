@@ -11,6 +11,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -48,4 +50,11 @@ public class User implements Serializable {
     
     @Column(name = "email")
     private String email;
+    
+    @Column(name = "account_tier")
+    private String accountTier = "BASIC";
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "pro_expired_at")
+    private java.util.Date proExpiredAt;
 }
