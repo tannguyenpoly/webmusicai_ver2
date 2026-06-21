@@ -22,9 +22,6 @@ public class Song implements Serializable {
 	@Column(name = "audio_url")
 	private String audioUrl;
 
-	@Column(name = "image_url")
-	private String imageUrl;
-
 	private String status; // PENDING, COMPLETED, FAILED
 
 	@Column(name = "is_public")

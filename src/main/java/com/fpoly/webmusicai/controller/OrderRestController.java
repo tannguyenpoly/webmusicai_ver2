@@ -89,6 +89,17 @@ public class OrderRestController {
 		User user = order.getUser();
 		Package pkg = order.getPkg();
 		user.setTokenBalance(user.getTokenBalance() + pkg.getTokens());
+		if (pkg.getId() == 2 || pkg.getId() == 3) {
+			user.setAccountTier("PRO");
+
+			// Gia hạn thêm 30 ngày từ thời điểm mua
+			java.util.Calendar cal = java.util.Calendar.getInstance();
+			if (user.getProExpiredAt() != null && user.getProExpiredAt().after(new java.util.Date())) {
+				cal.setTime(user.getProExpiredAt()); // Cộng dồn nếu đang còn hạn
+			}
+			cal.add(java.util.Calendar.DAY_OF_MONTH, 30);
+			user.setProExpiredAt(cal.getTime());
+		}
 		userRepo.save(user);
 
 		// Ghi lịch sử giao dịch
