@@ -39,4 +39,9 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
 	@Transactional
 	@Query("DELETE FROM Song s WHERE s.status = 'PENDING' AND s.createdAt < :cutoff")
 	void deleteStuckPendingSongs(@Param("cutoff") Date cutoff);
+
+	@Modifying
+	@Transactional
+	@Query("UPDATE Song s SET s.parentId = NULL WHERE s.parentId = :songId")
+	void nullifyParentIdForRemixes(@Param("songId") Integer songId);
 }
