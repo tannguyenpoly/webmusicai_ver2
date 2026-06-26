@@ -3,63 +3,137 @@ package com.fpoly.webmusicai.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
 @EnableWebSecurity
-@EnableAsync
 public class SecurityConfig {
 
 	@Autowired
 	private JwtFilter jwtFilter;
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		http.csrf(csrf -> csrf.disable());
-		http.cors(cors -> cors.disable());
-
-		http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-		http.authorizeHttpRequests(auth -> auth
-				// Static resources + trang frontend
-				.requestMatchers("/", "/index.html", "/login", "/register", "/js/**", "/css/**", "/images/**",
-						"/favicon.ico")
-				.permitAll()
-
-				// Auth luôn public
-				.requestMatchers("/api/auth/**").permitAll()
-
-				// Chỉ GET mới public — xem nhạc, xem status, xem like/comment không cần login
-				.requestMatchers(HttpMethod.GET, "/api/songs/public", "/api/songs/*/status", "/api/songs/*/likes",
-						"/api/songs/*/comments", "/api/packages","/api/packages/*", "/api/genres", "/api/genres/*")
-				.permitAll()
-
-				.requestMatchers(HttpMethod.POST, "/api/packages").hasRole("ADMIN")
-				.requestMatchers(HttpMethod.PUT, "/api/packages/*").hasRole("ADMIN")
-				.requestMatchers(HttpMethod.DELETE, "/api/packages/*").hasRole("ADMIN")
-
-				.requestMatchers(HttpMethod.POST, "/api/genres").hasRole("ADMIN")
-				.requestMatchers(HttpMethod.PUT, "/api/genres/*").hasRole("ADMIN")
-				.requestMatchers(HttpMethod.DELETE, "/api/genres/*").hasRole("ADMIN")
-
-				.requestMatchers(HttpMethod.POST, "/api/artists").hasRole("ADMIN")
-				.requestMatchers(HttpMethod.PUT, "/api/artists/*").hasRole("ADMIN")
-				.requestMatchers(HttpMethod.DELETE, "/api/artists/*").hasRole("ADMIN")
-
-				.requestMatchers("/api/admin/**").hasRole("ADMIN").anyRequest().authenticated());
-
-		http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		http
+			.csrf(csrf -> csrf.disable())
+			.cors(cors -> cors.disable())
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(auth -> auth
+				.anyRequest().access(authorizationManager())
+			)
+			.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 		return http.build();
+	}
+
+	@Bean
+	public AuthorizationManager<RequestAuthorizationContext> authorizationManager() {
+		return (authentication, context) -> {
+			HttpServletRequest request = context.getRequest();
+			String path = request.getRequestURI();
+			String method = request.getMethod();
+
+			if (isPublicPath(path, method)) {
+				return new AuthorizationDecision(true);
+			}
+
+			Authentication auth = authentication.get();
+
+			if (isAdminPath(path, method)) {
+				boolean isAdmin = auth != null && auth.isAuthenticated()
+						&& auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+				return new AuthorizationDecision(isAdmin);
+			}
+
+			boolean isRealUser = auth != null && auth.isAuthenticated()
+					&& !auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ANONYMOUS"));
+			return new AuthorizationDecision(isRealUser);
+		};
+	}
+
+	private boolean isPublicPath(String path, String method) {
+		if (path.equals("/") || path.equals("/login") || path.equals("/register")
+				|| path.startsWith("/js/") || path.startsWith("/css/") || path.startsWith("/images/")
+				|| path.equals("/favicon.ico")) {
+			return true;
+		}
+		if (path.startsWith("/api/auth/")) {
+			return true;
+		}
+		if ("GET".equals(method)) {
+			if (path.equals("/api/songs/public")
+					|| path.matches("/api/songs/\\d+/status")
+					|| path.matches("/api/songs/\\d+/likes")
+					|| path.matches("/api/songs/\\d+/comments")) {
+				return true;
+			}
+			if (path.equals("/api/packages") || path.equals("/api/packages/")) {
+				return true;
+			}
+			if (path.startsWith("/api/packages/") && path.split("/").length == 4) {
+				return true;
+			}
+			if (path.equals("/api/genres") || path.equals("/api/genres/")) {
+				return true;
+			}
+			if (path.startsWith("/api/genres/") && path.split("/").length == 4) {
+				return true;
+			}
+			if (path.equals("/api/albums") || path.equals("/api/albums/")) {
+				return true;
+			}
+			if (path.startsWith("/api/albums/")) {
+				String[] parts = path.split("/");
+				if (parts.length == 4) {
+					return true;
+				}
+				if (parts.length >= 5 && "user".equals(parts[3])) {
+					return true;
+				}
+			}
+			if (path.equals("/api/playlists/public")) {
+				return true;
+			}
+			if (path.startsWith("/api/playlists/")) {
+				String[] parts = path.split("/");
+				if (parts.length == 4 && !"my".equals(parts[3])) {
+					return true;
+				}
+				if (parts.length >= 5 && "user".equals(parts[3])) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private boolean isAdminPath(String path, String method) {
+		if (path.startsWith("/api/reports/") || path.startsWith("/api/admin/")) {
+			return true;
+		}
+		if (!"GET".equals(method)) {
+			if (path.equals("/api/packages") || path.startsWith("/api/packages/")) {
+				return true;
+			}
+			if (path.equals("/api/genres") || path.startsWith("/api/genres/")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Bean
@@ -69,6 +143,6 @@ public class SecurityConfig {
 
 	@Bean
 	public PasswordEncoder passwordEncoder() {
-		return org.springframework.security.crypto.factory.PasswordEncoderFactories.createDelegatingPasswordEncoder();
+		return PasswordEncoderFactories.createDelegatingPasswordEncoder();
 	}
 }

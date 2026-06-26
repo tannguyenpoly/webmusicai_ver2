@@ -291,6 +291,66 @@ public class SongRestController {
 		return ResponseEntity.ok(Map.of("song_id", id, "total_comments", result.size(), "comments", result));
 	}
 
+	@PostMapping("/{id}/comments")
+	public ResponseEntity<?> createComment(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String username = auth.getName();
+
+		String content = body.get("content");
+		if (content == null || content.isBlank()) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Nội dung bình luận không được để trống!"));
+		}
+
+		return songRepo.findById(id).map(song -> {
+			User user = userRepo.findById(username).orElseThrow();
+
+			SongComment comment = new SongComment();
+			comment.setSong(song);
+			comment.setUser(user);
+			comment.setContent(content.trim());
+
+			commentRepo.save(comment);
+			log.info("User {} bình luận bài #{}", username, id);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put("id", comment.getId());
+			result.put("content", comment.getContent());
+			result.put("username", username);
+			result.put("created_at", comment.getCreatedAt());
+			result.put("message", "Đã thêm bình luận!");
+
+			return ResponseEntity.ok(result);
+		}).orElse(ResponseEntity.notFound().build());
+	}
+
+	@PutMapping("/comments/{commentId}")
+	public ResponseEntity<?> updateComment(@PathVariable Integer commentId, @RequestBody Map<String, String> body) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String username = auth.getName();
+
+		return commentRepo.findById(commentId).map(comment -> {
+			if (!comment.getUser().getUsername().equals(username)) {
+				return ResponseEntity.status(403).body(Map.of("message", "Bạn không có quyền sửa bình luận này!"));
+			}
+
+			String content = body.get("content");
+			if (content == null || content.isBlank()) {
+				return ResponseEntity.badRequest().body(Map.of("message", "Nội dung bình luận không được để trống!"));
+			}
+
+			comment.setContent(content.trim());
+			commentRepo.save(comment);
+			log.info("User {} sửa bình luận #{}", username, commentId);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put("id", comment.getId());
+			result.put("content", comment.getContent());
+			result.put("message", "Đã cập nhật bình luận!");
+
+			return ResponseEntity.ok(result);
+		}).orElse(ResponseEntity.notFound().build());
+	}
+
 	@DeleteMapping("/comments/{commentId}")
 	public ResponseEntity<?> deleteComment(@PathVariable Integer commentId) {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();

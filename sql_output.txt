@@ -1,0 +1,56 @@
+Changed database context to 'master'.
+Changed database context to 'master'.
+Changed database context to 'MusicAI_DB'.
+
+(2 rows affected)
+
+(5 rows affected)
+
+(6 rows affected)
+
+(3 rows affected)
+
+(5 rows affected)
+
+(9 rows affected)
+
+(3 rows affected)
+
+(4 rows affected)
+
+(11 rows affected)
+
+(4 rows affected)
+
+(3 rows affected)
+
+(4 rows affected)
+
+(3 rows affected)
+
+(4 rows affected)
+TableName TotalRows  
+--------- -----------
+Users               5
+
+(1 rows affected)
+TableName TotalRows  
+--------- -----------
+Songs               5
+
+(1 rows affected)
+TableName TotalRows  
+--------- -----------
+Packages            3
+
+(1 rows affected)
+TableName TotalRows  
+--------- -----------
+Orders              4
+
+(1 rows affected)
+TableName TotalRows  
+--------- -----------
+Playlists           3
+
+(1 rows affected)

@@ -384,8 +384,41 @@ INSERT INTO SongGenres (song_id, genre_id) VALUES
 (5, 5), -- Acoustic
 (5, 6); -- Folk
 GO
-SELECT TABLE_NAME
-FROM INFORMATION_SCHEMA.TABLES;
+-- =============================================
+-- 7. BẢNG ALBUMS + ALBUM_SONGS (CRUD ALBUM)
+-- =============================================
+CREATE TABLE Albums (
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    title       NVARCHAR(255) NOT NULL,
+    description NVARCHAR(1000) NULL,
+    cover_url   VARCHAR(500) NULL,
+    release_date DATE NULL,
+    created_at  DATETIME DEFAULT GETDATE(),
+    username    VARCHAR(50) NOT NULL,
+    FOREIGN KEY (username) REFERENCES Users(username)
+);
+GO
+
+CREATE TABLE Album_Songs (
+    id           INT IDENTITY(1,1) PRIMARY KEY,
+    album_id     INT NOT NULL,
+    song_id      INT NOT NULL,
+    track_number INT DEFAULT 0,
+    FOREIGN KEY (album_id) REFERENCES Albums(id),
+    FOREIGN KEY (song_id) REFERENCES Songs(id)
+);
+GO
+
+-- Seed Album mẫu
+INSERT INTO Albums (title, description, cover_url, username) VALUES
+(N'Chill Việt 2026', N'Tuyển tập nhạc Lofi Việt Nam hay nhất 2026', 'https://cdn.musicai.vn/covers/chill-viet-2026.jpg', 'lan_chill'),
+(N'Nhạc nền Flycam', N'Nhạc cinematic cho video flycam du lịch', 'https://cdn.musicai.vn/covers/flycam.jpg', 'minh_travel');
+GO
+
+INSERT INTO Album_Songs (album_id, song_id, track_number) VALUES
+(1, 2, 1), (1, 4, 2),
+(2, 1, 1);
+GO
 
 SELECT TABLE_NAME
 FROM INFORMATION_SCHEMA.TABLES;
