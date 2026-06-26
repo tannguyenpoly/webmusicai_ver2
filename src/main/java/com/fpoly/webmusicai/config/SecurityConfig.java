@@ -40,11 +40,22 @@ public class SecurityConfig {
 
 				// Chỉ GET mới public — xem nhạc, xem status, xem like/comment không cần login
 				.requestMatchers(HttpMethod.GET, "/api/songs/public", "/api/songs/*/status", "/api/songs/*/likes",
-						"/api/songs/*/comments", "/api/packages")
+						"/api/songs/*/comments", "/api/packages","/api/packages/*", "/api/genres", "/api/genres/*")
 				.permitAll()
 
-				// Mọi POST/PUT/DELETE vào like, comment, generate, remix... đều phải login
-				.anyRequest().authenticated());
+				.requestMatchers(HttpMethod.POST, "/api/packages").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.PUT, "/api/packages/*").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.DELETE, "/api/packages/*").hasRole("ADMIN")
+
+				.requestMatchers(HttpMethod.POST, "/api/genres").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.PUT, "/api/genres/*").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.DELETE, "/api/genres/*").hasRole("ADMIN")
+
+				.requestMatchers(HttpMethod.POST, "/api/artists").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.PUT, "/api/artists/*").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.DELETE, "/api/artists/*").hasRole("ADMIN")
+
+				.requestMatchers("/api/admin/**").hasRole("ADMIN").anyRequest().authenticated());
 
 		http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

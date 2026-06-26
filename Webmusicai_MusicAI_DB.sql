@@ -332,4 +332,60 @@ SELECT 'Songs' AS TableName, COUNT(*) AS TotalRows FROM Songs;
 SELECT 'Packages' AS TableName, COUNT(*) AS TotalRows FROM Packages;
 SELECT 'Orders' AS TableName, COUNT(*) AS TotalRows FROM Orders;
 SELECT 'Playlists' AS TableName, COUNT(*) AS TotalRows FROM Playlists;
+select * from Genres
 GO
+Select * from Songs
+GO
+
+CREATE TABLE Genres (
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    name        NVARCHAR(50) NOT NULL UNIQUE,
+    description NVARCHAR(255) NULL,
+    created_at  DATETIME DEFAULT GETDATE()
+);
+GO
+CREATE TABLE SongGenres(
+    song_id INT,
+    genre_id INT,
+
+    PRIMARY KEY(song_id, genre_id),
+
+    FOREIGN KEY(song_id) REFERENCES Songs(id),
+    FOREIGN KEY(genre_id) REFERENCES Genres(id)
+);
+
+INSERT INTO Genres (name, description) VALUES
+(N'Lofi',       N'Nhạc nhẹ nhàng, thư giãn, phù hợp học tập và làm việc'),
+(N'Cinematic',  N'Nhạc nền hoành tráng cho video, phim ảnh'),
+(N'Anime',      N'Nhạc theo phong cách anime Nhật Bản'),
+(N'EDM',        N'Nhạc điện tử sôi động'),
+(N'Acoustic',   N'Nhạc mộc với guitar, piano'),
+(N'Folk',       N'Nhạc dân gian và truyền thống'),
+(N'Jazz',       N'Nhạc Jazz thư giãn'),
+(N'Rock',       N'Nhạc Rock mạnh mẽ');
+GO
+INSERT INTO SongGenres (song_id, genre_id) VALUES
+-- Bình minh Tây Bắc
+(1, 2), -- Cinematic
+(1, 6), -- Folk
+
+-- Đêm mưa Sài Gòn
+(2, 1), -- Lofi
+(2, 7), -- Jazz
+
+-- Mega Sale 11.11
+(3, 4), -- EDM
+
+-- Bình minh Tây Bắc (Lofi Remix)
+(4, 1), -- Lofi
+(4, 6), -- Folk
+
+-- Kịch bản Tết
+(5, 5), -- Acoustic
+(5, 6); -- Folk
+GO
+SELECT TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES;
+
+SELECT TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES;
