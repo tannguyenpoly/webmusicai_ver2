@@ -332,4 +332,93 @@ SELECT 'Songs' AS TableName, COUNT(*) AS TotalRows FROM Songs;
 SELECT 'Packages' AS TableName, COUNT(*) AS TotalRows FROM Packages;
 SELECT 'Orders' AS TableName, COUNT(*) AS TotalRows FROM Orders;
 SELECT 'Playlists' AS TableName, COUNT(*) AS TotalRows FROM Playlists;
+select * from Genres
 GO
+Select * from Songs
+GO
+
+CREATE TABLE Genres (
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    name        NVARCHAR(50) NOT NULL UNIQUE,
+    description NVARCHAR(255) NULL,
+    created_at  DATETIME DEFAULT GETDATE()
+);
+GO
+CREATE TABLE SongGenres(
+    song_id INT,
+    genre_id INT,
+
+    PRIMARY KEY(song_id, genre_id),
+
+    FOREIGN KEY(song_id) REFERENCES Songs(id),
+    FOREIGN KEY(genre_id) REFERENCES Genres(id)
+);
+
+INSERT INTO Genres (name, description) VALUES
+(N'Lofi',       N'Nhạc nhẹ nhàng, thư giãn, phù hợp học tập và làm việc'),
+(N'Cinematic',  N'Nhạc nền hoành tráng cho video, phim ảnh'),
+(N'Anime',      N'Nhạc theo phong cách anime Nhật Bản'),
+(N'EDM',        N'Nhạc điện tử sôi động'),
+(N'Acoustic',   N'Nhạc mộc với guitar, piano'),
+(N'Folk',       N'Nhạc dân gian và truyền thống'),
+(N'Jazz',       N'Nhạc Jazz thư giãn'),
+(N'Rock',       N'Nhạc Rock mạnh mẽ');
+GO
+INSERT INTO SongGenres (song_id, genre_id) VALUES
+-- Bình minh Tây Bắc
+(1, 2), -- Cinematic
+(1, 6), -- Folk
+
+-- Đêm mưa Sài Gòn
+(2, 1), -- Lofi
+(2, 7), -- Jazz
+
+-- Mega Sale 11.11
+(3, 4), -- EDM
+
+-- Bình minh Tây Bắc (Lofi Remix)
+(4, 1), -- Lofi
+(4, 6), -- Folk
+
+-- Kịch bản Tết
+(5, 5), -- Acoustic
+(5, 6); -- Folk
+GO
+-- =============================================
+-- 7. BẢNG ALBUMS + ALBUM_SONGS (CRUD ALBUM)
+-- =============================================
+CREATE TABLE Albums (
+    id          INT IDENTITY(1,1) PRIMARY KEY,
+    title       NVARCHAR(255) NOT NULL,
+    description NVARCHAR(1000) NULL,
+    cover_url   VARCHAR(500) NULL,
+    release_date DATE NULL,
+    created_at  DATETIME DEFAULT GETDATE(),
+    username    VARCHAR(50) NOT NULL,
+    FOREIGN KEY (username) REFERENCES Users(username)
+);
+GO
+
+CREATE TABLE Album_Songs (
+    id           INT IDENTITY(1,1) PRIMARY KEY,
+    album_id     INT NOT NULL,
+    song_id      INT NOT NULL,
+    track_number INT DEFAULT 0,
+    FOREIGN KEY (album_id) REFERENCES Albums(id),
+    FOREIGN KEY (song_id) REFERENCES Songs(id)
+);
+GO
+
+-- Seed Album mẫu
+INSERT INTO Albums (title, description, cover_url, username) VALUES
+(N'Chill Việt 2026', N'Tuyển tập nhạc Lofi Việt Nam hay nhất 2026', 'https://cdn.musicai.vn/covers/chill-viet-2026.jpg', 'lan_chill'),
+(N'Nhạc nền Flycam', N'Nhạc cinematic cho video flycam du lịch', 'https://cdn.musicai.vn/covers/flycam.jpg', 'minh_travel');
+GO
+
+INSERT INTO Album_Songs (album_id, song_id, track_number) VALUES
+(1, 2, 1), (1, 4, 2),
+(2, 1, 1);
+GO
+
+SELECT TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES;

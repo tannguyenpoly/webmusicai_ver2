@@ -2,6 +2,8 @@ package com.fpoly.webmusicai.entity;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -46,4 +48,8 @@ public class Song implements Serializable {
 	@ManyToOne
 	@JoinColumn(name = "username")
 	private User user;
+	
+	@ManyToMany
+	@JoinTable(name = "songgenres", joinColumns = @JoinColumn(name = "song_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
+	private List<Genre> genres;
 }
