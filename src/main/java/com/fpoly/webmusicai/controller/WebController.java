@@ -41,4 +41,9 @@ public class WebController {
     public String profile() {
         return "profile";
     }
+
+    @GetMapping("/admin")
+    public String admin() {
+        return "admin";
+    }
 }

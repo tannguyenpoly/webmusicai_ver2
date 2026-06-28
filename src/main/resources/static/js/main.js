@@ -287,7 +287,12 @@ new Vue({
                     });
 
                     setTimeout(() => {
-                        window.location.href = '/';
+                        if (response.data.isAdmin) {
+                            document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
+                            window.location.href = '/admin';
+                        } else {
+                            window.location.href = '/';
+                        }
                     }, 1000);
                 })
                 .catch(() => {

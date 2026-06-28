@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MusicAI — Quản trị hệ thống</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        [v-cloak] { display: none !important; }
+
+        :root {
+            --bg-gradient: radial-gradient(circle at top right, #112211, #0a0f0d, #050508);
+            --text-color: #ffffff;
+            --card-bg: #111612;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --table-hover: rgba(255, 255, 255, 0.02);
+            --sidebar-bg: rgba(0, 0, 0, 0.3);
+            --sidebar-hover: rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #f4f7f5, #e8ebe9);
+            --text-color: #1a1a1a;
+            --card-bg: #ffffff;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --text-muted: rgba(0, 0, 0, 0.5);
+            --table-hover: rgba(0, 0, 0, 0.02);
+            --sidebar-bg: rgba(0, 0, 0, 0.02);
+            --sidebar-hover: rgba(0, 0, 0, 0.05);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient) !important;
+            color: var(--text-color) !important;
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(22, 163, 74, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #16a34a; }
+
+        .swal2-popup {
+            background: var(--card-bg) !important;
+            color: var(--text-color) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 16px !important;
+        }
+        .swal2-title, .swal2-html-container { color: var(--text-color) !important; }
+
+        .theme-toggle-btn {
+            background: rgba(22, 163, 74, 0.1);
+            color: #16a34a;
+            border: 1px solid rgba(22, 163, 74, 0.25);
+            border-radius: 50%;
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .theme-toggle-btn:hover { background: #16a34a; color: #fff; }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            min-width: 240px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .sidebar-brand {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-brand a {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-color);
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+        .sidebar-brand a span { color: #16a34a; }
+
+        .sidebar-nav {
+            padding: 12px 10px;
+            flex: 1;
+        }
+
+        .sidebar-nav .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+            text-decoration: none;
+        }
+
+        .sidebar-nav .nav-item:hover {
+            background: var(--sidebar-hover);
+            color: var(--text-color);
+        }
+
+        .sidebar-nav .nav-item.active {
+            background: rgba(22, 163, 74, 0.12);
+            color: #16a34a;
+        }
+
+        .sidebar-nav .nav-item i { font-size: 20px; }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 24px 28px;
+            max-width: calc(100vw - 240px);
+            overflow-x: hidden;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .page-header h4 {
+            font-weight: 600;
+            font-size: 22px;
+            letter-spacing: -0.3px;
+            margin: 0;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            transition: background 0.3s, border-color 0.3s;
+            height: 100%;
+        }
+
+        .stat-card .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-color);
+        }
+        .stat-card .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .card-custom {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .card-custom .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .card-custom .card-body { padding: 20px; }
+
+        .table-custom {
+            background: transparent !important;
+            color: var(--text-color) !important;
+            font-size: 13px;
+            margin-bottom: 0;
+        }
+        .table-custom thead th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border-color);
+            padding: 12px 12px;
+            background: transparent;
+        }
+        .table-custom tbody td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px;
+            vertical-align: middle;
+            background: transparent;
+            color: var(--text-color);
+        }
+        .table-custom tbody tr:hover td {
+            background-color: var(--table-hover);
+        }
+
+        .form-input-custom {
+            background: rgba(0, 0, 0, 0.2) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-color) !important;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        [data-theme="light"] .form-input-custom {
+            background: rgba(0, 0, 0, 0.03) !important;
+        }
+        .form-input-custom:focus {
+            border-color: #16a34a !important;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15) !important;
+            background: transparent !important;
+            color: var(--text-color) !important;
+        }
+        .form-input-custom::placeholder { color: var(--text-muted); }
+
+        .form-select-custom {
+            background-color: rgba(0, 0, 0, 0.2) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-color) !important;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+        [data-theme="light"] .form-select-custom {
+            background-color: rgba(0, 0, 0, 0.03) !important;
+        }
+        .form-select-custom:focus {
+            border-color: #16a34a !important;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15) !important;
+        }
+
+        .btn-admin-primary {
+            background: #16a34a !important;
+            color: #fff !important;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-admin-primary:hover { background: #15803d !important; }
+
+        .btn-admin-outline {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-admin-outline:hover { background: var(--sidebar-hover); }
+
+        .btn-admin-danger {
+            background: transparent;
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 7px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-admin-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .btn-admin-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+
+        .badge-status {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .badge-completed { background: rgba(22, 163, 74, 0.15); color: #4ade80; }
+        .badge-pending { background: rgba(234, 179, 8, 0.15); color: #facc15; }
+        .badge-failed { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+        .section-tab {
+            display: none;
+        }
+        .section-tab.active {
+            display: block;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .pagination-custom {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+        .pagination-custom .page-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pagination-custom .page-btn:hover { background: var(--sidebar-hover); }
+        .pagination-custom .page-btn.active {
+            background: #16a34a;
+            border-color: #16a34a;
+            color: #fff;
+        }
+        .pagination-custom .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+                min-width: 60px;
+            }
+            .sidebar .nav-label,
+            .sidebar-brand a span:not(.text-success),
+            .sidebar-footer span { display: none; }
+            .sidebar-nav .nav-item { justify-content: center; padding: 10px; }
+            .sidebar-nav .nav-item i { margin: 0; }
+            .main-content {
+                max-width: calc(100vw - 60px);
+                padding: 16px;
+            }
+            .page-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+        }
+    </style>
+
+    <script>
+        const savedTheme = localStorage.getItem('music_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+
+<div id="admin-app" v-cloak>
+    <div class="admin-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <a href="/"><span>Music</span><span class="text-success">AI</span></a>
+                <button @click="toggleTheme" class="theme-toggle-btn" title="Chuyển chế độ sáng/tối">
+                    <i :class="isDarkMode ? 'ti ti-moon' : 'ti ti-sun'"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-item" :class="{ active: activeTab === 'dashboard' }" @click.prevent="activeTab = 'dashboard'" href="#">
+                    <i class="ti ti-dashboard"></i>
+                    <span class="nav-label">Tổng quan</span>
+                </a>
+                <a class="nav-item" :class="{ active: activeTab === 'users' }" @click.prevent="activeTab = 'users'" href="#">
+                    <i class="ti ti-users"></i>
+                    <span class="nav-label">Người dùng</span>
+                </a>
+                <a class="nav-item" :class="{ active: activeTab === 'songs' }" @click.prevent="activeTab = 'songs'" href="#">
+                    <i class="ti ti-music"></i>
+                    <span class="nav-label">Bài nhạc</span>
+                </a>
+                <a class="nav-item" :class="{ active: activeTab === 'genres' }" @click.prevent="activeTab = 'genres'" href="#">
+                    <i class="ti ti-category"></i>
+                    <span class="nav-label">Thể loại</span>
+                </a>
+                <a class="nav-item" :class="{ active: activeTab === 'packages' }" @click.prevent="activeTab = 'packages'" href="#">
+                    <i class="ti ti-gift"></i>
+                    <span class="nav-label">Gói token</span>
+                </a>
+                <a class="nav-item" :class="{ active: activeTab === 'orders' }" @click.prevent="activeTab = 'orders'" href="#">
+                    <i class="ti ti-receipt"></i>
+                    <span class="nav-label">Đơn hàng</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/" class="nav-item" style="padding: 8px 14px; color: var(--text-muted); text-decoration: none;">
+                    <i class="ti ti-arrow-left"></i>
+                    <span class="nav-label">Về trang chủ</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- ========== DASHBOARD ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'dashboard' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-dashboard text-success me-2"></i>Tổng quan hệ thống</h4>
+                    <small class="text-muted-sync">Dữ liệu cập nhật theo thời gian thực</small>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-4 col-lg-3" v-for="stat in dashboardStats" :key="stat.label">
+                        <div class="stat-card d-flex align-items-center gap-3">
+                            <div class="stat-icon" :style="{ background: stat.bg, color: stat.color }">
+                                <i :class="stat.icon"></i>
+                            </div>
+                            <div>
+                                <div class="stat-value">{{ stat.value }}</div>
+                                <div class="stat-label">{{ stat.label }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card-custom">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="ti ti-star text-warning me-2"></i>Top bài hát yêu thích</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <table class="table table-custom" v-if="topLiked.length">
+                                    <thead><tr><th>Bài hát</th><th>Người dùng</th><th class="text-center">Lượt thích</th></tr></thead>
+                                    <tbody>
+                                        <tr v-for="s in topLiked" :key="s.id">
+                                            <td>{{ s.title }}</td>
+                                            <td class="text-muted-sync">{{ s.username }}</td>
+                                            <td class="text-center"><span class="badge badge-completed">{{ s.total_likes }}</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div v-else class="text-center text-muted-sync py-4 small">Chưa có dữ liệu.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card-custom">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="ti ti-crown text-warning me-2"></i>Người dùng tích cực</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <table class="table table-custom" v-if="topUsers.length">
+                                    <thead><tr><th>Người dùng</th><th class="text-center">Bài hát</th><th class="text-center">Token</th></tr></thead>
+                                    <tbody>
+                                        <tr v-for="u in topUsers" :key="u.username">
+                                            <td>
+                                                <div class="fw-medium">{{ u.fullname }}</div>
+                                                <small class="text-muted-sync">@{{ u.username }}</small>
+                                            </td>
+                                            <td class="text-center">{{ u.total_songs }}</td>
+                                            <td class="text-center"><span class="badge badge-completed">{{ u.token_balance }}</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div v-else class="text-center text-muted-sync py-4 small">Chưa có dữ liệu.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== USERS ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'users' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-users text-success me-2"></i>Quản lý người dùng</h4>
+                    <div class="d-flex gap-2">
+                        <input type="text" v-model="userSearch" @input="searchUsers" class="form-input-custom" placeholder="Tìm username hoặc họ tên..." style="width: 240px;">
+                    </div>
+                </div>
+
+                <div class="card-custom">
+                    <div class="card-body p-0">
+                        <table class="table table-custom">
+                            <thead><tr>
+                                <th>Username</th><th>Họ tên</th><th>Email</th><th class="text-center">Token</th><th class="text-center">Hạng</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr v-for="u in usersPage.content" :key="u.username">
+                                    <td class="fw-medium">@{{ u.username }}</td>
+                                    <td>{{ u.fullname }}</td>
+                                    <td class="text-muted-sync">{{ u.email || '—' }}</td>
+                                    <td class="text-center">{{ u.tokenBalance }}</td>
+                                    <td class="text-center">
+                                        <span class="badge-status" :class="u.accountTier === 'PRO' ? 'badge-completed' : 'badge-pending'">
+                                            {{ u.accountTier }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge-status" :class="u.enabled ? 'badge-completed' : 'badge-failed'">
+                                            {{ u.enabled ? 'Hoạt động' : 'Khóa' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="toggleUserStatus(u)" class="btn btn-admin-sm" :class="u.enabled ? 'btn-admin-danger' : 'btn-admin-primary'">
+                                            <i :class="u.enabled ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
+                                            {{ u.enabled ? 'Khóa' : 'Mở' }}
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="!usersPage.content || usersPage.content.length === 0">
+                                    <td colspan="7" class="text-center text-muted-sync py-4">Không tìm thấy người dùng.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="pagination-custom" v-if="usersPage.totalPages > 1">
+                    <button class="page-btn" :disabled="usersPage.number === 0" @click="loadUsers(usersPage.number - 1)">Trước</button>
+                    <button class="page-btn" v-for="p in usersPage.totalPages" :key="p" :class="{ active: p-1 === usersPage.number }" @click="loadUsers(p-1)">{{ p }}</button>
+                    <button class="page-btn" :disabled="usersPage.number >= usersPage.totalPages - 1" @click="loadUsers(usersPage.number + 1)">Sau</button>
+                </div>
+            </div>
+
+            <!-- ========== SONGS ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'songs' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-music text-success me-2"></i>Quản lý bài nhạc</h4>
+                    <div class="d-flex gap-2">
+                        <select v-model="songStatusFilter" @change="loadSongs(0)" class="form-select-custom">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="COMPLETED">Hoàn thành</option>
+                            <option value="PENDING">Đang xử lý</option>
+                            <option value="FAILED">Thất bại</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card-custom">
+                    <div class="card-body p-0">
+                        <table class="table table-custom">
+                            <thead><tr>
+                                <th>ID</th><th>Tên bài hát</th><th>Người dùng</th><th class="text-center">Trạng thái</th><th class="text-center">Public</th><th>Ngày tạo</th><th class="text-center">Thao tác</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr v-for="s in songsPage.content" :key="s.id">
+                                    <td class="text-muted-sync">#{{ s.id }}</td>
+                                    <td class="fw-medium" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.title }}</td>
+                                    <td class="text-muted-sync">@{{ s.user?.username }}</td>
+                                    <td class="text-center">
+                                        <span class="badge-status" :class="'badge-' + (s.status ? s.status.toLowerCase() : 'pending')">{{ s.status }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge-status" :class="s.isPublic ? 'badge-completed' : 'badge-failed'">
+                                            {{ s.isPublic ? 'Public' : 'Private' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(s.createdAt) }}</td>
+                                    <td class="text-center">
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <button @click="toggleSongPublic(s)" class="btn btn-admin-sm btn-admin-outline" title="Chuyển public/private">
+                                                <i :class="s.isPublic ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
+                                            </button>
+                                            <button @click="deleteSong(s)" class="btn btn-admin-sm btn-admin-danger" title="Xóa bài nhạc">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="!songsPage.content || songsPage.content.length === 0">
+                                    <td colspan="7" class="text-center text-muted-sync py-4">Không tìm thấy bài nhạc.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="pagination-custom" v-if="songsPage.totalPages > 1">
+                    <button class="page-btn" :disabled="songsPage.number === 0" @click="loadSongs(songsPage.number - 1)">Trước</button>
+                    <button class="page-btn" v-for="p in songsPage.totalPages" :key="p" :class="{ active: p-1 === songsPage.number }" @click="loadSongs(p-1)">{{ p }}</button>
+                    <button class="page-btn" :disabled="songsPage.number >= songsPage.totalPages - 1" @click="loadSongs(songsPage.number + 1)">Sau</button>
+                </div>
+            </div>
+
+            <!-- ========== GENRES ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'genres' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-category text-success me-2"></i>Quản lý thể loại</h4>
+                    <button @click="openGenreModal(null)" class="btn btn-admin-primary">
+                        <i class="ti ti-plus me-1"></i> Thêm thể loại
+                    </button>
+                </div>
+
+                <div class="card-custom">
+                    <div class="card-body p-0">
+                        <table class="table table-custom">
+                            <thead><tr><th>ID</th><th>Tên thể loại</th><th>Mô tả</th><th class="text-center">Thao tác</th></tr></thead>
+                            <tbody>
+                                <tr v-for="g in genres" :key="g.id">
+                                    <td class="text-muted-sync">#{{ g.id }}</td>
+                                    <td class="fw-medium">{{ g.name }}</td>
+                                    <td class="text-muted-sync">{{ g.description || '—' }}</td>
+                                    <td class="text-center">
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <button @click="openGenreModal(g)" class="btn btn-admin-sm btn-admin-outline"><i class="ti ti-edit"></i></button>
+                                            <button @click="deleteGenre(g)" class="btn btn-admin-sm btn-admin-danger"><i class="ti ti-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="genres.length === 0">
+                                    <td colspan="4" class="text-center text-muted-sync py-4">Chưa có thể loại nào.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Genre Modal -->
+                <div v-if="showGenreModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
+                    <div class="card-custom" style="width: 440px; max-width:90%; padding: 24px;">
+                        <h5 class="fw-bold mb-3">{{ genreForm.id ? 'Cập nhật thể loại' : 'Thêm thể loại mới' }}</h5>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted-sync">Tên thể loại</label>
+                            <input type="text" v-model="genreForm.name" class="form-input-custom w-100" placeholder="Nhập tên thể loại...">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small text-muted-sync">Mô tả</label>
+                            <textarea v-model="genreForm.description" class="form-input-custom w-100" rows="2" placeholder="Mô tả ngắn..."></textarea>
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button @click="showGenreModal = false" class="btn btn-admin-outline">Hủy</button>
+                            <button @click="saveGenre" class="btn btn-admin-primary">
+                                <i class="ti ti-device-floppy me-1"></i> Lưu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== PACKAGES ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'packages' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-gift text-success me-2"></i>Quản lý gói token</h4>
+                    <button @click="openPackageModal(null)" class="btn btn-admin-primary">
+                        <i class="ti ti-plus me-1"></i> Thêm gói
+                    </button>
+                </div>
+
+                <div class="card-custom">
+                    <div class="card-body p-0">
+                        <table class="table table-custom">
+                            <thead><tr><th>ID</th><th>Tên gói</th><th class="text-center">Token</th><th class="text-center">Giá (VNĐ)</th><th>Mô tả</th><th class="text-center">Thao tác</th></tr></thead>
+                            <tbody>
+                                <tr v-for="p in packages" :key="p.id">
+                                    <td class="text-muted-sync">#{{ p.id }}</td>
+                                    <td class="fw-medium">{{ p.name }}</td>
+                                    <td class="text-center">{{ p.tokens }}</td>
+                                    <td class="text-center">{{ formatPrice(p.price) }}</td>
+                                    <td class="text-muted-sync" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.description || '—' }}</td>
+                                    <td class="text-center">
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <button @click="openPackageModal(p)" class="btn btn-admin-sm btn-admin-outline"><i class="ti ti-edit"></i></button>
+                                            <button @click="deletePackage(p)" class="btn btn-admin-sm btn-admin-danger"><i class="ti ti-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="packages.length === 0">
+                                    <td colspan="6" class="text-center text-muted-sync py-4">Chưa có gói token nào.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Package Modal -->
+                <div v-if="showPackageModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
+                    <div class="card-custom" style="width: 500px; max-width:90%; padding: 24px;">
+                        <h5 class="fw-bold mb-3">{{ packageForm.id ? 'Cập nhật gói' : 'Thêm gói mới' }}</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted-sync">Tên gói</label>
+                                <input type="text" v-model="packageForm.name" class="form-input-custom w-100" placeholder="VD: Gói Cơ bản">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted-sync">Số Token</label>
+                                <input type="number" v-model.number="packageForm.tokens" class="form-input-custom w-100" min="1">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted-sync">Giá (VNĐ)</label>
+                                <input type="number" v-model.number="packageForm.price" class="form-input-custom w-100" min="1">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-muted-sync">Mô tả</label>
+                                <textarea v-model="packageForm.description" class="form-input-custom w-100" rows="2" placeholder="Mô tả gói..."></textarea>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <button @click="showPackageModal = false" class="btn btn-admin-outline">Hủy</button>
+                            <button @click="savePackage" class="btn btn-admin-primary">
+                                <i class="ti ti-device-floppy me-1"></i> Lưu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== ORDERS ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'orders' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-receipt text-success me-2"></i>Quản lý đơn hàng</h4>
+                    <div class="d-flex gap-2">
+                        <select v-model="orderStatusFilter" @change="loadOrders" class="form-select-custom">
+                            <option value="">Tất cả</option>
+                            <option value="PENDING">Chờ thanh toán</option>
+                            <option value="SUCCESS">Thành công</option>
+                            <option value="FAILED">Thất bại</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card-custom">
+                    <div class="card-body p-0">
+                        <table class="table table-custom">
+                            <thead><tr>
+                                <th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr v-for="o in orders" :key="o.id">
+                                    <td class="text-muted-sync" style="font-size: 12px;">{{ o.orderCode }}</td>
+                                    <td class="fw-medium">@{{ o.user?.username }}</td>
+                                    <td>{{ o.pkg?.name }}</td>
+                                    <td class="text-center fw-medium">{{ formatPrice(o.totalPrice) }}</td>
+                                    <td class="text-center">
+                                        <span class="badge-status" :class="'badge-' + (o.status ? o.status.toLowerCase() : 'pending')">{{ o.status }}</span>
+                                    </td>
+                                    <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(o.createdAt) }}</td>
+                                </tr>
+                                <tr v-if="orders.length === 0">
+                                    <td colspan="6" class="text-center text-muted-sync py-4">Chưa có đơn hàng.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+new Vue({
+    el: '#admin-app',
+    data: {
+        isDarkMode: localStorage.getItem('music_theme') !== 'light',
+        activeTab: 'dashboard',
+
+        // Dashboard
+        dashboardStats: [],
+        topLiked: [],
+        topUsers: [],
+
+        // Users
+        usersPage: { content: [], totalPages: 0, number: 0, size: 10 },
+        userSearch: '',
+
+        // Songs
+        songsPage: { content: [], totalPages: 0, number: 0, size: 10 },
+        songStatusFilter: '',
+
+        // Genres
+        genres: [],
+        showGenreModal: false,
+        genreForm: { id: null, name: '', description: '' },
+
+        // Packages
+        packages: [],
+        showPackageModal: false,
+        packageForm: { id: null, name: '', tokens: 0, price: 0, description: '' },
+
+        // Orders
+        orders: [],
+        orderStatusFilter: '',
+
+        Toast: null,
+        userSearchTimer: null,
+    },
+
+    created() {
+        axios.interceptors.request.use(config => {
+            const token = localStorage.getItem('jwt_token');
+            if (token) config.headers.Authorization = `Bearer ${token}`;
+            return config;
+        }, e => Promise.reject(e));
+    },
+
+    mounted() {
+        this.Toast = Swal.mixin({
+            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
+            didOpen: toast => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); }
+        });
+
+        const token = localStorage.getItem('jwt_token');
+        const user = localStorage.getItem('music_username');
+        if (!token || !user) {
+            Swal.fire({ icon: 'error', title: 'Từ chối truy cập', text: 'Vui lòng đăng nhập với quyền Admin.' }).then(() => { window.location.href = '/'; });
+            return;
+        }
+
+        this.loadDashboard();
+        this.loadUsers(0);
+        this.loadSongs(0);
+        this.loadGenres();
+        this.loadPackages();
+        this.loadOrders();
+    },
+
+    methods: {
+        toggleTheme() {
+            this.isDarkMode = !this.isDarkMode;
+            const t = this.isDarkMode ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('music_theme', t);
+        },
+
+        formatDate(d) {
+            if (!d) return '—';
+            const date = new Date(d);
+            return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        },
+
+        formatPrice(p) {
+            if (p == null) return '—';
+            return new Intl.NumberFormat('vi-VN').format(p) + '₫';
+        },
+
+        // ===== DASHBOARD =====
+        loadDashboard() {
+            axios.get('/api/reports/overview')
+                .then(res => {
+                    const d = res.data;
+                    this.dashboardStats = [
+                        { label: 'Người dùng', value: d.totalUsers, icon: 'ti ti-users', bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+                        { label: 'Tổng bài nhạc', value: d.totalSongs, icon: 'ti ti-music', bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+                        { label: 'Hoàn thành', value: d.completedSongs, icon: 'ti ti-check-circle', bg: 'rgba(22,163,74,0.15)', color: '#4ade80' },
+                        { label: 'Đang xử lý', value: d.pendingSongs, icon: 'ti ti-refresh', bg: 'rgba(234,179,8,0.15)', color: '#facc15' },
+                        { label: 'Thất bại', value: d.failedSongs, icon: 'ti ti-alert-circle', bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
+                        { label: 'Public', value: d.publicSongs, icon: 'ti ti-world', bg: 'rgba(22,163,74,0.15)', color: '#4ade80' },
+                        { label: 'Album', value: d.totalAlbums, icon: 'ti ti-album', bg: 'rgba(249,115,22,0.15)', color: '#fb923c' },
+                        { label: 'Playlist', value: d.totalPlaylists, icon: 'ti ti-list', bg: 'rgba(236,72,153,0.15)', color: '#f472b6' },
+                        { label: 'Thể loại', value: d.totalGenres, icon: 'ti ti-category', bg: 'rgba(14,165,233,0.15)', color: '#38bdf8' },
+                        { label: 'Đơn hàng', value: d.totalOrders, icon: 'ti ti-receipt', bg: 'rgba(168,85,247,0.15)', color: '#c084fc' },
+                        { label: 'Tỉ lệ thành công', value: d.successRate + '%', icon: 'ti ti-percentage', bg: 'rgba(22,163,74,0.15)', color: '#4ade80' },
+                    ];
+                })
+                .catch(err => {
+                    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+                        Swal.fire({ icon: 'error', title: 'Từ chối truy cập', text: 'Bạn không có quyền Admin!' }).then(() => { window.location.href = '/'; });
+                    }
+                });
+
+            axios.get('/api/reports/top-liked?limit=5').then(r => { this.topLiked = r.data; }).catch(() => {});
+            axios.get('/api/reports/top-users?limit=5').then(r => { this.topUsers = r.data; }).catch(() => {});
+        },
+
+        // ===== USERS =====
+        loadUsers(page) {
+            const keyword = this.userSearch.trim();
+            const url = keyword
+                ? `/api/admin/users?page=${page}&size=10&keyword=${encodeURIComponent(keyword)}`
+                : `/api/admin/users?page=${page}&size=10`;
+            axios.get(url).then(r => { this.usersPage = r.data; }).catch(() => {});
+        },
+
+        searchUsers() {
+            clearTimeout(this.userSearchTimer);
+            this.userSearchTimer = setTimeout(() => { this.loadUsers(0); }, 400);
+        },
+
+        toggleUserStatus(u) {
+            const action = u.enabled ? 'khóa' : 'mở khóa';
+            Swal.fire({
+                title: 'Xác nhận',
+                text: `Bạn có chắc muốn ${action} tài khoản @${u.username}?`,
+                icon: 'warning', showCancelButton: true, confirmButtonColor: '#16a34a', cancelButtonColor: '#d33',
+                confirmButtonText: 'Xác nhận', cancelButtonText: 'Hủy'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.put(`/api/admin/users/${u.username}/toggle-status`)
+                        .then(r => {
+                            this.Toast.fire({ icon: 'success', title: r.data.message });
+                            this.loadUsers(this.usersPage.number);
+                        })
+                        .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Thao tác thất bại' }); });
+                }
+            });
+        },
+
+        // ===== SONGS =====
+        loadSongs(page) {
+            const status = this.songStatusFilter;
+            const url = status
+                ? `/api/admin/songs?page=${page}&size=10&status=${status}`
+                : `/api/admin/songs?page=${page}&size=10`;
+            axios.get(url).then(r => { this.songsPage = r.data; }).catch(() => {});
+        },
+
+        toggleSongPublic(s) {
+            const action = s.isPublic ? 'chuyển sang Private' : 'chuyển sang Public';
+            Swal.fire({
+                title: 'Xác nhận',
+                text: `Bạn có chắc muốn ${action} bài "#${s.id} - ${s.title}"?`,
+                icon: 'question', showCancelButton: true, confirmButtonColor: '#16a34a', cancelButtonColor: '#d33',
+                confirmButtonText: 'Xác nhận', cancelButtonText: 'Hủy'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.put(`/api/admin/songs/${s.id}/toggle-public`)
+                        .then(r => {
+                            this.Toast.fire({ icon: 'success', title: r.data.message });
+                            this.loadSongs(this.songsPage.number);
+                        })
+                        .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Thao tác thất bại' }); });
+                }
+            });
+        },
+
+        deleteSong(s) {
+            Swal.fire({
+                title: 'Xóa bài nhạc?',
+                text: `Bạn có chắc xóa bài "#${s.id} - ${s.title}"? Hành động này không thể hoàn tác!`,
+                icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.delete(`/api/admin/songs/${s.id}`)
+                        .then(r => {
+                            this.Toast.fire({ icon: 'success', title: r.data.message });
+                            this.loadSongs(this.songsPage.number);
+                        })
+                        .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
+                }
+            });
+        },
+
+        // ===== GENRES =====
+        loadGenres() {
+            axios.get('/api/genres').then(r => { this.genres = r.data; }).catch(() => {});
+        },
+
+        openGenreModal(g) {
+            if (g) {
+                this.genreForm = { id: g.id, name: g.name, description: g.description || '' };
+            } else {
+                this.genreForm = { id: null, name: '', description: '' };
+            }
+            this.showGenreModal = true;
+        },
+
+        saveGenre() {
+            if (!this.genreForm.name.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên thể loại không được để trống!' });
+                return;
+            }
+            const body = { name: this.genreForm.name.trim(), description: this.genreForm.description.trim() };
+
+            if (this.genreForm.id) {
+                axios.put(`/api/genres/${this.genreForm.id}`, body)
+                    .then(() => {
+                        this.Toast.fire({ icon: 'success', title: 'Cập nhật thể loại thành công!' });
+                        this.showGenreModal = false;
+                        this.loadGenres();
+                    })
+                    .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Cập nhật thất bại' }); });
+            } else {
+                axios.post('/api/genres', body)
+                    .then(() => {
+                        this.Toast.fire({ icon: 'success', title: 'Thêm thể loại thành công!' });
+                        this.showGenreModal = false;
+                        this.loadGenres();
+                    })
+                    .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Thêm thất bại' }); });
+            }
+        },
+
+        deleteGenre(g) {
+            Swal.fire({
+                title: 'Xóa thể loại?',
+                text: `Bạn có chắc xóa thể loại "${g.name}"?`,
+                icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.delete(`/api/genres/${g.id}`)
+                        .then(r => {
+                            this.Toast.fire({ icon: 'success', title: r.data.message });
+                            this.loadGenres();
+                        })
+                        .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
+                }
+            });
+        },
+
+        // ===== PACKAGES =====
+        loadPackages() {
+            axios.get('/api/packages').then(r => { this.packages = r.data; }).catch(() => {});
+        },
+
+        openPackageModal(p) {
+            if (p) {
+                this.packageForm = { id: p.id, name: p.name, tokens: p.tokens, price: p.price, description: p.description || '' };
+            } else {
+                this.packageForm = { id: null, name: '', tokens: 0, price: 0, description: '' };
+            }
+            this.showPackageModal = true;
+        },
+
+        savePackage() {
+            if (!this.packageForm.name.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên gói không được để trống!' });
+                return;
+            }
+            if (!this.packageForm.tokens || this.packageForm.tokens <= 0) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Số token phải lớn hơn 0!' });
+                return;
+            }
+            if (!this.packageForm.price || this.packageForm.price <= 0) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Giá tiền phải lớn hơn 0!' });
+                return;
+            }
+
+            const body = {
+                name: this.packageForm.name.trim(),
+                tokens: this.packageForm.tokens,
+                price: this.packageForm.price,
+                description: this.packageForm.description.trim()
+            };
+
+            if (this.packageForm.id) {
+                axios.put(`/api/packages/${this.packageForm.id}`, body)
+                    .then(() => {
+                        this.Toast.fire({ icon: 'success', title: 'Cập nhật gói thành công!' });
+                        this.showPackageModal = false;
+                        this.loadPackages();
+                    })
+                    .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Cập nhật thất bại' }); });
+            } else {
+                axios.post('/api/packages', body)
+                    .then(() => {
+                        this.Toast.fire({ icon: 'success', title: 'Thêm gói thành công!' });
+                        this.showPackageModal = false;
+                        this.loadPackages();
+                    })
+                    .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Thêm thất bại' }); });
+            }
+        },
+
+        deletePackage(p) {
+            Swal.fire({
+                title: 'Xóa gói?',
+                text: `Bạn có chắc xóa gói "${p.name}"?`,
+                icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.delete(`/api/packages/${p.id}`)
+                        .then(r => {
+                            this.Toast.fire({ icon: 'success', title: r.data.message });
+                            this.loadPackages();
+                        })
+                        .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
+                }
+            });
+        },
+
+        // ===== ORDERS =====
+        loadOrders() {
+            const status = this.orderStatusFilter;
+            const url = status ? `/api/admin/orders?status=${status}` : '/api/admin/orders';
+            axios.get(url).then(r => { this.orders = r.data; }).catch(() => {});
+        },
+    }
+});
+</script>
+</body>
+</html>
