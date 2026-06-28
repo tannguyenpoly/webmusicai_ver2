@@ -63,10 +63,13 @@ public class AuthController {
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("message", "Đăng nhập thành công!");
-			response.put("token", token); // ← token thật
+			response.put("token", token);
 			response.put("username", user.getUsername());
 			response.put("fullname", user.getFullname());
 			response.put("token_balance", user.getTokenBalance());
+
+			boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+			response.put("isAdmin", isAdmin);
 
 			return ResponseEntity.ok(response);
 
