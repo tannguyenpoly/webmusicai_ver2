@@ -22,6 +22,14 @@
                     <span class="fw-medium">{{ currentUser }}</span>
                 </button>
 
+                <a v-if="isAdmin" href="/admin"
+                   class="btn px-3 py-1.5 rounded-pill me-2 small d-flex align-items-center text-decoration-none"
+                   style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); color: var(--text-color); transition: all 0.2s;"
+                   onmouseover="this.style.backgroundColor='rgba(220,53,69,0.2)'" onmouseout="this.style.backgroundColor='rgba(220,53,69,0.1)'" title="Trang quản trị">
+                    <i class="ti ti-shield-lock text-danger me-2"></i>
+                    <span class="fw-medium">Quản trị</span>
+                </a>
+
                 <div class="px-3 py-1.5 rounded-pill me-3 small d-flex align-items-center"
                      style="background: rgba(25, 135, 84, 0.1); border: 1px solid rgba(25, 135, 84, 0.3);">
                     <i class="ti ti-coin text-warning me-2"></i>
