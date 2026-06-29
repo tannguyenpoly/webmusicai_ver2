@@ -9,6 +9,8 @@ new Vue({
         userTokens: 0,               // Token thực tế từ database
         publicSongs: [],             // Danh sách nhạc public dạng mảng phẳng
         sessionPlaylist: [],         // Playlist tạm thời lưu trong Session Storage của Guest
+        favoriteSongs: [],           // Danh sách bài hát yêu thích
+        isLoadingFavorites: false,   // Trạng thái tải cho trang yêu thích
 
         generationForm: {
             username: '',
@@ -108,8 +110,15 @@ new Vue({
         }
 
         // Tải các tài nguyên công khai sau khi đã xác định trạng thái đăng nhập
-        this.loadPublicSongs();
-        this.loadSessionPlaylist();
+        // Phân luồng tải dữ liệu theo trang hiện tại để tối ưu
+        if (window.location.pathname === '/') {
+            this.loadPublicSongs();
+        } else if (window.location.pathname.startsWith('/favorites')) {
+            this.loadFavoriteSongs();
+        }
+
+        // Playlist tạm luôn được tải
+        this.loadSessionPlaylist(); 
     },
     methods: {
         // HÀM CHUYỂN ĐỔI CHẾ ĐỘ SÁNG / TỐI ĐỒNG BỘ TOÀN HỆ THỐNG
@@ -139,11 +148,60 @@ new Vue({
         loadPublicSongs() {
             axios.get('/api/songs/public')
                 .then(response => {
-                    this.publicSongs = Array.isArray(response.data) ? response.data : [];
+                    let songs = Array.isArray(response.data) ? response.data : [];
+                    // Gán giá trị mặc định trước để giao diện không bị lỗi
+                    songs.forEach(s => {
+                        s.total_likes = 0;
+                        s.liked_by_me = false;
+                    });
+                    this.publicSongs = songs;
+
+                    // Nếu người dùng đã đăng nhập, tải trạng thái "like" cho các bài hát
+                    if (this.currentUser) {
+                        this.loadLikeStatusForSongs(this.publicSongs);
+                    }
                 })
                 .catch(error => {
                     console.error("Lỗi khi tải kho nhạc public:", error);
                 });
+        },
+
+        // Tải trạng thái like cho danh sách bài hát (chỉ khi đã đăng nhập)
+        loadLikeStatusForSongs(songs) {
+            // Ghi chú cho lập trình viên:
+            // Luồng này tạo ra N+1 request để lấy trạng thái like, có thể gây chậm nếu danh sách nhạc lớn.
+            // Giải pháp tối ưu hơn là sửa đổi API backend (`/api/songs/public`) để trả về kèm thông tin `total_likes` và `liked_by_me` trong một lần gọi duy nhất.
+            const likePromises = songs.map(song =>
+                axios.get(`/api/songs/${song.id}/likes`)
+                .then(res => {
+                    const targetSong = this.publicSongs.find(s => s.id === song.id);
+                    if (targetSong) {
+                        targetSong.total_likes = res.data.total_likes;
+                        targetSong.liked_by_me = res.data.liked_by_me;
+                    }
+                })
+                .catch(err => console.warn(`Không thể tải trạng thái like cho bài hát #${song.id}.`))
+            );
+        },
+
+        loadFavoriteSongs() {
+            if (!this.currentUser) {
+                return; // Không tải nếu chưa đăng nhập
+            }
+            this.isLoadingFavorites = true;
+            axios.get('/api/songs/my-favorites')
+                .then(response => {
+                    // Gán thêm thuộc tính liked_by_me = true cho tất cả để nút "Bỏ thích" hoạt động đúng
+                    this.favoriteSongs = response.data.map(song => {
+                        song.liked_by_me = true; 
+                        return song;
+                    });
+                })
+                .catch(error => {
+                    console.error("Lỗi khi tải danh sách yêu thích:", error);
+                    this.Toast.fire({ icon: 'error', title: 'Không thể tải danh sách yêu thích.' });
+                })
+                .finally(() => { this.isLoadingFavorites = false; });
         },
 
         generateMusic() {
@@ -265,6 +323,64 @@ new Vue({
             this.sessionPlaylist = [];
             sessionStorage.removeItem('music_session_playlist');
             this.Toast.fire({ icon: 'error', title: 'Đã giải phóng danh sách phát' });
+        },
+
+        toggleLike(song) {
+            if (!this.currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu cầu đăng nhập',
+                    text: 'Bạn cần đăng nhập để "thả tim" cho bài hát này.',
+                    confirmButtonText: 'Đăng nhập ngay',
+                    showCancelButton: true,
+                    cancelButtonColor: '#6e7881',
+                    confirmButtonColor: '#16a34a',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/login';
+                    }
+                });
+                return;
+            }
+
+            // Cập nhật giao diện ngay lập tức để tăng trải nghiệm người dùng (Optimistic Update)
+            const originalLikedState = song.liked_by_me;
+            const originalLikeCount = song.total_likes;
+            song.liked_by_me = !song.liked_by_me;
+            song.total_likes += song.liked_by_me ? 1 : -1;
+
+            // Nếu đang ở trang Yêu thích và người dùng "Bỏ thích"
+            // thì xóa bài hát đó khỏi danh sách `favoriteSongs`
+            if (window.location.pathname.startsWith('/favorites') && !song.liked_by_me) {
+                const index = this.favoriteSongs.findIndex(s => s.id === song.id);
+                if (index > -1) {
+                    this.favoriteSongs.splice(index, 1);
+                }
+            }
+
+            // Gọi API để cập nhật backend
+            axios.post(`/api/songs/${song.id}/like`)
+                .then(response => {
+                    // Cập nhật lại dữ liệu từ phản hồi của API để đảm bảo tính chính xác
+                    song.liked_by_me = response.data.liked;
+                    song.total_likes = response.data.total_likes;
+                    this.Toast.fire({ icon: 'success', title: response.data.message });
+                })
+                .catch(error => {
+                    // Nếu có lỗi, khôi phục lại trạng thái ban đầu
+                    song.liked_by_me = originalLikedState;
+                    song.total_likes = originalLikeCount;
+
+                    // Nếu đang ở trang Yêu thích và thao tác lỗi, thêm lại bài hát vào danh sách
+                    if (window.location.pathname.startsWith('/favorites') && song.liked_by_me) {
+                         const isExist = this.favoriteSongs.some(s => s.id === song.id);
+                         if (!isExist) {
+                            this.favoriteSongs.push(song);
+                         }
+                    }
+                    this.Toast.fire({ icon: 'error', title: error.response?.data?.message || 'Đã có lỗi xảy ra' });
+                });
         },
 
         handleLogin() {
