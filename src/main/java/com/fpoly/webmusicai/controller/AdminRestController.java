@@ -1,6 +1,7 @@
 package com.fpoly.webmusicai.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +11,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.fpoly.webmusicai.entity.Order;
 import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.entity.User;
+import com.fpoly.webmusicai.repository.OrderRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 
@@ -25,6 +28,9 @@ public class AdminRestController {
 
     @Autowired
     private SongRepository songRepo;
+
+    @Autowired
+    private OrderRepository orderRepo;
 
     // ============ QUẢN LÝ USER (đã có sẵn) ============
 
@@ -103,6 +109,22 @@ public class AdminRestController {
                 "is_public", song.getIsPublic()
             ));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // ============ QUẢN LÝ ORDERS ============
+
+    @GetMapping("/orders")
+    public ResponseEntity<?> getAllOrders(
+            @RequestParam(defaultValue = "") String status) {
+
+        List<Order> orders;
+        if (status != null && !status.trim().isEmpty()) {
+            orders = orderRepo.findByStatus(status.trim());
+        } else {
+            orders = orderRepo.findAll();
+        }
+        orders.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+        return ResponseEntity.ok(orders);
     }
 
     // ============ THỐNG KÊ CHI TIẾT (MỞ RỘNG) ============
