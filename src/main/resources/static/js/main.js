@@ -5,6 +5,7 @@ new Vue({
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
 
         currentUser: null,           // Gán null ban đầu để ẩn giao diện tài khoản khi chưa login
+        isAdmin: false,              // Trạng thái admin để hiển thị link quản trị
         userTokens: 0,               // Token thực tế từ database
         publicSongs: [],             // Danh sách nhạc public dạng mảng phẳng
         sessionPlaylist: [],         // Playlist tạm thời lưu trong Session Storage của Guest
@@ -95,12 +96,15 @@ new Vue({
         // Xác thực bằng JWT thay vì gọi API Check Session
         if (savedUser && savedToken) {
             this.currentUser = savedUser;
+            this.isAdmin = localStorage.getItem('music_is_admin') === 'true';
             this.generationForm.username = savedUser;
             this.loadUserTokenBalance(savedUser);
         } else {
             this.currentUser = null;
+            this.isAdmin = false;
             localStorage.removeItem('music_username');
             localStorage.removeItem('jwt_token');
+            localStorage.removeItem('music_is_admin');
         }
 
         // Tải các tài nguyên công khai sau khi đã xác định trạng thái đăng nhập
@@ -275,6 +279,7 @@ new Vue({
                     // LƯU CẢ USERNAME VÀ JWT TOKEN ĐỂ CHẠY LUỒNG HEAD
                     localStorage.setItem('music_username', response.data.username);
                     localStorage.setItem('jwt_token', response.data.token);
+                    localStorage.setItem('music_is_admin', response.data.isAdmin);
 
                     if (btn) {
                         btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!';
@@ -346,11 +351,13 @@ new Vue({
             const executeLogout = () => {
                 // XÓA ĐỒNG THỜI CẢ USERNAME VÀ JWT TOKEN
                 localStorage.removeItem('music_username');
-                localStorage.removeItem('jwt_token'); 
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('music_is_admin');
                 this.currentUser = null;
+                this.isAdmin = false;
                 this.userTokens = 0;
                 this.generationForm.username = '';
-                window.location.href = '/'; 
+                window.location.href = '/';
             };
 
             if (!showConfirm) {
