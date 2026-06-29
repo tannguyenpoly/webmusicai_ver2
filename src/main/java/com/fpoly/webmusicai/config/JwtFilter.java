@@ -3,6 +3,7 @@ package com.fpoly.webmusicai.config;
 import com.fpoly.webmusicai.config.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,19 +28,32 @@ public class JwtFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
+		String token = null;
+
 		String authHeader = request.getHeader("Authorization");
-
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
-			String token = authHeader.substring(7);
+			token = authHeader.substring(7);
+		}
 
-			if (jwtService.isTokenValid(token)) {
-				String username = jwtService.extractUsername(token);
-				UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-				UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-						null, userDetails.getAuthorities());
-				SecurityContextHolder.getContext().setAuthentication(authToken);
+		if (token == null) {
+			Cookie[] cookies = request.getCookies();
+			if (cookies != null) {
+				for (Cookie cookie : cookies) {
+					if ("jwt_token".equals(cookie.getName())) {
+						token = cookie.getValue();
+						break;
+					}
+				}
 			}
+		}
+
+		if (token != null && jwtService.isTokenValid(token)) {
+			String username = jwtService.extractUsername(token);
+			UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
+					null, userDetails.getAuthorities());
+			SecurityContextHolder.getContext().setAuthentication(authToken);
 		}
 
 		filterChain.doFilter(request, response);
