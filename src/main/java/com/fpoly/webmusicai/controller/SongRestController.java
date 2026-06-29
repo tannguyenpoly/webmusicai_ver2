@@ -105,8 +105,12 @@ public class SongRestController {
 				Map result = musicService.generateMusic(prompt, isInstrumental);
 				// [FIX BUG]: Đã sửa lỗi lưu audioUrl bằng title
 				String audioUrl = (String) result.get("audio_url"); 
+				String aiTitle = (String) result.get("title");
 				song.setAudioUrl(audioUrl);
 				song.setStatus("COMPLETED");
+				if (title == null || title.isBlank()) {
+					song.setTitle(aiTitle != null && !aiTitle.isBlank() ? aiTitle : "Bài hát không tên");
+				}
 				songRepo.save(song);
 			} catch (Exception e) {
 				song.setStatus("FAILED");
