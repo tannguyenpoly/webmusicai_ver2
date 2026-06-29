@@ -37,6 +37,11 @@ public class WebController {
         return "register"; // Nạp templates/register.html
     }
 
+    @GetMapping("/favorites")
+    public String favorites() {
+        return "favorites"; // Nạp templates/favorites.html
+    }
+
     @GetMapping("/profile")
     public String profile() {
         return "profile";
