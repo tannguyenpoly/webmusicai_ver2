@@ -70,14 +70,13 @@
                             </td>
                             <td class="text-center py-3 pe-2">
                                 <button @click="playTrack(song)" class="btn btn-sm action-btn-green" title="Phát bài hát này"><i class="ti ti-player-play"></i></button>
-                                
-                                <!-- Nút Yêu thích (Thả tim) -->
-                                <button @click="toggleLike(song)" class="btn btn-sm" 
-                                        :class="song.liked_by_me ? 'action-btn-red' : 'action-btn-gray'" 
+
+                                <button @click="toggleLike(song)" class="btn btn-sm"
+                                        :class="song.liked_by_me ? 'action-btn-red' : 'action-btn-gray'"
                                         :title="song.liked_by_me ? 'Bỏ thích' : 'Thích bài hát này'">
                                     <i :class="['ti', song.liked_by_me ? 'ti-heart-filled' : 'ti-heart']"></i>
                                 </button>
-                                
+
                                 <button @click="addToPlaylist(song)" class="btn btn-sm action-btn-gray" title="Thêm vào danh sách phát tạm"><i class="ti ti-plus"></i></button>
                             </td>
                         </tr>

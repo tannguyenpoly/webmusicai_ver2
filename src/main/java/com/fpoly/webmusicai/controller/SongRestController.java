@@ -63,22 +63,6 @@ public class SongRestController {
 		return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
 	}
 
-	@GetMapping("/my-favorites")
-	public ResponseEntity<?> getMyFavoriteSongs() {
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		String username = auth.getName();
-
-		if (username == null || "anonymousUser".equals(username)) {
-			return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập để xem danh sách yêu thích."));
-		}
-
-		// Giả định FavoriteRepository có phương thức này
-		List<Favorite> favorites = favoriteRepo.findByUserUsernameOrderByCreatedAtDesc(username);
-		List<Song> favoriteSongs = favorites.stream().map(Favorite::getSong).toList();
-
-		return ResponseEntity.ok(favoriteSongs);
-	}
-
 	@Transactional(rollbackFor = Exception.class)
 	@PostMapping("/generate")
 	public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
@@ -121,12 +105,8 @@ public class SongRestController {
 				Map result = musicService.generateMusic(prompt, isInstrumental);
 				// [FIX BUG]: Đã sửa lỗi lưu audioUrl bằng title
 				String audioUrl = (String) result.get("audio_url"); 
-				String aiTitle = (String) result.get("title");
 				song.setAudioUrl(audioUrl);
 				song.setStatus("COMPLETED");
-				if (title == null || title.isBlank()) {
-					song.setTitle(aiTitle != null && !aiTitle.isBlank() ? aiTitle : "Bài hát không tên");
-				}
 				songRepo.save(song);
 			} catch (Exception e) {
 				song.setStatus("FAILED");
@@ -245,7 +225,6 @@ public class SongRestController {
 		}).orElse(ResponseEntity.notFound().build());
 	}
 
-	@Transactional
 	@PostMapping("/{id}/like")
 	public ResponseEntity<?> toggleLike(@PathVariable Integer id) {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();

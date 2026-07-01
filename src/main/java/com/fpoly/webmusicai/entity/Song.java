@@ -21,8 +21,8 @@ public class Song implements Serializable {
 	private String title;
 	private String prompt;
 
-	@Column(name = "audio_url")
-	private String audioUrl;
+    @Column(name = "audio_url", columnDefinition = "VARCHAR(MAX)")
+    private String audioUrl;
 
 	private String status; // PENDING, COMPLETED, FAILED
 

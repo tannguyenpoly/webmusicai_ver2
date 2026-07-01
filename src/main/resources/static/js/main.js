@@ -5,12 +5,9 @@ new Vue({
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
 
         currentUser: null,           // Gán null ban đầu để ẩn giao diện tài khoản khi chưa login
-        isAdmin: false,              // Trạng thái admin để hiển thị link quản trị
         userTokens: 0,               // Token thực tế từ database
         publicSongs: [],             // Danh sách nhạc public dạng mảng phẳng
         sessionPlaylist: [],         // Playlist tạm thời lưu trong Session Storage của Guest
-        favoriteSongs: [],           // Danh sách bài hát yêu thích
-        isLoadingFavorites: false,   // Trạng thái tải cho trang yêu thích
 
         generationForm: {
             username: '',
@@ -98,19 +95,15 @@ new Vue({
         // Xác thực bằng JWT thay vì gọi API Check Session
         if (savedUser && savedToken) {
             this.currentUser = savedUser;
-            this.isAdmin = localStorage.getItem('music_is_admin') === 'true';
             this.generationForm.username = savedUser;
             this.loadUserTokenBalance(savedUser);
         } else {
             this.currentUser = null;
-            this.isAdmin = false;
             localStorage.removeItem('music_username');
             localStorage.removeItem('jwt_token');
-            localStorage.removeItem('music_is_admin');
         }
 
         // Tải các tài nguyên công khai sau khi đã xác định trạng thái đăng nhập
-        // Phân luồng tải dữ liệu theo trang hiện tại để tối ưu
         if (window.location.pathname === '/') {
             this.loadPublicSongs();
         } else if (window.location.pathname.startsWith('/favorites')) {
@@ -118,7 +111,7 @@ new Vue({
         }
 
         // Playlist tạm luôn được tải
-        this.loadSessionPlaylist(); 
+        this.loadSessionPlaylist();
     },
     methods: {
         // HÀM CHUYỂN ĐỔI CHẾ ĐỘ SÁNG / TỐI ĐỒNG BỘ TOÀN HỆ THỐNG
@@ -149,14 +142,12 @@ new Vue({
             axios.get('/api/songs/public')
                 .then(response => {
                     let songs = Array.isArray(response.data) ? response.data : [];
-                    // Gán giá trị mặc định trước để giao diện không bị lỗi
                     songs.forEach(s => {
                         s.total_likes = 0;
                         s.liked_by_me = false;
                     });
                     this.publicSongs = songs;
 
-                    // Nếu người dùng đã đăng nhập, tải trạng thái "like" cho các bài hát
                     if (this.currentUser) {
                         this.loadLikeStatusForSongs(this.publicSongs);
                     }
@@ -166,34 +157,27 @@ new Vue({
                 });
         },
 
-        // Tải trạng thái like cho danh sách bài hát (chỉ khi đã đăng nhập)
         loadLikeStatusForSongs(songs) {
-            // Ghi chú cho lập trình viên:
-            // Luồng này tạo ra N+1 request để lấy trạng thái like, có thể gây chậm nếu danh sách nhạc lớn.
-            // Giải pháp tối ưu hơn là sửa đổi API backend (`/api/songs/public`) để trả về kèm thông tin `total_likes` và `liked_by_me` trong một lần gọi duy nhất.
-            const likePromises = songs.map(song =>
+            songs.forEach(song => {
                 axios.get(`/api/songs/${song.id}/likes`)
-                .then(res => {
-                    const targetSong = this.publicSongs.find(s => s.id === song.id);
-                    if (targetSong) {
-                        targetSong.total_likes = res.data.total_likes;
-                        targetSong.liked_by_me = res.data.liked_by_me;
-                    }
-                })
-                .catch(err => console.warn(`Không thể tải trạng thái like cho bài hát #${song.id}.`))
-            );
+                    .then(res => {
+                        const targetSong = this.publicSongs.find(s => s.id === song.id);
+                        if (targetSong) {
+                            targetSong.total_likes = res.data.total_likes;
+                            targetSong.liked_by_me = res.data.liked_by_me;
+                        }
+                    })
+                    .catch(err => console.warn(`Không thể tải trạng thái like cho bài hát #${song.id}.`));
+            });
         },
 
         loadFavoriteSongs() {
-            if (!this.currentUser) {
-                return; // Không tải nếu chưa đăng nhập
-            }
+            if (!this.currentUser) return;
             this.isLoadingFavorites = true;
             axios.get('/api/songs/my-favorites')
                 .then(response => {
-                    // Gán thêm thuộc tính liked_by_me = true cho tất cả để nút "Bỏ thích" hoạt động đúng
                     this.favoriteSongs = response.data.map(song => {
-                        song.liked_by_me = true; 
+                        song.liked_by_me = true;
                         return song;
                     });
                 })
@@ -337,47 +321,34 @@ new Vue({
                     confirmButtonColor: '#16a34a',
                     cancelButtonText: 'Hủy'
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = '/login';
-                    }
+                    if (result.isConfirmed) window.location.href = '/login';
                 });
                 return;
             }
 
-            // Cập nhật giao diện ngay lập tức để tăng trải nghiệm người dùng (Optimistic Update)
             const originalLikedState = song.liked_by_me;
             const originalLikeCount = song.total_likes;
             song.liked_by_me = !song.liked_by_me;
             song.total_likes += song.liked_by_me ? 1 : -1;
 
-            // Nếu đang ở trang Yêu thích và người dùng "Bỏ thích"
-            // thì xóa bài hát đó khỏi danh sách `favoriteSongs`
             if (window.location.pathname.startsWith('/favorites') && !song.liked_by_me) {
                 const index = this.favoriteSongs.findIndex(s => s.id === song.id);
-                if (index > -1) {
-                    this.favoriteSongs.splice(index, 1);
-                }
+                if (index > -1) this.favoriteSongs.splice(index, 1);
             }
 
-            // Gọi API để cập nhật backend
             axios.post(`/api/songs/${song.id}/like`)
                 .then(response => {
-                    // Cập nhật lại dữ liệu từ phản hồi của API để đảm bảo tính chính xác
                     song.liked_by_me = response.data.liked;
                     song.total_likes = response.data.total_likes;
                     this.Toast.fire({ icon: 'success', title: response.data.message });
                 })
                 .catch(error => {
-                    // Nếu có lỗi, khôi phục lại trạng thái ban đầu
                     song.liked_by_me = originalLikedState;
                     song.total_likes = originalLikeCount;
 
-                    // Nếu đang ở trang Yêu thích và thao tác lỗi, thêm lại bài hát vào danh sách
                     if (window.location.pathname.startsWith('/favorites') && song.liked_by_me) {
-                         const isExist = this.favoriteSongs.some(s => s.id === song.id);
-                         if (!isExist) {
-                            this.favoriteSongs.push(song);
-                         }
+                        const isExist = this.favoriteSongs.some(s => s.id === song.id);
+                        if (!isExist) this.favoriteSongs.push(song);
                     }
                     this.Toast.fire({ icon: 'error', title: error.response?.data?.message || 'Đã có lỗi xảy ra' });
                 });
@@ -395,7 +366,6 @@ new Vue({
                     // LƯU CẢ USERNAME VÀ JWT TOKEN ĐỂ CHẠY LUỒNG HEAD
                     localStorage.setItem('music_username', response.data.username);
                     localStorage.setItem('jwt_token', response.data.token);
-                    localStorage.setItem('music_is_admin', response.data.isAdmin);
 
                     if (btn) {
                         btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!';
@@ -467,13 +437,11 @@ new Vue({
             const executeLogout = () => {
                 // XÓA ĐỒNG THỜI CẢ USERNAME VÀ JWT TOKEN
                 localStorage.removeItem('music_username');
-                localStorage.removeItem('jwt_token');
-                localStorage.removeItem('music_is_admin');
+                localStorage.removeItem('jwt_token'); 
                 this.currentUser = null;
-                this.isAdmin = false;
                 this.userTokens = 0;
                 this.generationForm.username = '';
-                window.location.href = '/';
+                window.location.href = '/'; 
             };
 
             if (!showConfirm) {
