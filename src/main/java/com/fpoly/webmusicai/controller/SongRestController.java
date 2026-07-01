@@ -1,9 +1,7 @@
 package com.fpoly.webmusicai.controller;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.fpoly.webmusicai.entity.Favorite;
 import com.fpoly.webmusicai.entity.Song;
+import com.fpoly.webmusicai.entity.LikeCount;
 import com.fpoly.webmusicai.entity.SongComment;
 import com.fpoly.webmusicai.entity.Transaction;
 import com.fpoly.webmusicai.entity.User;
@@ -55,8 +54,40 @@ public class SongRestController {
     // 1. LẤY DANH SÁCH BÀI HÁT PUBLIC
     // ==========================================
     @GetMapping("/public")
-    public ResponseEntity<List<Song>> getPublicSongs() {
-        return ResponseEntity.ok(songRepo.findByIsPublicTrueOrderByCreatedAtDesc());
+    public ResponseEntity<?> getPublicSongs() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
+
+        List<Song> songs = songRepo.findByIsPublicTrueOrderByCreatedAtDesc();
+        if (songs.isEmpty()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        List<Integer> songIds = songs.stream().map(Song::getId).toList();
+
+        // Lấy tổng số lượt thích cho tất cả bài hát trong 1 câu lệnh query
+        Map<Integer, Long> likeCounts = favoriteRepo.countLikesBySongIds(songIds).stream()
+                .collect(Collectors.toMap(LikeCount::getSongId, LikeCount::getLikeCount));
+
+        // Lấy danh sách ID bài hát mà người dùng hiện tại đã thích
+        Set<Integer> likedByCurrentUser = (username != null)
+                ? favoriteRepo.findLikedSongIdsByUser(username, songIds)
+                : Collections.emptySet();
+
+        // Chuyển đổi Song thành Map để thêm thông tin 'total_likes' và 'liked_by_me'
+        List<Map<String, Object>> result = songs.stream().map(song -> {
+            Map<String, Object> songMap = song.toMap(); // Giả sử có phương thức toMap() trong Entity
+            songMap.put("total_likes", likeCounts.getOrDefault(song.getId(), 0L));
+            songMap.put("liked_by_me", likedByCurrentUser.contains(song.getId()));
+            return songMap;
+        }).toList();
+
+        return ResponseEntity.ok()
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
+                .header("Vary", "Authorization")
+                .body(result);
     }
 
     // ==========================================
@@ -65,17 +96,44 @@ public class SongRestController {
     @GetMapping("/my-favorites")
     public ResponseEntity<?> getMyFavoriteSongs() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-
-        if (username == null || "anonymousUser".equals(username)) {
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Vui lòng đăng nhập để xem danh sách yêu thích."));
         }
+        String username = auth.getName();
+        
+        // 1. Lấy danh sách các bài hát yêu thích của người dùng
+        List<Song> favoriteSongs = favoriteRepo.findByUserUsernameOrderByCreatedAtDesc(username)
+                .stream()
+                .map(Favorite::getSong)
+                .toList();
 
-        List<Favorite> favorites = favoriteRepo.findByUserUsernameOrderByCreatedAtDesc(username);
-        List<Song> favoriteSongs = favorites.stream().map(Favorite::getSong).toList();
+        if (favoriteSongs.isEmpty()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
 
-        return ResponseEntity.ok(favoriteSongs);
+        // 2. Lấy ID của tất cả các bài hát để truy vấn số lượt thích một cách hiệu quả
+        List<Integer> songIds = favoriteSongs.stream().map(Song::getId).toList();
+
+        // 3. Lấy tổng số lượt thích cho tất cả các bài hát này trong một lần truy vấn
+        Map<Integer, Long> likeCounts = favoriteRepo.countLikesBySongIds(songIds).stream()
+                .collect(Collectors.toMap(LikeCount::getSongId, LikeCount::getLikeCount));
+
+        // 4. Xây dựng kết quả trả về, thêm các thông tin cần thiết cho UI
+        List<Map<String, Object>> result = favoriteSongs.stream().map(song -> {
+            Map<String, Object> songMap = song.toMap();
+            songMap.put("total_likes", likeCounts.getOrDefault(song.getId(), 0L));
+            // Đối với trang "yêu thích của tôi", trường này luôn là true
+            songMap.put("liked_by_me", true);
+            return songMap;
+        }).toList();
+
+        return ResponseEntity.ok()
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
+                .header("Vary", "Authorization")
+                .body(result);
     }
 
     // ==========================================
