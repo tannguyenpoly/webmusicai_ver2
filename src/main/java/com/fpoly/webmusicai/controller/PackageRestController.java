@@ -21,19 +21,16 @@ public class PackageRestController {
 	@Autowired
 	PackageRepository packageRepo;
 
-	// ============ READ - ALL (Public) ============
 	@GetMapping
 	public ResponseEntity<List<Package>> getAllPackages() {
 		return ResponseEntity.ok(packageRepo.findAll());
 	}
 
-	// ============ READ - ONE (Public) ============
 	@GetMapping("/{id}")
 	public ResponseEntity<?> getPackageById(@PathVariable Integer id) {
 		return packageRepo.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
 	}
 
-	// ============ CREATE (Admin) ============
 	@PostMapping
 	public ResponseEntity<?> createPackage(@RequestBody Map<String, Object> body) {
 		String name = (String) body.get("name");
@@ -64,7 +61,6 @@ public class PackageRestController {
 		return ResponseEntity.ok(pkg);
 	}
 
-	// ============ UPDATE (Admin) ============
 	@PutMapping("/{id}")
 	public ResponseEntity<?> updatePackage(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
 		return packageRepo.findById(id).map(pkg -> {
@@ -105,7 +101,6 @@ public class PackageRestController {
 		}).orElse(ResponseEntity.notFound().build());
 	}
 
-	// ============ DELETE (Admin) ============
 	@DeleteMapping("/{id}")
 	public ResponseEntity<?> deletePackage(@PathVariable Integer id) {
 		if (!packageRepo.existsById(id)) {
@@ -117,14 +112,11 @@ public class PackageRestController {
 			log.info("Đã xóa gói #{}", id);
 			return ResponseEntity.ok(Map.of("message", "Đã xóa gói #" + id));
 		} catch (Exception e) {
-			// Nếu có Order nào đang tham chiếu gói này (FK constraint)
 			return ResponseEntity.badRequest()
 					.body(Map.of("message", "Không thể xóa! Đã có đơn hàng sử dụng gói này. Hãy ẩn gói thay vì xóa."));
 		}
 	}
 
-	// Helper parse Integer an toàn (tránh lỗi ClassCastException khi JSON gửi số
-	// dạng String)
 	private Integer parseIntSafe(Object value) {
 		if (value == null)
 			return null;

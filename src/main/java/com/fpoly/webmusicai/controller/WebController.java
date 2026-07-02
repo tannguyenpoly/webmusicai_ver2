@@ -12,43 +12,45 @@ import com.fpoly.webmusicai.repository.SongRepository;
 @Controller
 public class WebController {
 
-    // 1. Gọi Repository để có công cụ truy vấn Database
-    @Autowired
-    private SongRepository songRepo;
+	@Autowired
+	private SongRepository songRepo;
 
-    @GetMapping("/")
-    public String index(Model model) {
-        // 2. Lấy danh sách nhạc public từ Database
-        List<Song> publicSongs = songRepo.findByIsPublicTrueOrderByCreatedAtDesc();
-        
-        // 3. Nạp dữ liệu vào Model để truyền ra ngoài file HTML với tên là "publicSongs"
-        model.addAttribute("publicSongs", publicSongs);
-        
-        return "index"; // Trả về file templates/index.html thông qua cổng 8080
-    }
+	@GetMapping("/")
+	public String index(Model model) {
+		List<Song> publicSongs = songRepo.findByIsPublicTrueOrderByCreatedAtDesc();
 
-    @GetMapping("/login")
-    public String login() {
-        return "login"; // Nạp templates/login.html
-    }
+		model.addAttribute("publicSongs", publicSongs);
 
-    @GetMapping("/register")
-    public String register() {
-        return "register"; // Nạp templates/register.html
-    }
+		return "index";
+	}
 
-    @GetMapping("/favorites")
-    public String favorites() {
-        return "favorites"; // Nạp templates/favorites.html
-    }
+	@GetMapping("/login")
+	public String login() {
+		return "login";
+	}
 
-    @GetMapping("/profile")
-    public String profile() {
-        return "profile";
-    }
+	@GetMapping("/register")
+	public String register() {
+		return "register";
+	}
 
-    @GetMapping("/admin")
-    public String admin() {
-        return "admin";
-    }
+	@GetMapping("/favorites")
+	public String favorites() {
+		return "favorites";
+	}
+
+	@GetMapping("/profile")
+	public String profile() {
+		return "profile";
+	}
+
+	@GetMapping("/admin")
+	public String admin() {
+		return "admin";
+	}
+
+	@GetMapping("/orders")
+	public String orders() {
+		return "orders";
+	}
 }
