@@ -18,20 +18,27 @@
 
         <!-- KHU VỰC HIỂN THỊ THÔNG TIN BÀI HÁT ĐANG PHÁT -->
         <div class="card p-4 mb-4" v-if="currentTrack.id">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
+            <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center">
+                <div class="mb-3 mb-md-0">
                     <h3 class="fw-bold mb-1">{{ currentTrack.title }}</h3>
                     <p class="text-muted-sync mb-0">{{ currentTrack.prompt }}</p>
                 </div>
                 <!-- Cụm nút hành động -->
-                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-3">
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-md-3">
                     <button @click="toggleLike(currentTrack)" class="btn btn-lg d-flex align-items-center gap-2"
-                        :class="currentTrack.liked_by_me ? 'action-btn-red' : 'action-btn-gray'"
+                        :class="currentTrack.liked_by_me ? 'action-btn-red' : 'action-btn-gray'" style="height: 48px;"
                         :title="currentTrack.liked_by_me ? 'Bỏ thích' : 'Thích bài hát này'">
-                        <i :class="['ti', currentTrack.liked_by_me ? 'ti-heart-filled' : 'ti-heart']"></i>
+                        <i :class="['ti', currentTrack.liked_by_me ? 'ti-heart-filled' : 'ti-heart']" style="font-size: 20px;"></i>
                         <span style="font-size: 14px; font-weight: 600;">{{ currentTrack.total_likes }}</span>
                     </button>
-                    
+
+                    <!-- NÚT DOWNLOAD -->
+                    <a :href="'/api/songs/' + currentTrack.id + '/download'"
+                       class="btn btn-lg action-btn-gray d-flex justify-content-center align-items-center"
+                       title="Tải bài hát này về"
+                       style="width: 48px; height: 48px; padding: 0; font-size: 20px;">
+                        <i class="ti ti-download"></i>
+                    </a>
                 </div>
             </div>
 

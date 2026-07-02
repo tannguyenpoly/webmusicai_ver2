@@ -4,7 +4,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -587,5 +591,59 @@ public class SongRestController {
         }
         List<Song> remixes = songRepo.findByParentIdOrderByCreatedAtDesc(id);
         return ResponseEntity.ok(remixes);
+    }
+
+    // ==========================================
+    // 9. DOWNLOAD BÀI HÁT
+    // ==========================================
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Resource> downloadSong(@PathVariable Integer id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
+
+        Optional<Song> songOpt = songRepo.findById(id);
+        if (songOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Song song = songOpt.get();
+
+        boolean isOwner = currentUser != null && song.getUser() != null && song.getUser().getUsername().equals(currentUser);
+        boolean isPublic = song.getIsPublic() != null && song.getIsPublic();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isOwner && !isAdmin && !isPublic) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        if (!"COMPLETED".equals(song.getStatus()) || song.getAudioUrl() == null || song.getAudioUrl().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            // audioUrl có định dạng "data:audio/wav;base64,BASE64_STRING"
+            String[] parts = song.getAudioUrl().split(",");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Định dạng audioUrl không hợp lệ.");
+            }
+            String base64Data = parts[1];
+            byte[] audioBytes = Base64.getDecoder().decode(base64Data);
+
+            ByteArrayResource resource = new ByteArrayResource(audioBytes);
+
+            // Làm sạch tên file
+            String originalTitle = song.getTitle() != null ? song.getTitle() : "untitled";
+            String filename = originalTitle.replaceAll("[^a-zA-Z0-9.\\-_]+", "_") + ".wav";
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.parseMediaType("audio/wav"))
+                    .contentLength(audioBytes.length)
+                    .body(resource);
+
+        } catch (Exception e) {
+            log.error("Lỗi khi giải mã hoặc tạo file download cho bài hát ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
