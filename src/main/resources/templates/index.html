@@ -62,7 +62,9 @@
                         <tbody style="font-size: 13px;">
                         <tr v-for="song in filteredSongs" :key="song.id">
                             <td class="ps-3 py-3">
-                                <div class="fw-medium text-truncate song-title-text" style="max-width: 180px;">{{ song.title }}</div>
+                                <a :href="'/song/' + song.id" class="text-decoration-none song-link-hover">
+                                    <div class="fw-medium text-truncate song-title-text" style="max-width: 180px;">{{ song.title }}</div>
+                                </a>
                                 <small class="text-success d-block" style="font-size: 11px; font-weight: 500;">Mã số: #{{ song.id }}</small>
                             </td>
                             <td class="py-3">

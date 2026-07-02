@@ -24,6 +24,9 @@ import com.fpoly.webmusicai.repository.UserRepository;
 import com.fpoly.webmusicai.repository.TransactionRepository;
 import com.fpoly.webmusicai.service.MusicGeneratorService;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -219,10 +222,10 @@ public class SongRestController {
     @GetMapping("/{id}/status")
     public ResponseEntity<?> getSongStatus(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String currentUser = auth.getName();
+        String currentUser = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
 
         return songRepo.findById(id).map(song -> {
-            boolean isOwner = song.getUser().getUsername().equals(currentUser);
+            boolean isOwner = currentUser != null && song.getUser().getUsername().equals(currentUser);
             boolean isPublic = song.getIsPublic();
             boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
@@ -237,10 +240,16 @@ public class SongRestController {
             result.put("status", song.getStatus());
             result.put("created_at", song.getCreatedAt());
 
+            // Bổ sung thông tin về lượt thích
+            long totalLikes = favoriteRepo.countBySongId(id);
+            boolean likedByMe = currentUser != null && favoriteRepo.existsByUserUsernameAndSongId(currentUser, id);
+            result.put("total_likes", totalLikes);
+            result.put("liked_by_me", likedByMe);
+
             switch (song.getStatus()) {
                 case "COMPLETED" -> {
                     result.put("message", "Nhạc đã sẵn sàng!");
-                    result.put("audio_url", song.getAudioUrl());
+                    result.put("audioUrl", song.getAudioUrl());
                     result.put("is_public", song.getIsPublic());
                 }
                 case "PENDING" -> result.put("message", "Đang xử lý, vui lòng chờ...");
@@ -362,54 +371,76 @@ public class SongRestController {
     // 7. QUẢN LÝ BÌNH LUẬN (COMMENTS)
     // ==========================================
     @GetMapping("/{id}/comments")
-    public ResponseEntity<?> getComments(@PathVariable Integer id) {
+    public ResponseEntity<?> getComments(@PathVariable Integer id,
+                                         @RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "10") int size) {
         if (!songRepo.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
 
-        List<SongComment> comments = commentRepo.findBySongIdOrderByCreatedAtDesc(id);
-        List<Map<String, Object>> result = comments.stream().map(c -> {
-            Map<String, Object> item = new HashMap<>();
-            item.put("id", c.getId());
-            item.put("content", c.getContent());
-            item.put("username", c.getUser().getUsername());
-            item.put("fullname", c.getUser().getFullname());
-            item.put("created_at", c.getCreatedAt());
-            return item;
-        }).toList();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SongComment> topLevelCommentsPage = commentRepo.findBySongIdAndParentIdIsNullOrderByCreatedAtDesc(id, pageable);
 
-        return ResponseEntity.ok(Map.of("song_id", id, "total_comments", result.size(), "comments", result));
+        List<SongComment> topLevelComments = topLevelCommentsPage.getContent();
+        if (!topLevelComments.isEmpty()) {
+            List<Integer> topLevelIds = topLevelComments.stream().map(SongComment::getId).toList();
+            List<SongComment> replies = commentRepo.findByParentIdInOrderByCreatedAtAsc(topLevelIds);
+
+            Map<Integer, List<SongComment>> repliesMap = replies.stream()
+                    .collect(Collectors.groupingBy(SongComment::getParentId));
+
+            topLevelComments.forEach(comment -> comment.setReplies(repliesMap.getOrDefault(comment.getId(), Collections.emptyList())));
+        }
+
+        Page<Map<String, Object>> resultPage = topLevelCommentsPage.map(SongComment::toMap);
+
+        // Tạo một Map tùy chỉnh để trả về, thay vì trả về đối tượng Page trực tiếp.
+        // Cấu trúc này ổn định và tương thích với frontend hiện tại.
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", resultPage.getContent());
+        response.put("number", resultPage.getNumber());
+        response.put("totalPages", resultPage.getTotalPages());
+        response.put("totalElements", resultPage.getTotalElements());
+        response.put("size", resultPage.getSize());
+        response.put("last", resultPage.isLast());
+        response.put("first", resultPage.isFirst());
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{id}/comments")
-    public ResponseEntity<?> createComment(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> createComment(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
-        String content = body.get("content");
+        String content = (String) body.get("content");
         if (content == null || content.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Nội dung bình luận không được để trống!"));
         }
 
         return songRepo.findById(id).map(song -> {
             User user = userRepo.findById(username).orElseThrow();
-
             SongComment comment = new SongComment();
             comment.setSong(song);
             comment.setUser(user);
             comment.setContent(content.trim());
 
+            // Xử lý bình luận trả lời
+            if (body.containsKey("parent_id") && body.get("parent_id") != null) {
+                try {
+                    Integer parentId = Integer.parseInt(String.valueOf(body.get("parent_id")));
+                    if (commentRepo.existsById(parentId)) {
+                        comment.setParentId(parentId);
+                    }
+                } catch (NumberFormatException e) {
+                    // Bỏ qua nếu parent_id không hợp lệ
+                }
+            }
+
             commentRepo.save(comment);
             log.info("User {} bình luận bài #{}", username, id);
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("id", comment.getId());
-            result.put("content", comment.getContent());
-            result.put("username", username);
-            result.put("created_at", comment.getCreatedAt());
-            result.put("message", "Đã thêm bình luận!");
-
-            return ResponseEntity.ok(result);
+            return ResponseEntity.status(HttpStatus.CREATED).body(comment.toMap());
         }).orElse(ResponseEntity.notFound().build());
     }
 

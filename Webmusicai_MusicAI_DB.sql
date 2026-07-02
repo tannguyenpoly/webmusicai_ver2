@@ -430,3 +430,20 @@ GO
 
 ALTER TABLE Songs ALTER COLUMN audio_url VARCHAR(MAX);
 GO
+
+--thêm đoạn này cho phần comment
+USE MusicAI_DB;
+GO
+
+ALTER TABLE Song_Comments
+ADD parent_id INT NULL;
+GO
+
+ALTER TABLE Song_Comments
+ADD CONSTRAINT FK_SongComments_Parent
+FOREIGN KEY (parent_id) REFERENCES Song_Comments(id);
+GO
+
+INSERT INTO Song_Comments (song_id, username, content, parent_id) 
+VALUES (1, 'minh_travel', N'Cảm ơn bạn, cứ tự nhiên nhé!', 1);
+GO

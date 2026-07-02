@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <style>
+        .comment-section {
+            transition: all 0.3s ease;
+        }
+
+        .comment-thread {
+            padding-left: 20px;
+            border-left: 2px solid var(--border-color);
+            margin-left: 20px;
+        }
+
+        .comment-box {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .comment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--border-color);
+        }
+
+        .comment-content-wrapper {
+            flex: 1;
+        }
+
+        .comment-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .comment-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .comment-body {
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Giữ lại các xuống dòng */
+        }
+
+        .comment-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+
+        .comment-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .comment-action-btn:hover {
+            color: #16a34a;
+        }
+
+        .reply-form {
+            margin-top: 15px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .comment-form .form-control {
+            min-height: 80px;
+        }
+    </style>
+</head>
+
+<body>
+    <div th:fragment="comments-section" class="comment-section card p-4 mt-4">
+        <h4 class="fw-bold mb-4 d-flex align-items-center">
+            <i class="ti ti-messages me-2 text-success"></i>
+            Bình luận ({{ commentPagination.totalElements }})
+        </h4>
+
+        <!-- FORM BÌNH LUẬN MỚI -->
+        <div v-if="currentUser" class="comment-form mb-5">
+            <textarea v-model="newComment.content" class="form-control custom-theme-input" rows="3"
+                placeholder="Viết bình luận của bạn..."></textarea>
+            <div class="text-end mt-2">
+                <button @click="postComment(currentTrack.id)" class="btn btn-main-sync px-4 py-2">
+                    <i class="ti ti-send me-1"></i> Gửi bình luận
+                </button>
+            </div>
+        </div>
+        <div v-else class="sync-unauth-box p-3 text-center rounded-3 mb-5">
+            <a href="/login" class="text-success fw-medium">Đăng nhập</a> để tham gia bình luận.
+        </div>
+
+        <!-- DANH SÁCH BÌNH LUẬN -->
+        <div v-if="isLoadingComments" class="text-center py-4">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div v-else>
+            <!-- Dùng template để tránh tạo thẻ div thừa -->
+            <template v-for="(comment, index) in commentPagination.content">
+                <div class="comment-box">
+                    <img :src="comment.user.photo || '/images/default-avatar.png'" class="comment-avatar" alt="Avatar">
+                    <div class="comment-content-wrapper">
+                        <div class="comment-header">
+                            <span class="comment-author">{{ comment.user.fullname }}</span>
+                            <span class="comment-time">{{ formatRelativeTime(comment.createdAt) }}</span>
+                        </div>
+                        <p class="comment-body mb-0">{{ comment.content }}</p>
+                        <div class="comment-actions">
+                            <button v-if="currentUser" @click="toggleReplyForm(comment.id)" class="comment-action-btn">
+                                <i class="ti ti-arrow-back-up me-1"></i> Trả lời
+                            </button>
+                            <button v-if="currentUser === comment.user.username" @click="editComment(comment)" class="comment-action-btn">
+                                <i class="ti ti-pencil me-1"></i> Sửa
+                            </button>
+                            <button v-if="currentUser === comment.user.username || isAdmin" @click="deleteComment(comment.id, index, null)" class="comment-action-btn text-danger">
+                                <i class="ti ti-trash me-1"></i> Xóa
+                            </button>
+                        </div>
+
+                        <!-- FORM TRẢ LỜI (HIỂN THỊ KHI CẦN) -->
+                        <div v-if="replyingToCommentId === comment.id" class="reply-form">
+                            <textarea v-model="newComment.content" class="form-control custom-theme-input" rows="2"
+                                :placeholder="'Trả lời ' + comment.user.fullname + '...'"></textarea>
+                            <div class="text-end mt-2">
+                                <button @click="toggleReplyForm(null)" class="btn btn-sm btn-register-sync me-2">Hủy</button>
+                                <button @click="postComment(currentTrack.id, comment.id)" class="btn btn-sm btn-main-sync">Gửi trả lời</button>
+                            </div>
+                        </div>
+
+                        <!-- DANH SÁCH CÁC BÌNH LUẬN TRẢ LỜI (REPLIES) -->
+                        <div v-if="comment.replies && comment.replies.length > 0" class="comment-thread mt-4">
+                            <div v-for="(reply, replyIndex) in comment.replies" class="comment-box">
+                                <img :src="reply.user.photo || '/images/default-avatar.png'" class="comment-avatar" alt="Avatar">
+                                <div class="comment-content-wrapper">
+                                    <div class="comment-header">
+                                        <span class="comment-author">{{ reply.user.fullname }}</span>
+                                        <span class="comment-time">{{ formatRelativeTime(reply.createdAt) }}</span>
+                                    </div>
+                                    <p class="comment-body mb-0">{{ reply.content }}</p>
+                                    <div class="comment-actions">
+                                        <!-- Không cho phép trả lời của trả lời để giữ giao diện đơn giản -->
+                                        <button v-if="currentUser === reply.user.username" @click="editComment(reply)" class="comment-action-btn">
+                                            <i class="ti ti-pencil me-1"></i> Sửa
+                                        </button>
+                                        <button v-if="currentUser === reply.user.username || isAdmin" @click="deleteComment(reply.id, replyIndex, index)" class="comment-action-btn text-danger">
+                                            <i class="ti ti-trash me-1"></i> Xóa
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </template>
+
+            <!-- NÚT TẢI THÊM -->
+            <div v-if="commentPagination.number < commentPagination.totalPages - 1" class="text-center mt-4">
+                <button @click="loadComments(currentTrack.id, true)" class="btn btn-main-sync px-4 py-2">
+                    Tải thêm bình luận
+                </button>
+            </div>
+
+            <div v-if="commentPagination.content.length === 0 && !isLoadingComments" class="text-center text-muted-sync py-4">
+                Chưa có bình luận nào. Hãy là người đầu tiên!
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
