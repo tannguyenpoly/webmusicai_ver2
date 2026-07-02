@@ -51,7 +51,16 @@ new Vue({
             oldPassword: '',
             newPassword: '',
             confirmNewPassword: ''
-        }
+        },
+
+        // --- DỮ LIỆU CHO CHỨC NĂNG BÌNH LUẬN (ĐÃ HỢP NHẤT) ---
+        commentPagination: { content: [], number: 0, totalPages: 1, totalElements: 0 },
+        isLoadingComments: false,
+        newComment: {
+            content: ''
+        },
+        replyingToCommentId: null, // ID của bình luận đang được trả lời
+        editingComment: null // Đối tượng comment đang được sửa
     },
     computed: {
         filteredSongs() {
@@ -113,8 +122,16 @@ new Vue({
         // Phân luồng tải dữ liệu theo trang hiện tại để tối ưu
         if (window.location.pathname === '/') {
             this.loadPublicSongs();
-        } else if (window.location.pathname.startsWith('/favorites')) {
+        } 
+        else if (window.location.pathname.startsWith('/favorites')) {
             this.loadFavoriteSongs();
+        } 
+        else if (window.location.pathname.startsWith('/song/')) {
+            const pathParts = window.location.pathname.split('/');
+            const songId = pathParts[pathParts.length - 1];
+            if (songId) {
+                this.loadSingleSongAndComments(songId);
+            }
         }
 
         // Playlist tạm luôn được tải
@@ -148,54 +165,24 @@ new Vue({
         loadPublicSongs() {
             axios.get('/api/songs/public')
                 .then(response => {
-                    let songs = Array.isArray(response.data) ? response.data : [];
-                    // Gán giá trị mặc định trước để giao diện không bị lỗi
-                    songs.forEach(s => {
-                        s.total_likes = 0;
-                        s.liked_by_me = false;
-                    });
-                    this.publicSongs = songs;
-
-                    // Nếu người dùng đã đăng nhập, tải trạng thái "like" cho các bài hát
-                    if (this.currentUser) {
-                        this.loadLikeStatusForSongs(this.publicSongs);
-                    }
+                    // Backend đã trả về đầy đủ thông tin 'total_likes' và 'liked_by_me'
+                    this.publicSongs = Array.isArray(response.data) ? response.data : [];
                 })
                 .catch(error => {
                     console.error("Lỗi khi tải kho nhạc public:", error);
                 });
         },
 
-        // Tải trạng thái like cho danh sách bài hát (chỉ khi đã đăng nhập)
-        loadLikeStatusForSongs(songs) {
-            // Ghi chú cho lập trình viên:
-            // Luồng này tạo ra N+1 request để lấy trạng thái like, có thể gây chậm nếu danh sách nhạc lớn.
-            // Giải pháp tối ưu hơn là sửa đổi API backend (`/api/songs/public`) để trả về kèm thông tin `total_likes` và `liked_by_me` trong một lần gọi duy nhất.
-            const likePromises = songs.map(song =>
-                axios.get(`/api/songs/${song.id}/likes`)
-                .then(res => {
-                    const targetSong = this.publicSongs.find(s => s.id === song.id);
-                    if (targetSong) {
-                        targetSong.total_likes = res.data.total_likes;
-                        targetSong.liked_by_me = res.data.liked_by_me;
-                    }
-                })
-                .catch(err => console.warn(`Không thể tải trạng thái like cho bài hát #${song.id}.`))
-            );
-        },
-
         loadFavoriteSongs() {
             if (!this.currentUser) {
-                return; // Không tải nếu chưa đăng nhập
+                window.location.href = '/login'; // Chuyển hướng đến trang đăng nhập nếu chưa đăng nhập
+                return;
             }
             this.isLoadingFavorites = true;
             axios.get('/api/songs/my-favorites')
                 .then(response => {
-                    // Gán thêm thuộc tính liked_by_me = true cho tất cả để nút "Bỏ thích" hoạt động đúng
-                    this.favoriteSongs = response.data.map(song => {
-                        song.liked_by_me = true; 
-                        return song;
-                    });
+                    // Backend đã trả về đầy đủ thông tin, chỉ cần gán trực tiếp
+                    this.favoriteSongs = Array.isArray(response.data) ? response.data : [];
                 })
                 .catch(error => {
                     console.error("Lỗi khi tải danh sách yêu thích:", error);
@@ -298,6 +285,20 @@ new Vue({
                 const audio = document.getElementById('audio-element');
                 if (audio) { audio.load(); audio.play(); }
             });
+        },
+
+        loadSingleSongAndComments(songId) {
+            // Tải thông tin bài hát
+            axios.get(`/api/songs/${songId}/status`) // Dùng tạm API status để lấy thông tin
+                .then(response => {
+                    this.currentTrack = response.data;
+                    // Sau khi có thông tin bài hát, tải bình luận
+                    this.loadComments(songId);
+                })
+                .catch(error => {
+                    console.error("Không thể tải thông tin bài hát:", error);
+                    Swal.fire('Lỗi', 'Không tìm thấy bài hát hoặc bạn không có quyền truy cập.', 'error');
+                });
         },
 
         loadSessionPlaylist() {
@@ -567,6 +568,107 @@ new Vue({
                         text: error.response && error.response.data ? error.response.data.message : 'Đã có lỗi xảy ra.'
                     });
                 });
+        },
+
+        // --- CÁC HÀM QUẢN LÝ BÌNH LUẬN (ĐÃ HỢP NHẤT) ---
+        loadComments(songId, loadMore = false) {
+            if (!songId) return;
+            this.isLoadingComments = true;
+
+            const pageToLoad = loadMore ? this.commentPagination.number + 1 : 0;
+
+            axios.get(`/api/songs/${songId}/comments?page=${pageToLoad}&size=10`)
+                .then(response => {
+                    if (loadMore) {
+                        response.data.content = this.commentPagination.content.concat(response.data.content);
+                    }
+                    this.commentPagination = response.data;
+                })
+                .catch(error => {
+                    console.error("Lỗi tải bình luận:", error);
+                    this.Toast.fire({ icon: 'error', title: 'Không thể tải bình luận.' });
+                })
+                .finally(() => {
+                    this.isLoadingComments = false;
+                });
+        },
+
+        postComment(songId, parentId = null) {
+            if (!this.newComment.content.trim()) {
+                this.Toast.fire({ icon: 'warning', title: 'Vui lòng nhập nội dung.' });
+                return;
+            }
+
+            const payload = {
+                content: this.newComment.content,
+                parent_id: parentId
+            };
+
+            axios.post(`/api/songs/${songId}/comments`, payload)
+                .then(response => {
+                    if (parentId) {
+                        const parentComment = this.commentPagination.content.find(c => c.id === parentId);
+                        if (parentComment) {
+                            parentComment.replies.push(response.data);
+                        }
+                    } else {
+                        this.commentPagination.content.unshift(response.data);
+                        this.commentPagination.totalElements++;
+                    }
+                    this.newComment.content = '';
+                    this.replyingToCommentId = null;
+                    this.Toast.fire({ icon: 'success', title: 'Đã gửi bình luận!' });
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể gửi bình luận.' });
+                });
+        },
+
+        toggleReplyForm(commentId) {
+            this.replyingToCommentId = (this.replyingToCommentId === commentId) ? null : commentId;
+            this.newComment.content = '';
+        },
+
+        deleteComment(commentId, index, parentIndex) {
+            Swal.fire({
+                title: 'Xác nhận xóa?',
+                text: "Bình luận này sẽ bị xóa vĩnh viễn!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6e7881',
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    axios.delete(`/api/songs/comments/${commentId}`)
+                        .then(() => {
+                            if (parentIndex !== null) {
+                                this.commentPagination.content[parentIndex].replies.splice(index, 1);
+                            } else {
+                                this.commentPagination.content.splice(index, 1);
+                                this.commentPagination.totalElements--;
+                            }
+                            this.Toast.fire({ icon: 'success', title: 'Đã xóa bình luận.' });
+                        })
+                        .catch(error => Swal.fire('Lỗi!', 'Không thể xóa bình luận.', 'error'));
+                }
+            });
+        },
+
+        formatRelativeTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.round((now - date) / 1000);
+            const minutes = Math.round(seconds / 60);
+            const hours = Math.round(minutes / 60);
+            const days = Math.round(hours / 24);
+
+            if (seconds < 60) return `${seconds} giây trước`;
+            if (minutes < 60) return `${minutes} phút trước`;
+            if (hours < 24) return `${hours} giờ trước`;
+            if (days < 7) return `${days} ngày trước`;
+            return date.toLocaleDateString('vi-VN');
         }
     }
 });

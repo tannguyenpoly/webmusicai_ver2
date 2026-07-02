@@ -3,6 +3,8 @@ package com.fpoly.webmusicai.entity;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,8 +23,8 @@ public class Song implements Serializable {
 	private String title;
 	private String prompt;
 
-	@Column(name = "audio_url")
-	private String audioUrl;
+    @Column(name = "audio_url", columnDefinition = "VARCHAR(MAX)")
+    private String audioUrl;
 
 	private String status; // PENDING, COMPLETED, FAILED
 
@@ -52,4 +54,23 @@ public class Song implements Serializable {
 	@ManyToMany
 	@JoinTable(name = "songgenres", joinColumns = @JoinColumn(name = "song_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
 	private List<Genre> genres;
+
+	public Map<String, Object> toMap() {
+		Map<String, Object> map = new HashMap<>();
+		map.put("id", this.getId());
+		map.put("title", this.getTitle());
+		map.put("prompt", this.getPrompt());
+		map.put("audioUrl", this.getAudioUrl());
+		map.put("status", this.getStatus());
+		map.put("isPublic", this.getIsPublic());
+		map.put("createdAt", this.getCreatedAt());
+		map.put("isRemix", this.getIsRemix());
+		map.put("parentId", this.getParentId());
+
+		if (this.getUser() != null) {
+			map.put("username", this.getUser().getUsername());
+		}
+		return map;
+	}
+
 }

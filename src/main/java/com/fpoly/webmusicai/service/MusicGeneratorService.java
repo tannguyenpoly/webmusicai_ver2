@@ -4,100 +4,61 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
 @Slf4j
 public class MusicGeneratorService {
 
-	@Value("${musicapi.key}")
-	private String apiKey;
+    @Value("${colab.music-api.url}")
+    private String colabApiUrl;
 
-	private final RestTemplate restTemplate = new RestTemplate();
-	private final String BASE_URL = "https://api.musicapi.ai";
+    private final RestTemplate restTemplate = new RestTemplate();
 
-	public Map generateMusic(String prompt, boolean instrumental) {
-		String taskId = createJob(prompt, instrumental);
-		return waitForResult(taskId);
-	}
+    /**
+     * Hàm sinh nhạc chính từ Google Colab AI
+     * @param prompt Đoạn mô tả bài hát
+     * @return Map chứa thông tin Title và chuỗi Base64 để Front-end phát nhạc
+     */
+    public Map<String, Object> generateMusic(String prompt) {
+        if (colabApiUrl == null || colabApiUrl.isEmpty()) {
+            throw new RuntimeException("Chưa cấu hình link 'colab.music-api.url' trong application.properties!");
+        }
 
-	private String createJob(String prompt, boolean instrumental) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Bearer " + apiKey);
-		headers.setContentType(MediaType.APPLICATION_JSON);
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-		String body = String.format("""
-				{
-				  "custom_mode": false,
-				  "mv": "sonic-v4",
-				  "gpt_description_prompt": "%s",
-				  "make_instrumental": %b
-				}
-				""", prompt.replace("\"", "'"), instrumental);
+            // Gửi dữ liệu theo đúng cấu hình PromptRequest của Python FastAPI trên Colab
+            Map<String, String> requestBody = new HashMap<>();
+            requestBody.put("prompt", prompt);
 
-		ResponseEntity<Map> response;
+            HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
 
-		try {
-			response = restTemplate.postForEntity(BASE_URL + "/api/v1/sonic/create", new HttpEntity<>(body, headers),
-					Map.class);
+            log.info("Đang gửi yêu cầu sinh nhạc sang GPU Colab... Prompt: {}", prompt);
+            ResponseEntity<byte[]> response = restTemplate.postForEntity(colabApiUrl, entity, byte[].class);
 
-		} catch (HttpClientErrorException e) {
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                byte[] audioBytes = response.getBody();
+                log.info("AI Colab đã tạo nhạc thành công! Kích thước: {} bytes", audioBytes.length);
 
-			String responseBody = e.getResponseBodyAsString();
+                // Chuyển mảng byte thành chuỗi Base64 để thẻ <audio> ở Front-end đọc được ngay
+                String base64Audio = java.util.Base64.getEncoder().encodeToString(audioBytes);
 
-			if (responseBody.contains("not enough")) {
-				throw new RuntimeException("HẾT CREDITS! Vui lòng nạp thêm tại musicapi.ai");
-			}
+                Map<String, Object> result = new HashMap<>();
+                result.put("title", "AI Generated - " + prompt);
+                result.put("audio_url", "data:audio/wav;base64," + base64Audio);
+                result.put("state", "succeeded");
 
-			throw new RuntimeException("Lỗi API: " + e.getMessage());
-		}
-
-		Map responseBody = response.getBody();
-
-		if (responseBody == null || responseBody.get("task_id") == null) {
-			throw new RuntimeException("Không tạo được job: " + responseBody);
-		}
-
-		String taskId = (String) responseBody.get("task_id");
-
-		log.info("Tạo job thành công, task_id: {}", taskId);
-
-		return taskId;
-	}
-
-	private Map waitForResult(String taskId) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Bearer " + apiKey);
-		HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-		for (int i = 0; i < 36; i++) {
-			try {
-				Thread.sleep(5000);
-				ResponseEntity<Map> response = restTemplate.exchange(BASE_URL + "/api/v1/sonic/task/" + taskId,
-						HttpMethod.GET, entity, Map.class);
-				Map result = response.getBody();
-				if (result == null || "not_ready".equals(result.get("type")))
-					continue;
-
-				List<Map> dataList = (List<Map>) result.get("data");
-				if (dataList == null)
-					continue;
-
-				for (Map clip : dataList) {
-					if ("succeeded".equals(clip.get("state"))) {
-						log.info("Gen xong! Title: {}, URL: {}", clip.get("title"), clip.get("audio_url"));
-						return clip; // có cả title + audio_url
-					}
-				}
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new RuntimeException("Bị ngắt");
-			}
-		}
-		throw new RuntimeException("Timeout sau 3 phút");
-	}
-
+                return result;
+            } else {
+                throw new RuntimeException("Server AI Colab trả về lỗi: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Lỗi kết nối tới Server AI Google Colab: {}", e.getMessage());
+            throw new RuntimeException("Không thể kết nối tới lõi xử lý AI cá nhân trên Google Colab. Hãy chắc chắn bạn đã bật Colab.");
+        }
+    }
 }
