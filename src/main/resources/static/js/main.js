@@ -1,7 +1,6 @@
 new Vue({
     el: '#app',
     data: {
-        // QUẢN LÝ THEO DÕI CHẾ ĐỘ SÁNG / TỐI ĐỒNG BỘ LAYOUT VÀ INDEX
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
 
         currentUser: null,
@@ -40,12 +39,11 @@ new Vue({
         replyingToCommentId: null,
         editingComment: null,
 
-        // ================= DATA CHO TRANG PROFILE =================
-        profilePageData: {}, // Chứa thông tin user cho trang profile
-        profileStats: { total: 0, completed: 0, pending: 0 }, // Thống kê
-        profileTab: 'generated', // 'generated' hoặc 'favorites'
-        profileGeneratedSongs: [], // Danh sách nhạc đã tạo
-        profileFavoriteSongs: [], // Danh sách nhạc yêu thích ở profile
+        profilePageData: {},
+        profileStats: { total: 0, completed: 0, pending: 0 },
+        profileTab: 'generated',
+        profileGeneratedSongs: [],
+        profileFavoriteSongs: [],
         isLoadingProfileSongs: false,
         isLoadingProfileFav: false,
         profileSongPagination: { page: 0, size: 10, hasMore: false }
@@ -87,7 +85,6 @@ new Vue({
             }
         });
 
-        // XỬ LÝ THÔNG BÁO VNPAY
         const urlParams = new URLSearchParams(window.location.search);
         const paymentStatus = urlParams.get('status');
         if (paymentStatus) {
@@ -117,7 +114,6 @@ new Vue({
             localStorage.removeItem('music_is_admin');
         }
 
-        // PHÂN LUỒNG TRANG
         if (window.location.pathname === '/') {
             this.loadPublicSongs();
         }
@@ -135,12 +131,11 @@ new Vue({
             this.loadPackages();
             if (this.currentUser) this.loadMyOrders();
         }
-        // ================= LUỒNG LOAD CHO TRANG PROFILE =================
         else if (window.location.pathname === '/profile') {
             if (this.currentUser) {
                 this.loadProfilePageData();
                 this.loadProfileGeneratedSongs();
-                this.loadProfileFavorites(); // Load sẵn số lượng cho tab yêu thích
+                this.loadProfileFavorites();
             }
         }
 
@@ -183,7 +178,6 @@ new Vue({
                 .finally(() => { this.isLoadingFavorites = false; });
         },
 
-        // ================= CÁC HÀM CHO TRANG PROFILE =================
         loadProfilePageData() {
             axios.get(`/api/users/${this.currentUser}/profile`)
                 .then(res => { this.profilePageData = res.data; })
@@ -196,7 +190,6 @@ new Vue({
                 this.profileGeneratedSongs = [];
             }
             this.isLoadingProfileSongs = true;
-            // API lấy danh sách bài hát do user tạo (Backend cần có API /api/songs/my-songs)
             axios.get(`/api/songs/my-songs?page=${this.profileSongPagination.page}&size=${this.profileSongPagination.size}`)
                 .then(res => {
                     const data = res.data;
@@ -244,7 +237,6 @@ new Vue({
         },
 
         toggleProfileSongVisibility(song) {
-            // Đổi trạng thái hiển thị Public/Private (Backend cần có API PUT /api/songs/{id}/visibility)
             axios.put(`/api/songs/${song.id}/visibility`)
                 .then(res => {
                     song.isPublic = res.data.isPublic !== undefined ? res.data.isPublic : !song.isPublic;
@@ -287,7 +279,6 @@ new Vue({
                 })
                 .catch(err => this.Toast.fire({ icon: 'error', title: 'Lỗi xử lý.' }));
         },
-        // ================= KẾT THÚC CÁC HÀM TRANG PROFILE =================
 
         generateMusic() {
             if (!this.generationForm.prompt.trim()) {

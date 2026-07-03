@@ -31,7 +31,6 @@ public class MusicGeneratorService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Gửi dữ liệu theo đúng cấu hình PromptRequest của Python FastAPI trên Colab
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("prompt", prompt);
 
@@ -44,7 +43,6 @@ public class MusicGeneratorService {
                 byte[] audioBytes = response.getBody();
                 log.info("AI Colab đã tạo nhạc thành công! Kích thước: {} bytes", audioBytes.length);
 
-                // Chuyển mảng byte thành chuỗi Base64 để thẻ <audio> ở Front-end đọc được ngay
                 String base64Audio = java.util.Base64.getEncoder().encodeToString(audioBytes);
 
                 Map<String, Object> result = new HashMap<>();

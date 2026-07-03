@@ -9,15 +9,14 @@ import java.util.Map;
 import java.util.Random;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import jakarta.servlet.http.HttpServletRequest; // Dùng javax.servlet... nếu bạn xài Spring Boot 2.x
+import jakarta.servlet.http.HttpServletRequest;
 
 public class VNPayConfig {
 
-    // ĐIỀN THÔNG TIN TÀI KHOẢN SANDBOX VNPAY CỦA BẠN VÀO ĐÂY
     public static String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-    public static String vnp_ReturnUrl = "http://localhost:8080/api/orders/vnpay-return"; // API hứng kết quả trả về
-    public static String vnp_TmnCode = "8AHDDYUX"; // Mã website
-    public static String secretKey = "34LM6LOVORNFUHFWOVO5YSPI645IO84Y"; // Chuỗi bí mật
+    public static String vnp_ReturnUrl = "http://localhost:8080/api/orders/vnpay-return";
+    public static String vnp_TmnCode = "8AHDDYUX";
+    public static String secretKey = "34LM6LOVORNFUHFWOVO5YSPI645IO84Y";
     public static String vnp_ApiUrl = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
 
     public static String hmacSHA512(final String key, final String data) {

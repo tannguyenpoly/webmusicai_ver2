@@ -229,7 +229,6 @@ public class UserRestController {
 
 		List<Song> songs = songRepo.findByUserUsernameOrderByCreatedAtDesc(username);
 
-		// Tóm tắt thống kê
 		long completed = songs.stream().filter(s -> "COMPLETED".equals(s.getStatus())).count();
 		long pending = songs.stream().filter(s -> "PENDING".equals(s.getStatus())).count();
 		long failed = songs.stream().filter(s -> "FAILED".equals(s.getStatus())).count();

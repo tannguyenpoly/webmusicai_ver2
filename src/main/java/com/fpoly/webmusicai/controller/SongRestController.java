@@ -399,8 +399,7 @@ public class SongRestController {
 
         Page<Map<String, Object>> resultPage = topLevelCommentsPage.map(SongComment::toMap);
 
-        // Tạo một Map tùy chỉnh để trả về, thay vì trả về đối tượng Page trực tiếp.
-        // Cấu trúc này ổn định và tương thích với frontend hiện tại.
+
         Map<String, Object> response = new HashMap<>();
         response.put("content", resultPage.getContent());
         response.put("number", resultPage.getNumber());
@@ -430,7 +429,6 @@ public class SongRestController {
             comment.setUser(user);
             comment.setContent(content.trim());
 
-            // Xử lý bình luận trả lời
             if (body.containsKey("parent_id") && body.get("parent_id") != null) {
                 try {
                     Integer parentId = Integer.parseInt(String.valueOf(body.get("parent_id")));
@@ -438,7 +436,6 @@ public class SongRestController {
                         comment.setParentId(parentId);
                     }
                 } catch (NumberFormatException e) {
-                    // Bỏ qua nếu parent_id không hợp lệ
                 }
             }
 
@@ -588,9 +585,7 @@ public class SongRestController {
         return ResponseEntity.ok(remixes);
     }
 
-    // ==========================================
-    // 9. DOWNLOAD BÀI HÁT
-    // ==========================================
+
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> downloadSong(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -616,7 +611,6 @@ public class SongRestController {
         }
 
         try {
-            // audioUrl có định dạng "data:audio/wav;base64,BASE64_STRING"
             String[] parts = song.getAudioUrl().split(",");
             if (parts.length != 2) {
                 throw new IllegalArgumentException("Định dạng audioUrl không hợp lệ.");
@@ -626,7 +620,6 @@ public class SongRestController {
 
             ByteArrayResource resource = new ByteArrayResource(audioBytes);
 
-            // Làm sạch tên file
             String originalTitle = song.getTitle() != null ? song.getTitle() : "untitled";
             String filename = originalTitle.replaceAll("[^a-zA-Z0-9.\\-_]+", "_") + ".wav";
 

@@ -15,8 +15,5 @@ public interface GenreRepository extends JpaRepository<Genre, Integer> {
 
     boolean existsByNameIgnoreCase(String name);
 
-//    List<Genre> findByNameContainingIgnoreCase(String keyword);
-//
-//    List<Genre> findAllByOrderByNameAsc();
 
 }

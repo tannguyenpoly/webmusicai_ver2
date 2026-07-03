@@ -1,4 +1,3 @@
-// thành viên 2
 package com.fpoly.webmusicai.entity;
 
 import jakarta.validation.constraints.Email;

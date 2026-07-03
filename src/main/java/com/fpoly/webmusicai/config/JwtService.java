@@ -20,19 +20,16 @@ public class JwtService {
 		return Keys.hmacShaKeyFor(secret.getBytes());
 	}
 
-	// Tạo token từ username
 	public String generateToken(String username) {
 		return Jwts.builder().setSubject(username).setIssuedAt(new Date())
 				.setExpiration(new Date(System.currentTimeMillis() + expiration))
 				.signWith(getKey(), SignatureAlgorithm.HS256).compact();
 	}
 
-	// Lấy username từ token
 	public String extractUsername(String token) {
 		return Jwts.parserBuilder().setSigningKey(getKey()).build().parseClaimsJws(token).getBody().getSubject();
 	}
 
-	// Kiểm tra token hợp lệ không
 	public boolean isTokenValid(String token) {
 		try {
 			Jwts.parserBuilder().setSigningKey(getKey()).build().parseClaimsJws(token);

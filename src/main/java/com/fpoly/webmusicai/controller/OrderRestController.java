@@ -5,7 +5,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import jakarta.servlet.http.HttpServletRequest; // Dùng javax.servlet... nếu bạn xài Spring Boot 2.x
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import com.fpoly.webmusicai.entity.*;
 import com.fpoly.webmusicai.entity.Package;
 import com.fpoly.webmusicai.repository.*;
-import com.fpoly.webmusicai.config.VNPayConfig; // Import class cấu hình vừa tạo
+import com.fpoly.webmusicai.config.VNPayConfig;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -61,8 +61,7 @@ public class OrderRestController {
         order.setPkg(pkg);
         orderRepo.save(order);
 
-        // --- CẤU HÌNH CÁC THAM SỐ GỬI SANG VNPAY ---
-        long amount = pkg.getPrice() * 100L; // VNPAY yêu cầu nhân 100
+        long amount = pkg.getPrice() * 100L;
         String vnp_IpAddr = VNPayConfig.getIpAddress(req);
 
         Map<String, String> vnp_Params = new HashMap<>();
@@ -87,7 +86,6 @@ public class OrderRestController {
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
-        // Sắp xếp tham số và tạo hash data
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
         StringBuilder hashData = new StringBuilder();
@@ -97,11 +95,9 @@ public class OrderRestController {
             String fieldName = itr.next();
             String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                // Build hash data
                 hashData.append(fieldName);
                 hashData.append('=');
                 hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                // Build query
                 query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
                 query.append('=');
                 query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
@@ -119,12 +115,11 @@ public class OrderRestController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Đã tạo đơn hàng, chuyển hướng thanh toán!");
-        response.put("paymentUrl", paymentUrl); // Trả URL về cho Frontend
+        response.put("paymentUrl", paymentUrl);
 
         return ResponseEntity.ok(response);
     }
 
-    // API này sẽ bắt kết quả trả về từ VNPAY qua phương thức GET
     @GetMapping("/vnpay-return")
     public void vnpayReturn(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Map<String, String> fields = new HashMap<>();
@@ -144,7 +139,6 @@ public class OrderRestController {
             fields.remove("vnp_SecureHash");
         }
 
-        // Tạo hash lại để đối chiếu chữ ký
         List<String> fieldNames = new ArrayList<>(fields.keySet());
         Collections.sort(fieldNames);
         StringBuilder hashData = new StringBuilder();
@@ -164,7 +158,6 @@ public class OrderRestController {
 
         String signValue = VNPayConfig.hmacSHA512(VNPayConfig.secretKey, hashData.toString());
 
-        // Kiểm tra chữ ký và trạng thái giao dịch
         if (signValue.equals(vnp_SecureHash)) {
             String orderCode = request.getParameter("vnp_TxnRef");
             Order order = orderRepo.findByOrderCode(orderCode).orElse(null);
@@ -199,7 +192,6 @@ public class OrderRestController {
                     response.sendRedirect("/orders?status=success");
                     return;
                 } else {
-                    // Giao dịch không thành công
                     order.setStatus("FAILED");
                     orderRepo.save(order);
                     response.sendRedirect("/orders?status=failed");
@@ -208,7 +200,6 @@ public class OrderRestController {
             }
         }
 
-        // Chữ ký không hợp lệ hoặc lỗi
         response.sendRedirect("/orders?status=invalid");
     }
 

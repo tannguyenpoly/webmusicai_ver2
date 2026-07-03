@@ -35,7 +35,6 @@ public class AdminRestController {
     private OrderRepository orderRepo;
 
 
-    // ============ QUẢN LÝ USER (đã có sẵn) ============
 
     @GetMapping("/users")
     public ResponseEntity<?> getUsers(
@@ -112,7 +111,6 @@ public class AdminRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ QUẢN LÝ ORDERS ============
 
     @GetMapping("/orders")
     public ResponseEntity<?> getAllOrders(
@@ -132,7 +130,7 @@ public class AdminRestController {
             return ResponseEntity.badRequest().body(Map.of("error", "Định dạng ngày không hợp lệ (yyyy-MM-dd)"));
         }
     }
-    // ============ DOANH THU ============
+
 
     @GetMapping("/revenue")
     public ResponseEntity<?> getRevenue(
@@ -168,7 +166,6 @@ public class AdminRestController {
         return ResponseEntity.ok(result);
     }
 
-    // ============ THỐNG KÊ CHI TIẾT (MỞ RỘNG) ============
 
     @GetMapping("/statistics")
     public ResponseEntity<?> getStatistics() {
@@ -185,7 +182,7 @@ public class AdminRestController {
         long total = songRepo.count();
         long completed = songRepo.countByStatus("COMPLETED");
         double successRate = total > 0 ? (completed * 100.0 / total) : 0;
-        stats.put("successRate", Math.round(successRate * 10) / 10.0); // 1 chữ số sau phẩy
+        stats.put("successRate", Math.round(successRate * 10) / 10.0);
 
         return ResponseEntity.ok(stats);
     }
