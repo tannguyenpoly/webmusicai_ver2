@@ -66,7 +66,6 @@ public class SecurityConfig {
     }
 
     private boolean isPublicPath(String path, String method) {
-        // CẤU HÌNH CHO PHÉP VNPAY CALLBACK TRUY CẬP TỰ DO (Dùng phương thức GET)
         if ("GET".equals(method) && path.equals("/api/orders/vnpay-callback")) {
             return true;
         }
