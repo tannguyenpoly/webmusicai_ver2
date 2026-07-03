@@ -462,6 +462,13 @@ new Vue({
                 return;
             }
 
+            // Khóa nút submit và hiển thị trạng thái đang xử lý để chống double-click
+            const btn = document.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang khởi tạo...';
+                btn.disabled = true;
+            }
+
             const submitData = {
                 username: this.registerForm.username,
                 fullname: this.registerForm.fullname,
@@ -481,10 +488,23 @@ new Vue({
                     });
                 })
                 .catch(error => {
+                    // Nhả khóa nút submit để người dùng có thể thử lại nếu lỗi
+                    if (btn) {
+                        btn.innerHTML = '<i class="ti ti-user-plus"></i> Khởi tạo tài khoản';
+                        btn.disabled = false;
+                    }
+
+                    // Trích xuất chuỗi lỗi an toàn hơn đề phòng backend trả về JSON object
+                    let errorMsg = "Tài khoản hoặc Email đã tồn tại.";
+                    if (error.response && error.response.data) {
+                        errorMsg = error.response.data.message || error.response.data || errorMsg;
+                    }
+
                     Swal.fire({
                         icon: 'error',
-                        title: 'Lỗi',
-                        text: error.response && error.response.data ? "Đăng ký thất bại: " + error.response.data : "Tài khoản hoặc Email đã tồn tại."
+                        title: 'Đăng ký thất bại',
+                        text: errorMsg,
+                        confirmButtonColor: '#dc3545'
                     });
                 });
         },
