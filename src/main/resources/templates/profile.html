@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
+
+<body>
+    <div id="workspace-area">
+        <style>
+            /* ====== PROFILE PAGE STYLES ====== */
+            .pf-wrap {
+                max-width: 1060px;
+                margin: -8px auto 0;
+                padding: 48px 18px 90px;
+                min-height: calc(100vh - 110px);
+            }
+
+            .pf-hero {
+                position: fixed;
+                inset: 68px 0 0;
+                pointer-events: none;
+                z-index: -1;
+                opacity: 0.92;
+                background:
+                    radial-gradient(circle at 68% 12%, rgba(22, 163, 74, 0.18), transparent 32%),
+                    radial-gradient(circle at 42% 26%, rgba(20, 184, 166, 0.08), transparent 34%),
+                    linear-gradient(90deg, rgba(0, 0, 0, 0.82), rgba(4, 18, 12, 0.72), rgba(5, 32, 13, 0.86));
+            }
+
+            /* === TOP SECTION: Avatar + Info Grid === */
+            .pf-top {
+                display: grid;
+                grid-template-columns: 170px minmax(0, 1fr);
+                gap: 34px;
+                align-items: center;
+                margin-bottom: 48px;
+            }
+
+            .pf-avatar {
+                width: 162px;
+                height: 162px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(145deg, rgba(22, 163, 74, 0.25), rgba(3, 9, 7, 0.96));
+                border: 3px solid rgba(22, 163, 74, 0.28);
+                box-shadow: 0 18px 80px rgba(0, 0, 0, 0.55), inset 0 0 42px rgba(22, 163, 74, 0.12);
+                overflow: hidden;
+                color: rgba(255, 255, 255, 0.82);
+                font-size: 64px;
+                font-weight: 800;
+            }
+
+            .pf-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            /* === NAME ROW === */
+            .pf-name-row {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 14px;
+            }
+
+            .pf-name {
+                color: #fff;
+                font-size: 28px;
+                font-weight: 800;
+                line-height: 1;
+                letter-spacing: 0;
+            }
+
+            .pf-muted {
+                color: rgba(226, 232, 240, 0.58);
+            }
+
+            /* === PILL BUTTONS & PILLS === */
+            .pf-pill-btn,
+            .pf-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                height: 38px;
+                border-radius: 999px;
+                padding: 0 16px;
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                background: rgba(255, 255, 255, 0.035);
+                color: rgba(248, 250, 252, 0.86);
+                font-size: 13px;
+                text-decoration: none;
+            }
+
+            .pf-pill-btn {
+                cursor: pointer;
+                transition: all 0.18s;
+            }
+
+            .pf-pill-btn:hover {
+                border-color: rgba(22, 163, 74, 0.45);
+                background: rgba(22, 163, 74, 0.08);
+                color: #fff;
+            }
+
+            /* === STATS & PILLS ROW === */
+            .pf-stats,
+            .pf-pills {
+                display: flex;
+                align-items: center;
+                gap: 18px;
+                flex-wrap: wrap;
+                margin-top: 18px;
+            }
+
+            .pf-stat {
+                color: rgba(226, 232, 240, 0.62);
+                font-size: 14px;
+            }
+
+            .pf-stat strong {
+                color: #fff;
+                margin-right: 5px;
+                font-size: 16px;
+            }
+
+            .pf-stat+.pf-stat {
+                padding-left: 18px;
+                border-left: 1px solid rgba(148, 163, 184, 0.18);
+            }
+
+            /* === TABS === */
+            .pf-tabs {
+                border-top: 1px solid rgba(148, 163, 184, 0.14);
+                border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+                display: flex;
+                justify-content: center;
+                gap: 0;
+                margin-bottom: 34px;
+            }
+
+            .pf-tab {
+                min-width: 220px;
+                border: 0;
+                background: transparent;
+                color: rgba(226, 232, 240, 0.54);
+                height: 64px;
+                font-size: 15px;
+                font-weight: 700;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 9px;
+                cursor: pointer;
+                border-bottom: 2px solid transparent;
+                transition: all 0.18s;
+            }
+
+            .pf-tab:hover {
+                color: rgba(226, 232, 240, 0.8);
+            }
+
+            .pf-tab.active {
+                color: #fff;
+                border-bottom-color: rgba(255, 255, 255, 0.92);
+            }
+
+            .pf-count {
+                min-width: 22px;
+                height: 22px;
+                padding: 0 7px;
+                border-radius: 999px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(220, 53, 69, 0.12);
+                color: #ef4444;
+                font-size: 11px;
+            }
+
+            /* === SONG LIST === */
+            .pf-list {
+                max-width: 920px;
+                margin: 0 auto;
+            }
+
+            .pf-row {
+                display: grid;
+                grid-template-columns: 44px 54px minmax(0, 1fr) auto auto auto;
+                align-items: center;
+                gap: 16px;
+                min-height: 74px;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.11);
+                padding: 10px 0;
+            }
+
+            .pf-index {
+                text-align: right;
+                color: rgba(226, 232, 240, 0.46);
+                font-size: 14px;
+            }
+
+            .pf-cover {
+                width: 54px;
+                height: 54px;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(148, 163, 184, 0.14);
+                background: rgba(255, 255, 255, 0.035);
+                color: #22c55e;
+                font-size: 20px;
+            }
+
+            .pf-cover.red {
+                color: #ef4444;
+                background: rgba(220, 53, 69, 0.08);
+            }
+
+            .pf-title {
+                color: #fff;
+                font-weight: 800;
+                font-size: 15px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .pf-subtitle {
+                color: rgba(226, 232, 240, 0.5);
+                font-size: 13px;
+                margin-top: 2px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .pf-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 66px;
+                height: 26px;
+                border-radius: 999px;
+                padding: 0 10px;
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+            }
+
+            /* === ACTION BUTTONS === */
+            .pf-act {
+                width: 36px;
+                height: 36px;
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.04);
+                color: rgba(255, 255, 255, 0.78);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.18s;
+            }
+
+            .pf-act:hover {
+                border-color: rgba(22, 163, 74, 0.5);
+                color: #16a34a;
+                background: rgba(22, 163, 74, 0.1);
+            }
+
+            .pf-act.red:hover {
+                border-color: rgba(239, 68, 68, 0.52);
+                color: #ef4444;
+                background: rgba(239, 68, 68, 0.1);
+            }
+
+            /* === EMPTY STATE === */
+            .pf-empty {
+                min-height: 220px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                color: rgba(226, 232, 240, 0.52);
+            }
+
+            /* === RESPONSIVE === */
+            @media (max-width: 760px) {
+                .pf-top {
+                    grid-template-columns: 1fr;
+                    text-align: center;
+                    justify-items: center;
+                }
+
+                .pf-name-row,
+                .pf-stats,
+                .pf-pills {
+                    justify-content: center;
+                }
+
+                .pf-stat+.pf-stat {
+                    padding-left: 0;
+                    border-left: none;
+                }
+
+                .pf-tab {
+                    min-width: 0;
+                    flex: 1;
+                }
+
+                .pf-row {
+                    grid-template-columns: 28px 44px minmax(0, 1fr);
+                }
+
+                .pf-row>.pf-badge,
+                .pf-row>.pf-row-actions {
+                    grid-column: 3;
+                    justify-self: start;
+                }
+            }
+        </style>
+
+        <div class="pf-hero"></div>
+
+        <!-- CHƯA ĐĂNG NHẬP -->
+        <div v-if="!currentUser" v-cloak class="pf-wrap">
+            <div class="pf-empty">
+                <i class="ti ti-lock" style="font-size:34px;"></i>
+                <div>Vui lòng đăng nhập để xem trang hồ sơ.</div>
+                <a href="/login" class="btn btn-success px-4 rounded-pill">Đăng nhập</a>
+            </div>
+        </div>
+
+        <!-- ĐÃ ĐĂNG NHẬP -->
+        <div v-if="currentUser" v-cloak class="pf-wrap">
+
+            <!-- ===== AVATAR + THÔNG TIN ===== -->
+            <section class="pf-top">
+                <div class="pf-avatar">
+                    <img v-if="profilePageData.photo" :src="profilePageData.photo" alt="avatar">
+                    <span v-else>{{ (profilePageData.fullname || currentUser || '?').charAt(0).toUpperCase() }}</span>
+                </div>
+
+                <div style="min-width:0;">
+                    <!-- Tên + nút -->
+                    <div class="pf-name-row">
+                        <div class="pf-name">{{ (profilePageData.fullname || currentUser || '?').charAt(0).toUpperCase()
+                            }}</div>
+                        <button class="pf-pill-btn" @click="openProfileModal"><i class="ti ti-edit"></i> Edit
+                            Profile</button>
+                        <button class="pf-pill-btn" @click="openProfileModal"><i class="ti ti-settings"></i>
+                            Settings</button>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="pf-muted" style="font-size:13px;">
+                        @{{ currentUser }}
+                        <button @click="copyText(currentUser)" title="Sao chép username"
+                            style="background:transparent;border:0;color:rgba(226,232,240,0.45);margin-left:6px;cursor:pointer;">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                    </div>
+
+                    <!-- Thống kê -->
+                    <div class="pf-stats">
+                        <span class="pf-stat"><strong>{{ profileStats.total }}</strong>Bài đã tạo</span>
+                        <span class="pf-stat"><strong>{{ profileFavoriteSongs.length }}</strong>Yêu thích</span>
+                        <span class="pf-stat"><strong style="color:#22c55e;">{{ profileStats.completed }}</strong>Hoàn
+                            thành</span>
+                    </div>
+
+                    <!-- Pills -->
+                    <div class="pf-pills">
+                        <span class="pf-pill"
+                            style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.24);">
+                            <i class="ti ti-coin" style="color:#f59e0b;"></i>{{ profilePageData.token_balance ||
+                            userTokens || 0 }} Token
+                        </span>
+                        <span class="pf-pill" style="background:rgba(22,163,74,0.08);border-color:rgba(22,163,74,0.2);">
+                            <i class="ti ti-music" style="color:#22c55e;"></i>{{ profileStats.pending }} Đang xử lý
+                        </span>
+                        <span class="pf-pill"
+                            style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.22);">
+                            <i class="ti ti-trending-up" style="color:#818cf8;"></i>MusicAI Member
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== TABS ===== -->
+            <nav class="pf-tabs">
+                <button class="pf-tab" :class="{active: profileTab === 'generated'}" @click="profileTab = 'generated'">
+                    <i class="ti ti-wand"></i>Nhạc đã tạo
+                    <span v-if="profileStats.total > 0" class="pf-count">{{ profileStats.total }}</span>
+                </button>
+                <button class="pf-tab" :class="{active: profileTab === 'favorites'}" @click="switchToFavTab">
+                    <i class="ti ti-heart"></i>Yêu thích
+                    <span v-if="profileFavoriteSongs.length > 0" class="pf-count">{{ profileFavoriteSongs.length
+                        }}</span>
+                </button>
+            </nav>
+
+            <!-- ===== TAB: NHẠC ĐÃ TẠO ===== -->
+            <section v-if="profileTab === 'generated'" class="pf-list">
+                <div v-if="isLoadingProfileSongs" class="pf-empty">
+                    <span class="spinner-border spinner-border-sm"></span>
+                    <div>Đang tải nhạc...</div>
+                </div>
+                <div v-else-if="profileGeneratedSongs.length === 0" class="pf-empty">
+                    <i class="ti ti-music-off" style="font-size:32px;"></i>
+                    <div>Bạn chưa tạo bài nhạc nào.</div>
+                </div>
+                <div v-else>
+                    <div v-for="(song, index) in profileGeneratedSongs" :key="song.id" class="pf-row">
+                        <div class="pf-index">{{ index + 1 }}</div>
+                        <div class="pf-cover"><i class="ti ti-music-bolt"></i></div>
+                        <div style="min-width:0;">
+                            <div class="pf-title">{{ song.title || 'Đang xử lý...' }}</div>
+                            <div class="pf-subtitle">{{ song.prompt }}</div>
+                        </div>
+                        <span class="pf-badge"
+                            :style="song.status === 'COMPLETED' ? 'background:rgba(22,163,74,0.12);color:#22c55e;' : song.status === 'PENDING' ? 'background:rgba(245,158,11,0.12);color:#f59e0b;' : 'background:rgba(239,68,68,0.12);color:#ef4444;'">
+                            {{ song.status === 'COMPLETED' ? 'Xong' : song.status === 'PENDING' ? 'Chờ' : 'Lỗi' }}
+                        </span>
+                        <span v-if="song.status === 'COMPLETED'" class="pf-badge"
+                            :style="song.isPublic ? 'background:rgba(59,130,246,0.12);color:#60a5fa;' : 'background:rgba(148,163,184,0.13);color:#94a3b8;'">
+                            {{ song.isPublic ? 'Public' : 'Private' }}
+                        </span>
+                        <span v-else></span>
+                        <div class="pf-row-actions d-flex gap-2">
+                            <button v-if="song.status === 'COMPLETED'" class="pf-act" @click="playTrack(song)"
+                                title="Phát"><i class="ti ti-player-play-filled"></i></button>
+                            <button v-if="song.status === 'COMPLETED'" class="pf-act" @click="addToPlaylist(song)"
+                                title="Thêm playlist"><i class="ti ti-playlist-add"></i></button>
+                            <button v-if="song.status === 'COMPLETED'" class="pf-act"
+                                @click="toggleProfileSongVisibility(song)"
+                                :title="song.isPublic ? 'Chuyển sang riêng tư' : 'Công khai bài nhạc'">
+                                <i :class="song.isPublic ? 'ti ti-lock' : 'ti ti-world'"></i>
+                            </button>
+                            <button class="pf-act red" @click="deleteGeneratedSong(song)" title="Xóa bài nhạc"><i
+                                    class="ti ti-trash"></i></button>
+                        </div>
+                    </div>
+                    <div v-if="profileSongPagination.hasMore" class="text-center mt-4">
+                        <button class="btn btn-outline-success btn-sm rounded-pill px-4"
+                            @click="loadMoreProfileSongs">Tải thêm</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== TAB: YÊU THÍCH ===== -->
+            <section v-if="profileTab === 'favorites'" class="pf-list">
+                <div v-if="isLoadingProfileFav" class="pf-empty">
+                    <span class="spinner-border spinner-border-sm"></span>
+                    <div>Đang tải yêu thích...</div>
+                </div>
+                <div v-else-if="profileFavoriteSongs.length === 0" class="pf-empty">
+                    <i class="ti ti-heart-off" style="font-size:32px;"></i>
+                    <div>Chưa có bài hát yêu thích nào.</div>
+                </div>
+                <div v-else>
+                    <div v-for="(song, index) in profileFavoriteSongs" :key="song.id" class="pf-row">
+                        <div class="pf-index">{{ index + 1 }}</div>
+                        <div class="pf-cover red"><i class="ti ti-heart-filled"></i></div>
+                        <div style="min-width:0;">
+                            <div class="pf-title">{{ song.title }}</div>
+                            <div class="pf-subtitle">{{ song.prompt }}</div>
+                        </div>
+                        <span style="color:#ef4444;font-size:13px;"><i class="ti ti-heart-filled"></i> {{
+                            song.total_likes || 0 }}</span>
+                        <span></span>
+                        <div class="pf-row-actions d-flex gap-2">
+                            <button class="pf-act red" @click="removeFavAndUpdate(song)" title="Bỏ thích"><i
+                                    class="ti ti-heart-broken"></i></button>
+                            <button class="pf-act" @click="playTrack(song)" title="Phát"><i
+                                    class="ti ti-player-play-filled"></i></button>
+                            <button class="pf-act" @click="addToPlaylist(song)" title="Thêm playlist"><i
+                                    class="ti ti-playlist-add"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -3,6 +3,20 @@
 
 <body>
     <div id="workspace-area" class="row g-4 m-0">
+        <style>
+            .prompt-label-soft {
+                color: rgba(226, 232, 240, 0.68) !important;
+            }
+
+            .prompt-input-soft {
+                color: rgba(241, 245, 249, 0.9) !important;
+            }
+
+            .prompt-input-soft::placeholder {
+                color: rgba(203, 213, 225, 0.46) !important;
+                opacity: 1;
+            }
+        </style>
 
         <div class="col-lg-8">
             <div class="card shadow-lg border-0 mb-4 position-relative overflow-hidden">
@@ -17,9 +31,9 @@
                 <div class="card-body pt-1 ps-4">
                     <div v-if="currentUser">
                         <div class="mb-3">
-                            <label class="form-label small fw-medium text-muted-sync"
+                            <label class="form-label small fw-medium text-muted-sync prompt-label-soft"
                                 style="font-size: 12px; letter-spacing: 0.3px;">MÔ TẢ Ý TƯỞNG ÂM NHẠC (PROMPT)</label>
-                            <textarea v-model="generationForm.prompt" class="form-control custom-theme-input py-2.5"
+                            <textarea v-model="generationForm.prompt" class="form-control custom-theme-input py-2.5 prompt-input-soft"
                                 rows="3"
                                 placeholder="Ví dụ: Nhạc lofi chill nhẹ nhàng, có tiếng xèo xèo của đồ ăn review..."></textarea>
                         </div>

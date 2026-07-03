@@ -31,6 +31,14 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
 	List<Song> findByParentIdOrderByCreatedAtDesc(Integer parentId);
 
 	@Modifying
+	@Query("UPDATE Song s SET s.parentId = null WHERE s.parentId = :songId")
+	void detachRemixesFromParent(@Param("songId") Integer songId);
+
+	@Modifying
+	@Query(value = "DELETE FROM SongGenres WHERE song_id = :songId", nativeQuery = true)
+	void deleteSongGenresBySongId(@Param("songId") Integer songId);
+
+	@Modifying
 	@Transactional
 	@Query("DELETE FROM Song s WHERE s.status = 'FAILED' AND s.createdAt < :cutoff")
 	void deleteOldFailedSongs(@Param("cutoff") Date cutoff);
