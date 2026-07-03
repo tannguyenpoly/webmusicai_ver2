@@ -2,6 +2,7 @@ package com.fpoly.webmusicai.repository;
 
 import java.util.List;
 import java.util.Set;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,6 +16,10 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
     long countBySongId(Integer songId);
 
     void deleteByUserUsernameAndSongId(String username, Integer songId);
+
+    @Modifying
+    @Query(value = "DELETE FROM Favorites WHERE song_id = :songId", nativeQuery = true)
+    void deleteBySongId(@Param("songId") Integer songId);
 
     boolean existsByUserUsernameAndSongId(String username, Integer songId);
     

@@ -26,6 +26,8 @@ import com.fpoly.webmusicai.repository.SongCommentRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 import com.fpoly.webmusicai.repository.TransactionRepository;
+import com.fpoly.webmusicai.repository.PlaylistSongRepository;
+import com.fpoly.webmusicai.repository.AlbumSongRepository;
 import com.fpoly.webmusicai.service.MusicGeneratorService;
 
 import org.springframework.data.domain.Page;
@@ -53,6 +55,12 @@ public class SongRestController {
 
     @Autowired
     TransactionRepository transRepo;
+
+    @Autowired
+    PlaylistSongRepository playlistSongRepo;
+
+    @Autowired
+    AlbumSongRepository albumSongRepo;
 
     @Autowired
     MusicGeneratorService musicService;
@@ -249,13 +257,15 @@ public class SongRestController {
         String username = auth.getName();
 
         return songRepo.findById(id).map(song -> {
-            if (!song.getUser().getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền sửa bài nhạc này!");
-            }
+            boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
 
             Map<String, Object> changes = new HashMap<>();
 
             if (body.containsKey("title")) {
+                if (!isOwner) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền đổi tên bài nhạc này!");
+                }
+
                 String newTitle = (String) body.get("title");
                 if (newTitle == null || newTitle.isBlank()) {
                     return ResponseEntity.badRequest().body("Tên bài nhạc không được để trống!");
@@ -272,11 +282,6 @@ public class SongRestController {
                 }
 
                 boolean newIsPublic = Boolean.parseBoolean(body.get("is_public").toString());
-                User owner = song.getUser();
-                if ("BASIC".equals(owner.getAccountTier()) && !newIsPublic) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Tài khoản BASIC không được phép chuyển nhạc sang Riêng tư!"));
-                }
-
                 song.setIsPublic(newIsPublic);
                 changes.put("is_public", newIsPublic);
             }
@@ -291,6 +296,36 @@ public class SongRestController {
 
             return ResponseEntity.ok(response);
 
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteSong(@PathVariable Integer id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return songRepo.findById(id).map(song -> {
+            boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
+            if (!isOwner && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền xóa bài nhạc này!"));
+            }
+
+            favoriteRepo.deleteBySongId(id);
+            commentRepo.deleteBySongId(id);
+            playlistSongRepo.deleteBySongId(id);
+            albumSongRepo.deleteBySongId(id);
+            songRepo.deleteSongGenresBySongId(id);
+            songRepo.detachRemixesFromParent(id);
+            songRepo.delete(song);
+
+            log.info("User {} xóa bài nhạc #{}", username, id);
+            return ResponseEntity.ok(Map.of("message", "Đã xóa bài nhạc thành công!", "id", id));
         }).orElse(ResponseEntity.notFound().build());
     }
 

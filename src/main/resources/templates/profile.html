@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
+
+<body>
+<div id="workspace-area">
+    <style>
+        /* ====== MODERN PROFILE STYLES ====== */
+        .profile-container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px 15px 80px;
+        }
+
+        .profile-cover {
+            height: 220px;
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.15) 0%, rgba(20, 184, 166, 0.05) 100%);
+            border-radius: 20px;
+            position: relative;
+            border: 1px solid var(--border-color, #e2e8f0);
+        }
+
+        .profile-avatar-wrapper {
+            position: absolute;
+            bottom: -50px;
+            left: 40px;
+            width: 140px;
+            height: 140px;
+            border: 5px solid var(--bg-color, #f8f9fa);
+            border-radius: 50%;
+            background: linear-gradient(145deg, #16a34a, #14b8a6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            font-weight: 800;
+            color: #fff;
+            box-shadow: 0 10px 25px rgba(22, 163, 74, 0.2);
+            overflow: hidden;
+        }
+
+        .profile-avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-info-section {
+            margin-top: 65px;
+            padding: 0 20px;
+        }
+
+        .song-card {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 16px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 12px;
+        }
+
+        .song-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .song-cover-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        /* CSS Badge tối ưu độ tương phản cho Light/Dark mode */
+        .bg-soft-success { background: rgba(22, 163, 74, 0.15); color: #15803d; border: 1px solid rgba(22, 163, 74, 0.25); font-weight: 700; }
+        .bg-soft-danger { background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25); font-weight: 700; }
+        .bg-soft-warning { background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700; }
+
+        [data-theme="dark"] .bg-soft-success { color: #4ade80; border-color: rgba(74, 222, 128, 0.3); }
+        [data-theme="dark"] .bg-soft-danger { color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
+        [data-theme="dark"] .bg-soft-warning { color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); }
+
+        .btn-action-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color, #e2e8f0);
+            background: transparent;
+            color: var(--text-color, #475569);
+            transition: all 0.2s;
+        }
+
+        .btn-action-circle:hover {
+            background: rgba(22, 163, 74, 0.1);
+            border-color: rgba(22, 163, 74, 0.3);
+            color: #16a34a;
+        }
+        .btn-action-circle.red:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .custom-nav-pills .nav-link {
+            color: var(--text-color, #64748b);
+            font-weight: 600;
+            border-radius: 30px;
+            padding: 10px 24px;
+            margin: 0 5px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .custom-nav-pills .nav-link:hover {
+            background: rgba(22, 163, 74, 0.08);
+            color: #16a34a;
+        }
+
+        .custom-nav-pills .nav-link.active {
+            background: #16a34a;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .profile-cover { height: 160px; }
+            .profile-avatar-wrapper {
+                left: 50%;
+                transform: translateX(-50%);
+                width: 110px;
+                height: 110px;
+                bottom: -40px;
+                font-size: 40px;
+            }
+            .profile-info-section {
+                margin-top: 55px;
+                text-align: center;
+            }
+            .action-buttons-wrap { justify-content: center; margin-top: 15px; }
+        }
+    </style>
+
+    <!-- CHƯA ĐĂNG NHẬP -->
+    <div v-if="!currentUser" v-cloak class="profile-container text-center py-5">
+        <div class="py-5">
+            <i class="ti ti-lock mb-3" style="font-size: 50px; color: var(--text-muted, #94a3b8);"></i>
+            <h4 style="color: var(--text-color, #1e293b);">Yêu cầu đăng nhập</h4>
+            <p class="text-muted-sync mb-4">Vui lòng đăng nhập để xem thông tin hồ sơ của bạn.</p>
+            <a href="/login" class="btn btn-success rounded-pill px-5 py-2 fw-bold shadow-sm">Đăng nhập ngay</a>
+        </div>
+    </div>
+
+    <!-- ĐÃ ĐĂNG NHẬP -->
+    <div v-if="currentUser" v-cloak class="profile-container">
+
+        <!-- HEADER BIA & AVATAR -->
+        <div class="profile-cover mb-4">
+            <div class="profile-avatar-wrapper">
+                <img v-if="profilePageData.photo" :src="profilePageData.photo" alt="avatar">
+                <span v-else>{{ (profilePageData.fullname || currentUser || '?').charAt(0).toUpperCase() }}</span>
+            </div>
+        </div>
+
+        <!-- INFO & STATS -->
+        <div class="profile-info-section mb-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                <div>
+                    <h2 class="fw-bold mb-1" style="color: var(--text-color, #1e293b);">
+                        {{ profilePageData.fullname || currentUser }}
+                    </h2>
+                    <div class="text-muted-sync d-flex align-items-center justify-content-md-start justify-content-center gap-2 mb-2">
+                        <span>@{{ currentUser }}</span>
+                        <button @click="copyText(currentUser)" class="btn btn-sm btn-link p-0 text-muted-sync" title="Copy Username">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                    </div>
+
+
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons-wrap d-flex gap-2 mt-3 mt-md-0">
+                    <button class="btn btn-outline-success rounded-pill px-4 fw-medium shadow-sm" @click="openProfileModal">
+                        <i class="ti ti-edit me-1"></i> Chỉnh sửa
+                    </button>
+                    <button class="btn btn-light border rounded-pill px-3 shadow-sm" @click="openProfileModal">
+                        <i class="ti ti-settings"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thống kê Card -->
+            <div class="row mt-4 g-3">
+                <div class="col-4">
+                    <div class="card bg-transparent border shadow-sm text-center py-3 rounded-4" style="border-color: var(--border-color) !important;">
+                        <h4 class="fw-bold text-success mb-0">{{ profileStats.total }}</h4>
+                        <span class="small text-muted-sync">Bài đã tạo</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card bg-transparent border shadow-sm text-center py-3 rounded-4" style="border-color: var(--border-color) !important;">
+                        <h4 class="fw-bold text-danger mb-0">{{ profileFavoriteSongs.length }}</h4>
+                        <span class="small text-muted-sync">Yêu thích</span>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card bg-transparent border shadow-sm text-center py-3 rounded-4" style="border-color: var(--border-color) !important;">
+                        <h4 class="fw-bold text-primary mb-0">{{ profileStats.completed }}</h4>
+                        <span class="small text-muted-sync">Hoàn thành</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <ul class="nav custom-nav-pills justify-content-center mb-4">
+            <li class="nav-item">
+                <button class="nav-link border-0 bg-transparent" :class="{active: profileTab === 'generated'}" @click="profileTab = 'generated'">
+                    <i class="ti ti-wand me-1"></i> Nhạc đã tạo
+                    <span class="badge bg-white text-success ms-1 rounded-pill" v-if="profileTab === 'generated'">{{ profileStats.total }}</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link border-0 bg-transparent" :class="{active: profileTab === 'favorites'}" @click="switchToFavTab">
+                    <i class="ti ti-heart me-1"></i> Yêu thích
+                    <span class="badge bg-white text-success ms-1 rounded-pill" v-if="profileTab === 'favorites'">{{ profileFavoriteSongs.length }}</span>
+                </button>
+            </li>
+        </ul>
+
+        <!-- ===== TAB 1: NHẠC ĐÃ TẠO ===== -->
+        <div v-if="profileTab === 'generated'">
+            <div v-if="isLoadingProfileSongs" class="text-center py-5">
+                <div class="spinner-border text-success"></div>
+                <p class="text-muted-sync mt-2">Đang tải dữ liệu...</p>
+            </div>
+            <div v-else-if="profileGeneratedSongs.length === 0" class="text-center py-5">
+                <div class="bg-soft-success d-inline-flex rounded-circle p-4 mb-3">
+                    <i class="ti ti-music-off text-success" style="font-size: 40px;"></i>
+                </div>
+                <h5 style="color: var(--text-color, #1e293b);">Bạn chưa tạo bài nhạc nào</h5>
+                <p class="text-muted-sync">Hãy sử dụng tính năng tạo nhạc bằng AI để bắt đầu.</p>
+            </div>
+            <div v-else>
+                <div v-for="(song, index) in profileGeneratedSongs" :key="song.id" class="song-card p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="song-cover-icon bg-soft-success flex-shrink-0">
+                            <i class="ti ti-music"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0" style="min-width: 0;">
+                            <h6 class="fw-bold mb-1 text-truncate" style="color: var(--text-color, #1e293b);">{{ song.title || 'Đang xử lý giai điệu...' }}</h6>
+                            <p class="small text-muted-sync mb-0 text-truncate">{{ song.prompt }}</p>
+
+                            <div class="mt-2 d-flex gap-2">
+                                    <span class="badge" :class="song.status === 'COMPLETED' ? 'bg-soft-success' : song.status === 'PENDING' ? 'bg-soft-warning' : 'bg-soft-danger'">
+                                        {{ song.status === 'COMPLETED' ? 'Hoàn thành' : song.status === 'PENDING' ? 'Đang chờ' : 'Thất bại' }}
+                                    </span>
+                                <span v-if="song.status === 'COMPLETED'" class="badge" style="background: rgba(59,130,246,0.1); color: #3b82f6;">
+                                        <i :class="song.isPublic ? 'ti ti-world' : 'ti ti-lock'"></i> {{ song.isPublic ? 'Công khai' : 'Riêng tư' }}
+                                    </span>
+                            </div>
+                        </div>
+                        <!-- Buttons -->
+                        <div class="d-flex flex-column flex-sm-row gap-2 flex-shrink-0">
+                            <button v-if="song.status === 'COMPLETED'" class="btn-action-circle" @click="playTrack(song)" title="Phát">
+                                <i class="ti ti-player-play-filled"></i>
+                            </button>
+                            <button v-if="song.status === 'COMPLETED'" class="btn-action-circle" @click="addToPlaylist(song)" title="Thêm vào danh sách phát">
+                                <i class="ti ti-playlist-add"></i>
+                            </button>
+                            <button v-if="song.status === 'COMPLETED'" class="btn-action-circle" @click="toggleProfileSongVisibility(song)" title="Thay đổi quyền riêng tư">
+                                <i :class="song.isPublic ? 'ti ti-lock' : 'ti ti-world'"></i>
+                            </button>
+                            <button class="btn-action-circle red" @click="deleteGeneratedSong(song)" title="Xóa bài nhạc">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="profileSongPagination.hasMore" class="text-center mt-4">
+                    <button class="btn btn-outline-success rounded-pill px-4" @click="loadMoreProfileSongs">Tải thêm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== TAB 2: YÊU THÍCH ===== -->
+        <div v-if="profileTab === 'favorites'">
+            <div v-if="isLoadingProfileFav" class="text-center py-5">
+                <div class="spinner-border text-danger"></div>
+                <p class="text-muted-sync mt-2">Đang tải danh sách...</p>
+            </div>
+            <div v-else-if="profileFavoriteSongs.length === 0" class="text-center py-5">
+                <div class="bg-soft-danger d-inline-flex rounded-circle p-4 mb-3">
+                    <i class="ti ti-heart-off text-danger" style="font-size: 40px;"></i>
+                </div>
+                <h5 style="color: var(--text-color, #1e293b);">Chưa có bài hát yêu thích</h5>
+                <p class="text-muted-sync">Bạn có thể thả tim bài hát ở trang chủ để lưu vào đây.</p>
+            </div>
+            <div v-else>
+                <div v-for="(song, index) in profileFavoriteSongs" :key="song.id" class="song-card p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="song-cover-icon bg-soft-danger flex-shrink-0">
+                            <i class="ti ti-heart-filled"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0" style="min-width: 0;">
+                            <h6 class="fw-bold mb-1 text-truncate" style="color: var(--text-color, #1e293b);">{{ song.title }}</h6>
+                            <p class="small text-muted-sync mb-0 text-truncate">{{ song.prompt }}</p>
+                            <div class="mt-2 text-danger small fw-medium">
+                                <i class="ti ti-heart-filled"></i> {{ song.total_likes || 0 }} lượt thích
+                            </div>
+                        </div>
+                        <!-- Buttons -->
+                        <div class="d-flex flex-column flex-sm-row gap-2 flex-shrink-0">
+                            <button class="btn-action-circle" @click="playTrack(song)" title="Phát">
+                                <i class="ti ti-player-play-filled"></i>
+                            </button>
+                            <button class="btn-action-circle" @click="addToPlaylist(song)" title="Thêm vào danh sách phát">
+                                <i class="ti ti-playlist-add"></i>
+                            </button>
+                            <button class="btn-action-circle red" @click="removeFavAndUpdate(song)" title="Bỏ yêu thích">
+                                <i class="ti ti-heart-broken"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>
