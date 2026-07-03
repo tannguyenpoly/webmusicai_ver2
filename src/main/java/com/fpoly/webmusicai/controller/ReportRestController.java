@@ -48,7 +48,6 @@ public class ReportRestController {
     @Autowired
     private PlaylistRepository playlistRepo;
 
-    // ============ TỔNG QUAN HỆ THỐNG ============
     @GetMapping("/overview")
     public ResponseEntity<?> getOverview() {
         Map<String, Object> stats = new HashMap<>();
@@ -81,7 +80,6 @@ public class ReportRestController {
         return ResponseEntity.ok(stats);
     }
 
-    // ============ DOANH THU ============
     @GetMapping("/revenue")
     public ResponseEntity<?> getRevenue() {
         List<Order> successOrders = orderRepo.findByStatus("SUCCESS");
@@ -96,7 +94,6 @@ public class ReportRestController {
         return ResponseEntity.ok(revenue);
     }
 
-    // ============ TOP BÀI HÁT YÊU THÍCH ============
     @GetMapping("/top-liked")
     public ResponseEntity<?> getTopLiked(@RequestParam(defaultValue = "10") int limit) {
         List<Song> allPublicSongs = songRepo.findByIsPublicTrueOrderByCreatedAtDesc();
@@ -120,7 +117,6 @@ public class ReportRestController {
         return ResponseEntity.ok(topSongs);
     }
 
-    // ============ NGƯỜI DÙNG TÍCH CỰC ============
     @GetMapping("/top-users")
     public ResponseEntity<?> getTopUsers(@RequestParam(defaultValue = "10") int limit) {
         List<User> allUsers = userRepo.findAll(PageRequest.of(0, 100)).getContent();
@@ -144,7 +140,6 @@ public class ReportRestController {
         return ResponseEntity.ok(topUsers);
     }
 
-    // ============ THỐNG KÊ NGƯỜI DÙNG MỚI ============
     @GetMapping("/user-growth")
     public ResponseEntity<?> getUserGrowth() {
         long totalUsers = userRepo.count();

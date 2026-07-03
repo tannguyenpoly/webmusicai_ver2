@@ -42,7 +42,6 @@ public class AlbumRestController {
     @Autowired
     private UserRepository userRepo;
 
-    // ============ CREATE ============
     @PostMapping
     public ResponseEntity<?> createAlbum(@RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -67,13 +66,11 @@ public class AlbumRestController {
         return ResponseEntity.ok(album);
     }
 
-    // ============ READ - ALL (Public) ============
     @GetMapping
     public ResponseEntity<List<Album>> getAllAlbums() {
         return ResponseEntity.ok(albumRepo.findAll());
     }
 
-    // ============ READ - ONE (Public) ============
     @GetMapping("/{id}")
     public ResponseEntity<?> getAlbumById(@PathVariable Integer id) {
         return albumRepo.findById(id).map(album -> {
@@ -82,7 +79,6 @@ public class AlbumRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ READ - BY USER (Public) ============
     @GetMapping("/user/{username}")
     public ResponseEntity<?> getAlbumsByUser(@PathVariable String username,
             @RequestParam(defaultValue = "0") int page,
@@ -92,7 +88,6 @@ public class AlbumRestController {
         return ResponseEntity.ok(albums);
     }
 
-    // ============ UPDATE ============
     @PutMapping("/{id}")
     public ResponseEntity<?> updateAlbum(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -125,7 +120,6 @@ public class AlbumRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ DELETE ============
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteAlbum(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -143,7 +137,6 @@ public class AlbumRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ ADD SONG TO ALBUM ============
     @PostMapping("/{albumId}/songs/{songId}")
     public ResponseEntity<?> addSongToAlbum(@PathVariable Integer albumId, @PathVariable Integer songId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -176,7 +169,6 @@ public class AlbumRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ REMOVE SONG FROM ALBUM ============
 	@DeleteMapping("/{albumId}/songs/{songId}")
 	@Transactional
 	public ResponseEntity<?> removeSongFromAlbum(@PathVariable Integer albumId, @PathVariable Integer songId) {

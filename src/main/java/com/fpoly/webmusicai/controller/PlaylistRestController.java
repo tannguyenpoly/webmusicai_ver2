@@ -42,7 +42,6 @@ public class PlaylistRestController {
     @Autowired
     private UserRepository userRepo;
 
-    // ============ CREATE ============
     @PostMapping
     public ResponseEntity<?> createPlaylist(@RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -66,13 +65,11 @@ public class PlaylistRestController {
         return ResponseEntity.ok(playlist);
     }
 
-    // ============ READ - ALL (Public) ============
     @GetMapping("/public")
     public ResponseEntity<List<Playlist>> getPublicPlaylists() {
         return ResponseEntity.ok(playlistRepo.findByIsPublicTrueOrderByCreatedAtDesc());
     }
 
-    // ============ READ - ONE ============
     @GetMapping("/{id}")
     public ResponseEntity<?> getPlaylistById(@PathVariable Integer id) {
         return playlistRepo.findById(id).map(playlist -> {
@@ -81,7 +78,6 @@ public class PlaylistRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ READ - MY PLAYLISTS ============
     @GetMapping("/my")
     public ResponseEntity<?> getMyPlaylists(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -93,13 +89,11 @@ public class PlaylistRestController {
         return ResponseEntity.ok(playlists);
     }
 
-    // ============ READ - BY USER (Public) ============
     @GetMapping("/user/{username}")
     public ResponseEntity<List<Playlist>> getPlaylistsByUser(@PathVariable String username) {
         return ResponseEntity.ok(playlistRepo.findByUserUsernameOrderByCreatedAtDesc(username));
     }
 
-    // ============ UPDATE ============
     @PutMapping("/{id}")
     public ResponseEntity<?> updatePlaylist(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -128,7 +122,6 @@ public class PlaylistRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ DELETE ============
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deletePlaylist(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -145,7 +138,6 @@ public class PlaylistRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ ADD SONG TO PLAYLIST ============
     @PostMapping("/{playlistId}/songs/{songId}")
     public ResponseEntity<?> addSongToPlaylist(@PathVariable Integer playlistId, @PathVariable Integer songId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -178,7 +170,6 @@ public class PlaylistRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ============ REMOVE SONG FROM PLAYLIST ============
     @DeleteMapping("/{playlistId}/songs/{songId}")
     @Transactional
     public ResponseEntity<?> removeSongFromPlaylist(@PathVariable Integer playlistId, @PathVariable Integer songId) {

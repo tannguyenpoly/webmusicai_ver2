@@ -26,7 +26,6 @@ public class OrderRestController {
 	@Autowired
 	TransactionRepository transRepo;
 
-	// Tạo đơn hàng (trạng thái PENDING, chờ thanh toán)
 	@PostMapping("/create")
 	public ResponseEntity<?> createOrder(@RequestBody Map<String, Integer> body) {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -44,7 +43,6 @@ public class OrderRestController {
 
 		User user = userRepo.findById(username).orElseThrow();
 
-		// Sinh mã đơn hàng duy nhất
 		String orderCode = "ORD_" + System.currentTimeMillis() + "_"
 				+ UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 
@@ -69,7 +67,6 @@ public class OrderRestController {
 		return ResponseEntity.ok(response);
 	}
 
-	// Giả lập callback thanh toán thành công (thay cho webhook VNPAY/Momo thật)
 	@PostMapping("/confirm/{orderCode}")
 	public ResponseEntity<?> confirmPayment(@PathVariable String orderCode) {
 		Order order = orderRepo.findByOrderCode(orderCode).orElse(null);
@@ -81,28 +78,24 @@ public class OrderRestController {
 			return ResponseEntity.badRequest().body(Map.of("message", "Đơn hàng đã được xử lý trước đó!"));
 		}
 
-		// Cập nhật trạng thái đơn hàng
 		order.setStatus("SUCCESS");
 		orderRepo.save(order);
 
-		// Cộng token cho user
 		User user = order.getUser();
 		Package pkg = order.getPkg();
 		user.setTokenBalance(user.getTokenBalance() + pkg.getTokens());
 		if (pkg.getId() == 2 || pkg.getId() == 3) {
 			user.setAccountTier("PRO");
 
-			// Gia hạn thêm 30 ngày từ thời điểm mua
 			java.util.Calendar cal = java.util.Calendar.getInstance();
 			if (user.getProExpiredAt() != null && user.getProExpiredAt().after(new java.util.Date())) {
-				cal.setTime(user.getProExpiredAt()); // Cộng dồn nếu đang còn hạn
+				cal.setTime(user.getProExpiredAt());
 			}
 			cal.add(java.util.Calendar.DAY_OF_MONTH, 30);
 			user.setProExpiredAt(cal.getTime());
 		}
 		userRepo.save(user);
 
-		// Ghi lịch sử giao dịch
 		Transaction trans = new Transaction();
 		trans.setUser(user);
 		trans.setAmount(pkg.getTokens());
@@ -121,7 +114,6 @@ public class OrderRestController {
 		return ResponseEntity.ok(response);
 	}
 
-	// Xem lịch sử mua hàng của bản thân
 	@GetMapping("/my-orders")
 	public ResponseEntity<?> getMyOrders() {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
