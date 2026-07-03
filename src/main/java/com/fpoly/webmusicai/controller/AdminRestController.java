@@ -1,5 +1,7 @@
 package com.fpoly.webmusicai.controller;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,9 @@ public class AdminRestController {
 
     @Autowired
     private OrderRepository orderRepo;
+
+
+    // ============ QUẢN LÝ USER (đã có sẵn) ============
 
     @GetMapping("/users")
     public ResponseEntity<?> getUsers(
@@ -68,12 +73,15 @@ public class AdminRestController {
     public ResponseEntity<?> getAllSongs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "") String status) {
+            @RequestParam(defaultValue = "") String status,
+            @RequestParam(defaultValue = "") String username) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Song> songs;
 
-        if (status != null && !status.trim().isEmpty()) {
+        if (username != null && !username.trim().isEmpty()) {
+            songs = songRepo.findByUserUsernameOrderByCreatedAtDesc(username.trim(), pageable);
+        } else if (status != null && !status.trim().isEmpty()) {
             songs = songRepo.findByStatusOrderByCreatedAtDesc(status.trim(), pageable);
         } else {
             songs = songRepo.findAll(pageable);
@@ -104,19 +112,63 @@ public class AdminRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    // ============ QUẢN LÝ ORDERS ============
+
     @GetMapping("/orders")
     public ResponseEntity<?> getAllOrders(
-            @RequestParam(defaultValue = "") String status) {
+            @RequestParam(defaultValue = "") String status,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
 
-        List<Order> orders;
-        if (status != null && !status.trim().isEmpty()) {
-            orders = orderRepo.findByStatus(status.trim());
-        } else {
-            orders = orderRepo.findAll();
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date fromDate = (from != null && !from.isEmpty()) ? sdf.parse(from) : null;
+            Date toDate = (to != null && !to.isEmpty()) ? new Date(sdf.parse(to).getTime() + 86400000L - 1) : null;
+            String statusParam = (status != null && !status.isEmpty()) ? status : null;
+
+            List<Order> orders = orderRepo.findFiltered(fromDate, toDate, statusParam);
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Định dạng ngày không hợp lệ (yyyy-MM-dd)"));
         }
-        orders.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
-        return ResponseEntity.ok(orders);
     }
+    // ============ DOANH THU ============
+
+    @GetMapping("/revenue")
+    public ResponseEntity<?> getRevenue(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Long totalRevenue;
+
+            if (from != null && !from.isEmpty() && to != null && !to.isEmpty()) {
+                Date fromDate = sdf.parse(from);
+                Date toDate = new Date(sdf.parse(to).getTime() + 86400000L - 1);
+                totalRevenue = orderRepo.getRevenueBetween(fromDate, toDate);
+            } else if (from != null && !from.isEmpty()) {
+                totalRevenue = orderRepo.getRevenueFrom(sdf.parse(from));
+            } else if (to != null && !to.isEmpty()) {
+                totalRevenue = orderRepo.getRevenueTo(new Date(sdf.parse(to).getTime() + 86400000L - 1));
+            } else {
+                totalRevenue = orderRepo.getTotalRevenue();
+            }
+
+            result.put("totalRevenue", totalRevenue);
+            result.put("completedOrders", orderRepo.countByStatus("SUCCESS"));
+            result.put("pendingOrders", orderRepo.countByStatus("PENDING"));
+            result.put("failedOrders", orderRepo.countByStatus("FAILED"));
+        } catch (Exception e) {
+            result.put("error", "Định dạng ngày không hợp lệ (yyyy-MM-dd)");
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    // ============ THỐNG KÊ CHI TIẾT (MỞ RỘNG) ============
 
     @GetMapping("/statistics")
     public ResponseEntity<?> getStatistics() {

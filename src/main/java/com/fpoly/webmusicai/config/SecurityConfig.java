@@ -126,7 +126,7 @@ public class SecurityConfig {
     }
 
     private boolean isAdminPath(String path, String method) {
-        if (path.startsWith("/api/reports/") || path.startsWith("/api/admin/")) {
+        if (path.equals("/admin") || path.startsWith("/api/reports/") || path.startsWith("/api/admin/")) {
             return true;
         }
         if (!"GET".equals(method)) {

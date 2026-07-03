@@ -49,10 +49,17 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
-		try {
-			String username = loginData.get("username");
-			String password = loginData.get("password");
+		String username = loginData.get("username");
+		String password = loginData.get("password");
 
+		if (username == null || username.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Tên đăng nhập không được để trống!");
+		}
+		if (password == null || password.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Mật khẩu không được để trống!");
+		}
+
+		try {
 			Authentication auth = authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 			SecurityContextHolder.getContext().setAuthentication(auth);
 
@@ -82,6 +89,28 @@ public class AuthController {
 		String password = data.get("password");
 		String fullname = data.get("fullname");
 		String email = data.get("email");
+
+		if (username == null || username.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Tên đăng nhập không được để trống!");
+		}
+		if (username.contains(" ")) {
+			return ResponseEntity.badRequest().body("Tên đăng nhập không được chứa khoảng trắng!");
+		}
+		if (fullname == null || fullname.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Họ tên không được để trống!");
+		}
+		if (email == null || email.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Email không được để trống!");
+		}
+		if (!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+			return ResponseEntity.badRequest().body("Email không đúng định dạng!");
+		}
+		if (password == null || password.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Mật khẩu không được để trống!");
+		}
+		if (password.length() < 6) {
+			return ResponseEntity.badRequest().body("Mật khẩu phải có ít nhất 6 ký tự!");
+		}
 
 		if (userRepo.existsById(username)) {
 			return ResponseEntity.badRequest().body("Username đã tồn tại!");
