@@ -379,6 +379,15 @@ new Vue({
 		},
 
 		handleLogin() {
+			if (!this.loginForm.username.trim()) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
+				return;
+			}
+			if (!this.loginForm.password.trim()) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
+				return;
+			}
+
 			const btn = document.getElementById('submit-btn');
 			if (btn) {
 				btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang kết nối...';
@@ -425,6 +434,34 @@ new Vue({
 		},
 
 		handleRegister() {
+			if (!this.registerForm.username.trim()) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
+				return;
+			}
+			if (this.registerForm.username.trim().includes(' ')) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên đăng nhập không được chứa khoảng trắng!' });
+				return;
+			}
+			if (!this.registerForm.fullname.trim()) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập họ tên!' });
+				return;
+			}
+			if (!this.registerForm.email.trim()) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập email!' });
+				return;
+			}
+			if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.registerForm.email.trim())) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Email không đúng định dạng!' });
+				return;
+			}
+			if (!this.registerForm.password.trim()) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
+				return;
+			}
+			if (this.registerForm.password.trim().length < 6) {
+				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu phải có ít nhất 6 ký tự!' });
+				return;
+			}
 			if (this.registerForm.password !== this.registerForm.confirmPassword) {
 				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu xác nhận không trùng khớp!' });
 				return;

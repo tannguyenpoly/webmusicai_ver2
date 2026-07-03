@@ -342,6 +342,10 @@
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
         .pagination-custom {
             display: flex;
@@ -432,6 +436,10 @@
                 <a class="nav-item" :class="{ active: activeTab === 'orders' }" @click.prevent="activeTab = 'orders'" href="#">
                     <i class="ti ti-receipt"></i>
                     <span class="nav-label">Đơn hàng</span>
+                </a>
+                <a class="nav-item" :class="{ active: activeTab === 'revenue' }" @click.prevent="activeTab = 'revenue'" href="#">
+                    <i class="ti ti-coin"></i>
+                    <span class="nav-label">Doanh thu</span>
                 </a>
             </nav>
 
@@ -530,8 +538,8 @@
                                 <th>Username</th><th>Họ tên</th><th>Email</th><th class="text-center">Token</th><th class="text-center">Hạng</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
                             </tr></thead>
                             <tbody>
-                                <tr v-for="u in usersPage.content" :key="u.username">
-                                    <td class="fw-medium">@{{ u.username }}</td>
+                                <tr v-for="u in usersPage.content" :key="u.username" style="cursor: pointer;">
+                                    <td class="fw-medium" @click="viewUserSongs(u)">@{{ u.username }}</td>
                                     <td>{{ u.fullname }}</td>
                                     <td class="text-muted-sync">{{ u.email || '—' }}</td>
                                     <td class="text-center">{{ u.tokenBalance }}</td>
@@ -789,6 +797,112 @@
                 </div>
             </div>
 
+            <!-- ========== REVENUE ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'revenue' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-coin text-success me-2"></i>Doanh thu</h4>
+                </div>
+
+                <div class="card-custom mb-4">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted-sync">Từ ngày</label>
+                                <input type="date" v-model="revenueFrom" class="form-input-custom w-100">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted-sync">Đến ngày</label>
+                                <input type="date" v-model="revenueTo" class="form-input-custom w-100">
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button @click="loadRevenue" class="btn btn-admin-primary">
+                                    <i class="ti ti-filter me-1"></i> Lọc
+                                </button>
+                                <button @click="clearRevenueFilter" class="btn btn-admin-outline">
+                                    <i class="ti ti-refresh me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto mb-2" style="background: rgba(22,163,74,0.15); color: #4ade80; width: 50px; height: 50px;">
+                                <i class="ti ti-coin" style="font-size: 24px;"></i>
+                            </div>
+                            <div class="stat-value" style="font-size: 24px;">{{ formatPrice(revenueData.totalRevenue) }}</div>
+                            <div class="stat-label">Tổng doanh thu</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto mb-2" style="background: rgba(22,163,74,0.15); color: #4ade80; width: 50px; height: 50px;">
+                                <i class="ti ti-check-circle" style="font-size: 24px;"></i>
+                            </div>
+                            <div class="stat-value" style="font-size: 24px;">{{ revenueData.completedOrders }}</div>
+                            <div class="stat-label">Đơn thành công</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto mb-2" style="background: rgba(234,179,8,0.15); color: #facc15; width: 50px; height: 50px;">
+                                <i class="ti ti-clock" style="font-size: 24px;"></i>
+                            </div>
+                            <div class="stat-value" style="font-size: 24px;">{{ revenueData.pendingOrders }}</div>
+                            <div class="stat-label">Đơn chờ</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mx-auto mb-2" style="background: rgba(239,68,68,0.15); color: #f87171; width: 50px; height: 50px;">
+                                <i class="ti ti-alert-circle" style="font-size: 24px;"></i>
+                            </div>
+                            <div class="stat-value" style="font-size: 24px;">{{ revenueData.failedOrders }}</div>
+                            <div class="stat-label">Đơn thất bại</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== USER SONGS MODAL ===== -->
+            <div v-if="showUserSongsModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
+                <div class="card-custom" style="width: 660px; max-width:90%; padding: 24px; max-height: 80vh; overflow-y: auto;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="ti ti-music text-success me-2"></i>
+                            Bài hát của @{{ selectedUser?.username }}
+                        </h5>
+                        <button @click="showUserSongsModal = false" class="btn btn-admin-sm btn-admin-outline"><i class="ti ti-x"></i></button>
+                    </div>
+                    <div v-if="isLoadingUserSongs" class="text-center text-muted-sync py-4">
+                        <i class="ti ti-loader-2 spin" style="font-size: 32px; display: block; margin-bottom: 10px; animation: spin 1s linear infinite;"></i>
+                        Đang tải...
+                    </div>
+                    <table class="table table-custom" v-else-if="userSongs.length">
+                        <thead><tr><th>ID</th><th>Tên bài hát</th><th class="text-center">Trạng thái</th><th class="text-center">Public</th><th>Ngày tạo</th></tr></thead>
+                        <tbody>
+                            <tr v-for="s in userSongs" :key="s.id">
+                                <td class="text-muted-sync">#{{ s.id }}</td>
+                                <td class="fw-medium" style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.title }}</td>
+                                <td class="text-center">
+                                    <span class="badge-status" :class="'badge-' + (s.status ? s.status.toLowerCase() : 'pending')">{{ s.status }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-status" :class="s.isPublic ? 'badge-completed' : 'badge-failed'">{{ s.isPublic ? 'Public' : 'Private' }}</span>
+                                </td>
+                                <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(s.createdAt) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-else class="text-center text-muted-sync py-4">
+                        <i class="ti ti-music-off" style="font-size: 40px; display: block; margin-bottom: 10px;"></i>
+                        Người dùng chưa tạo bài hát nào.
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 </div>
@@ -827,6 +941,17 @@ new Vue({
         orders: [],
         orderStatusFilter: '',
 
+        // Revenue
+        revenueData: { totalRevenue: 0, completedOrders: 0, pendingOrders: 0, failedOrders: 0 },
+        revenueFrom: '',
+        revenueTo: '',
+
+        // User Songs Modal
+        showUserSongsModal: false,
+        selectedUser: null,
+        userSongs: [],
+        isLoadingUserSongs: false,
+
         Toast: null,
         userSearchTimer: null,
     },
@@ -858,6 +983,7 @@ new Vue({
         this.loadGenres();
         this.loadPackages();
         this.loadOrders();
+        this.loadRevenue();
     },
 
     methods: {
@@ -1122,6 +1248,41 @@ new Vue({
             const status = this.orderStatusFilter;
             const url = status ? `/api/admin/orders?status=${status}` : '/api/admin/orders';
             axios.get(url).then(r => { this.orders = r.data; }).catch(() => {});
+        },
+
+        // ===== REVENUE =====
+        loadRevenue() {
+            let url = '/api/admin/revenue';
+            const params = [];
+            if (this.revenueFrom) params.push(`from=${this.revenueFrom}`);
+            if (this.revenueTo) params.push(`to=${this.revenueTo}`);
+            if (params.length) url += '?' + params.join('&');
+
+            axios.get(url)
+                .then(r => { this.revenueData = r.data; })
+                .catch(e => {
+                    if (e.response?.data?.error) {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response.data.error });
+                    }
+                });
+        },
+
+        clearRevenueFilter() {
+            this.revenueFrom = '';
+            this.revenueTo = '';
+            this.loadRevenue();
+        },
+
+        // ===== USER SONGS =====
+        viewUserSongs(u) {
+            this.selectedUser = u;
+            this.userSongs = [];
+            this.isLoadingUserSongs = true;
+            this.showUserSongsModal = true;
+            axios.get(`/api/admin/songs?page=0&size=50&username=${encodeURIComponent(u.username)}`)
+                .then(r => { this.userSongs = r.data.content; })
+                .catch(() => {})
+                .finally(() => { this.isLoadingUserSongs = false; });
         },
     }
 });
