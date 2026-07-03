@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
+
+<body>
+<div id="workspace-area">
+
+    <!-- PHẦN 1: CÁC GÓI TOKEN -->
+    <div class="card shadow-lg border-0 mb-4">
+        <div class="card-header bg-transparent border-0 d-flex align-items-center gap-3 py-3">
+            <a href="/" class="btn btn-sm action-btn-gray"
+               style="border-radius: 50%; width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                <i class="ti ti-arrow-left"></i>
+            </a> <span class="fw-medium" style="font-size: 16px;"> <i class="ti ti-gift text-success me-2"
+                                                                      style="font-size: 18px;"></i>
+                Nạp Token
+             </span>
+        </div>
+
+        <div class="card-body pt-0">
+            <!-- Loading packages -->
+            <div v-if="isLoadingPackages" class="text-center py-4">
+                <div class="spinner-border text-success spinner-border-sm"></div>
+                <p class="text-muted-sync small mt-2">Đang tải gói token...</p>
+            </div>
+
+            <!-- Danh sách gói -->
+            <div v-else class="row g-3">
+                <div class="col-md-4" v-for="pkg in packages" :key="pkg.id">
+                    <div class="card h-100 border-0"
+                         :style="pkg.id === 2 ? 'background:rgba(22,163,74,0.12);border:1.5px solid rgba(22,163,74,0.4) !important;' : 'background:rgba(255,255,255,0.04);border:1px solid var(--border-color) !important;'">
+
+                        <!-- Badge bán chạy -->
+                        <div v-if="pkg.id === 2" class="text-center pt-2">
+                         <span class="badge px-3 py-1"
+                               style="background: #16a34a; color: #fff; border-radius: 20px; font-size: 11px;">
+                            🔥 Bán chạy nhất </span>
+                        </div>
+
+                        <div class="card-body text-center p-4">
+                            <h6 class="fw-bold mb-1" style="color: var(--text-color);">{{
+                                pkg.name }}</h6>
+                            <p class="text-muted-sync small mb-3">{{ pkg.description }}</p>
+
+                            <!-- Số token -->
+                            <div class="mb-3">
+                            <span class="fw-bold text-success" style="font-size: 36px;">{{
+                               pkg.tokens }}</span> <span class="text-muted-sync ms-1"
+                                                          style="font-size: 13px;">token</span>
+                            </div>
+
+                            <!-- Giá tiền -->
+                            <div class="mb-4">
+                            <span class="fw-bold" style="font-size: 20px; color: var(--text-color);"> {{
+                               formatPrice(pkg.price) }}đ </span>
+                            </div>
+
+                            <button @click="buyPackage(pkg)" class="btn w-100 fw-medium"
+                                    :class="pkg.id === 2 ? 'btn-success' : 'btn-outline-success'"
+                                    style="border-radius: 10px;">
+                                <i class="ti ti-shopping-cart me-1"></i> Mua ngay
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHẦN 2: LỊCH SỬ MUA HÀNG -->
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-3">
+             <span class="fw-medium" style="font-size: 16px;"> <i class="ti ti-receipt text-success me-2"
+                                                                  style="font-size: 18px;"></i>
+                Lịch Sử Mua Hàng
+             </span> <span v-if="myOrders.length > 0" class="badge px-2 py-1"
+                           style="background: rgba(22, 163, 74, 0.1); color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.25); border-radius: 20px; font-size: 11px;">
+                {{ myOrders.length }} đơn hàng </span>
+        </div>
+
+        <div class="card-body pt-0">
+            <!-- Chưa đăng nhập -->
+            <div v-if="!currentUser" class="text-center py-5">
+                <i class="ti ti-lock text-muted-sync mb-2" style="font-size: 24px; display: block;"></i> <span
+                    class="text-muted-sync small"> Vui lòng <a href="/login"
+                                                               class="text-success fw-medium text-decoration-none">Đăng nhập</a>
+                   để xem lịch sử mua hàng.
+                </span>
+            </div>
+
+            <!-- Loading -->
+            <div v-else-if="isLoadingOrders" class="text-center py-4">
+                <div class="spinner-border text-success spinner-border-sm"></div>
+                <p class="text-muted-sync small mt-2">Đang tải lịch sử...</p>
+            </div>
+
+            <!-- Chưa có đơn -->
+            <div v-else-if="myOrders.length === 0" class="text-center py-5">
+                <i class="ti ti-shopping-cart-off text-muted-sync mb-2"
+                   style="font-size: 28px; display: block;"></i>
+                <p class="text-muted-sync small">Bạn chưa có đơn hàng nào.</p>
+                <p class="text-muted-sync small">Hãy chọn gói phía trên để nạp
+                    token!</p>
+            </div>
+
+            <!-- Bảng lịch sử -->
+            <div v-else class="table-responsive">
+                <table class="table align-middle mb-0 custom-sync-table">
+                    <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color);">
+                        <th class="py-3 fw-medium" style="font-size: 12px;">MÃ
+                            ĐƠN</th>
+                        <th class="py-3 fw-medium" style="font-size: 12px;">GÓI</th>
+                        <th class="py-3 fw-medium text-center" style="font-size: 12px;">TOKEN</th>
+                        <th class="py-3 fw-medium text-end" style="font-size: 12px;">SỐ
+                            TIỀN</th>
+                        <th class="py-3 fw-medium text-center" style="font-size: 12px;">TRẠNG
+                            THÁI</th>
+                        <th class="py-3 fw-medium" style="font-size: 12px;">THỜI
+                            GIAN</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="order in myOrders" :key="order.id"
+                        style="border-bottom: 1px solid var(--border-color);">
+                        <td class="py-3"><code style="font-size: 11px; color: #16a34a;">{{
+                            order.orderCode }}</code></td>
+                        <td class="py-3"><span style="font-size: 13px; color: var(--text-color);"> {{
+                               order.pkg ? order.pkg.name : '—' }} </span></td>
+                        <td class="py-3 text-center"><span class="fw-bold text-success">+{{ order.pkg ?
+                               order.pkg.tokens : 0 }}</span></td>
+                        <td class="py-3 text-end fw-medium" style="color: var(--text-color);">{{
+                            formatPrice(order.totalPrice) }}đ</td>
+                        <td class="py-3 text-center"><span v-if="order.status === 'SUCCESS'"
+                                                           class="badge px-2 py-1"
+                                                           style="background: rgba(22, 163, 74, 0.15); color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.3); border-radius: 20px; font-size: 11px;">
+                               Thành công </span> <span v-else-if="order.status === 'PENDING'"
+                                                        class="badge px-2 py-1"
+                                                        style="background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 20px; font-size: 11px;">
+                               Chờ thanh toán </span> <span v-else class="badge px-2 py-1"
+                                                            style="background: rgba(220, 53, 69, 0.15); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.3); border-radius: 20px; font-size: 11px;">
+                               Thất bại </span></td>
+                        <td class="py-3"><span class="text-muted-sync" style="font-size: 12px;"> {{
+                               formatDate(order.createdAt)
+                               }} </span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Đoạn này cấu hình các phương thức trong Vue Instance toàn cục nếu bạn viết chung
+        if (window.__vue__) {
+
+            // Ghi đè hoặc bổ sung hàm xử lý mua gói trực tiếp
+            window.__vue__.buyPackage = function(pkg) {
+                if (!this.currentUser) {
+                    alert("Vui lòng đăng nhập trước khi thực hiện giao dịch mua token!");
+                    window.location.href = "/login";
+                    return;
+                }
+
+                // Thực hiện gọi API tạo hóa đơn và lấy link VNPAY
+                axios.post('/api/orders/create', {
+                    package_id: pkg.id
+                })
+                    .then(response => {
+                        const resData = response.data;
+                        if (resData.payment_url) {
+                            // Đẩy người dùng sang trang thanh toán ngân hàng Sandbox bảo mật của VNPAY
+                            window.location.href = resData.payment_url;
+                        } else {
+                            alert(resData.message || "Không thể khởi tạo đường link kết nối VNPAY.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Lỗi thanh toán:", error);
+                        alert(error.response?.data?.message || "Hệ thống gặp sự cố trong quá trình khởi tạo hóa đơn.");
+                    });
+            };
+
+            // Giữ nguyên luồng khởi chạy dữ liệu ban đầu
+            window.__vue__.packages = [];
+            window.__vue__.myOrders = [];
+            window.__vue__.isLoadingPackages = false;
+            window.__vue__.isLoadingOrders = false;
+
+            window.__vue__.loadPackages();
+            if (window.__vue__.currentUser) {
+                window.__vue__.loadMyOrders();
+            }
+        }
+    });
+</script>
+</body>
+
+</html>

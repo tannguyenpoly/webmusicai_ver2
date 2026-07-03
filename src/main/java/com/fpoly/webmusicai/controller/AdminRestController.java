@@ -32,6 +32,7 @@ public class AdminRestController {
     @Autowired
     private OrderRepository orderRepo;
 
+
     // ============ QUẢN LÝ USER (đã có sẵn) ============
 
     @GetMapping("/users")
@@ -66,9 +67,6 @@ public class AdminRestController {
         }).orElse(ResponseEntity.badRequest().body(Map.of("message", "Không tìm thấy người dùng: " + username)));
     }
 
-    // ============ QUẢN LÝ SONGS (MỚI) ============
-
-    // Xem toàn bộ bài nhạc trong hệ thống, có thể lọc theo status
     @GetMapping("/songs")
     public ResponseEntity<?> getAllSongs(
             @RequestParam(defaultValue = "0") int page,
@@ -87,7 +85,6 @@ public class AdminRestController {
         return ResponseEntity.ok(songs);
     }
 
-    // Xóa bài nhạc (vi phạm bản quyền, nội dung xấu...)
     @DeleteMapping("/songs/{id}")
     public ResponseEntity<?> deleteSong(@PathVariable Integer id) {
         if (!songRepo.existsById(id)) {
@@ -97,7 +94,6 @@ public class AdminRestController {
         return ResponseEntity.ok(Map.of("message", "Đã xóa bài nhạc #" + id));
     }
 
-    // Admin có quyền force public/private bất kỳ bài nào
     @PutMapping("/songs/{id}/toggle-public")
     public ResponseEntity<?> adminTogglePublic(@PathVariable Integer id) {
         return songRepo.findById(id).map(song -> {
@@ -126,24 +122,20 @@ public class AdminRestController {
         orders.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
         return ResponseEntity.ok(orders);
     }
-
     // ============ THỐNG KÊ CHI TIẾT (MỞ RỘNG) ============
 
     @GetMapping("/statistics")
     public ResponseEntity<?> getStatistics() {
         Map<String, Object> stats = new HashMap<>();
 
-        // Thống kê user
         stats.put("totalUsers", userRepo.count());
 
-        // Thống kê songs theo trạng thái
         stats.put("totalSongs", songRepo.count());
         stats.put("completedSongs", songRepo.countByStatus("COMPLETED"));
         stats.put("pendingSongs", songRepo.countByStatus("PENDING"));
         stats.put("failedSongs", songRepo.countByStatus("FAILED"));
         stats.put("publicSongs", songRepo.countByIsPublicTrue());
 
-        // Tỷ lệ thành công
         long total = songRepo.count();
         long completed = songRepo.countByStatus("COMPLETED");
         double successRate = total > 0 ? (completed * 100.0 / total) : 0;

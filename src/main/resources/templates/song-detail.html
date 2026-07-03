@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{/layout :: dynamic(~{::body})}">
+
+<head>
+    <title>Chi tiết bài hát</title>
+</head>
+
+<body>
+    <div class="container py-5" v-cloak>
+        <!-- NÚT QUAY LẠI VÀ TIÊU ĐỀ TRANG -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <a href="/" class="btn btn-sm action-btn-gray d-flex justify-content-center align-items-center"
+                title="Quay về trang chủ" style="border-radius: 50%; width: 38px; height: 38px; padding: 0; font-size: 18px;">
+                <i class="ti ti-arrow-left"></i>
+            </a>
+            <h2 class="mb-0 fw-bold" style="font-size: 24px;">Chi tiết bài hát</h2>
+        </div>
+
+        <!-- KHU VỰC HIỂN THỊ THÔNG TIN BÀI HÁT ĐANG PHÁT -->
+        <div class="card p-4 mb-4" v-if="currentTrack.id">
+            <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center">
+                <div class="mb-3 mb-md-0">
+                    <h3 class="fw-bold mb-1">{{ currentTrack.title }}</h3>
+                    <p class="text-muted-sync mb-0">{{ currentTrack.prompt }}</p>
+                </div>
+                <!-- Cụm nút hành động -->
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-md-3">
+                    <button @click="toggleLike(currentTrack)" class="btn btn-lg d-flex align-items-center gap-2"
+                        :class="currentTrack.liked_by_me ? 'action-btn-red' : 'action-btn-gray'" style="height: 48px;"
+                        :title="currentTrack.liked_by_me ? 'Bỏ thích' : 'Thích bài hát này'">
+                        <i :class="['ti', currentTrack.liked_by_me ? 'ti-heart-filled' : 'ti-heart']" style="font-size: 20px;"></i>
+                        <span style="font-size: 14px; font-weight: 600;">{{ currentTrack.total_likes }}</span>
+                    </button>
+
+                    <!-- NÚT DOWNLOAD -->
+                    <a :href="'/api/songs/' + currentTrack.id + '/download'"
+                       class="btn btn-lg action-btn-gray d-flex justify-content-center align-items-center"
+                       title="Tải bài hát này về"
+                       style="width: 48px; height: 48px; padding: 0; font-size: 20px;">
+                        <i class="ti ti-download"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Trình phát nhạc mini -->
+            <hr v-if="currentTrack.audioUrl" class="my-3" style="border-color: var(--border-color);">
+            <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay class="w-100 custom-audio-player" v-if="currentTrack.audioUrl"></audio>
+        </div>
+
+        <!-- GẮN KHU VỰC BÌNH LUẬN VÀO ĐÂY -->
+        <div th:replace="~{fragments/comments :: comments-section}"></div>
+
+    </div>
+</body>
+
+</html>
