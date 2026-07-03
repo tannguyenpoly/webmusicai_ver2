@@ -580,43 +580,49 @@ new Vue({
 				.catch(() => { this.isLoadingOrders = false; });
 		},
 
-		buyPackage(pkg) {
-			if (!this.currentUser) {
-				window.location.href = '/login';
-				return;
-			}
+        buyPackage(pkg) {
+            if (!this.currentUser) {
+                window.location.href = '/login';
+                return;
+            }
 
-			Swal.fire({
-				title: 'Xác nhận mua gói?',
-				html: `<b>${pkg.name}</b><br>${pkg.tokens} token — <b>${this.formatPrice(pkg.price)}đ</b>`,
-				icon: 'question',
-				showCancelButton: true,
-				confirmButtonText: 'Mua ngay',
-				cancelButtonText: 'Huỷ',
-				confirmButtonColor: '#16a34a'
-			}).then(result => {
-				if (!result.isConfirmed) return;
+            Swal.fire({
+                title: 'Xác nhận mua gói?',
+                html: `<b>${pkg.name}</b><br>${pkg.tokens} token — <b>${this.formatPrice(pkg.price)}đ</b>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Thanh toán qua VNPAY',
+                cancelButtonText: 'Huỷ',
+                confirmButtonColor: '#16a34a'
+            }).then(result => {
+                if (!result.isConfirmed) return;
 
-				axios.post('/api/orders/create', { package_id: pkg.id })
-					.then(res => {
-						const orderCode = res.data.order_code;
-						return axios.post(`/api/orders/confirm/${orderCode}`, {});
-					})
-					.then(res => {
-						Swal.fire({
-							title: 'Mua thành công!',
-							html: `Đã cộng <b class="text-success">${pkg.tokens} token</b> vào tài khoản.<br>Số dư hiện tại: <b>${res.data.new_balance} token</b>`,
-							icon: 'success',
-							confirmButtonColor: '#16a34a'
-						});
-						this.userTokens = res.data.new_balance;
-						this.loadMyOrders();
-					})
-					.catch(err => {
-						Swal.fire('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra!', 'error');
-					});
-			});
-		},
+                // Hiển thị loading chờ hệ thống mã hoá đường link
+                Swal.fire({
+                    title: 'Đang kết nối cổng VNPAY...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Bước 1: Gọi API tạo đơn hàng (Backend lúc này sẽ trả về URL kết nối cổng VNPAY)
+                axios.post('/api/orders/create', { package_id: pkg.id })
+                    .then(res => {
+                        Swal.close();
+                        if (res.data && res.data.payment_url) {
+                            // Bước 2: Chuyển hướng người dùng thẳng sang cổng thanh toán bảo mật Sandbox của VNPAY
+                            window.location.href = res.data.payment_url;
+                        } else {
+                            Swal.fire('Thất bại', 'Không tìm thấy đường link thanh toán từ hệ thống.', 'error');
+                        }
+                    })
+                    .catch(err => {
+                        Swal.close();
+                        Swal.fire('Lỗi', err.response?.data?.message || 'Không thể kết nối khởi tạo đơn hàng!', 'error');
+                    });
+            });
+        },
 
 		formatPrice(price) {
 			if (!price) return '0';
