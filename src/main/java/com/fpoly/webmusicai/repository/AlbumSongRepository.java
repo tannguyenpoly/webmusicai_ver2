@@ -13,4 +13,6 @@ public interface AlbumSongRepository extends JpaRepository<AlbumSong, Integer> {
     boolean existsByAlbumIdAndSongId(Integer albumId, Integer songId);
 
     void deleteByAlbumIdAndSongId(Integer albumId, Integer songId);
+
+    void deleteBySongId(Integer songId);
 }

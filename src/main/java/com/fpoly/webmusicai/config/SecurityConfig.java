@@ -67,6 +67,7 @@ public class SecurityConfig {
 
 	private boolean isPublicPath(String path, String method) {
 		if (path.equals("/") || path.equals("/login") || path.equals("/register") || path.equals("/favorites")
+				|| path.equals("/profile")
 				|| path.startsWith("/js/") || path.startsWith("/css/") || path.startsWith("/images/") || path.startsWith("/song/")
 				|| path.equals("/favicon.ico")) {
 			return true;

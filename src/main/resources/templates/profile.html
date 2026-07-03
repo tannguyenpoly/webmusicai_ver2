@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
+<body>
+<div id="workspace-area">
+
+<!-- ===================== GLOBAL PROFILE STYLES ===================== -->
+<style>
+  /* Keyframes */
+  @keyframes fadeSlideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+  @keyframes spinIn      { from { transform:rotate(-90deg) scale(0.5); opacity:0; } to { transform:none; opacity:1; } }
+  @keyframes pulseGlow   { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.4)} 50%{box-shadow:0 0 0 10px rgba(22,163,74,0)} }
+  @keyframes overlayIn   { from{opacity:0} to{opacity:1} }
+  @keyframes boxSlideUp  { from{opacity:0;transform:translateY(32px) scale(.97)} to{opacity:1;transform:none} }
+
+  /* Song row hover */
+  .pf-song-row { transition: background .15s, padding .15s; cursor: default; border-radius: 10px; }
+  .pf-song-row:hover { background: rgba(255,255,255,0.04) !important; }
+
+  /* Tab underline animation */
+  .pf-tab { position:relative; transition: color .2s; }
+  .pf-tab::after { content:''; position:absolute; bottom:-1px; left:50%; right:50%; height:2px; background:var(--text-color); transition: left .25s, right .25s; border-radius:2px; }
+  .pf-tab.pf-active::after { left:0; right:0; }
+
+  /* Pill hover */
+  .pf-pill { transition: background .2s, border-color .2s, transform .15s; }
+  .pf-pill:hover { transform: translateY(-1px); }
+
+  /* Settings gear spin on hover */
+  .pf-settings-icon { display:inline-block; transition: transform .35s; }
+  .pf-settings-btn:hover .pf-settings-icon { transform: rotate(70deg); }
+
+  /* Avatar glow pulse */
+  .pf-avatar-wrap:hover .pf-avatar-inner { animation: pulseGlow 1.5s infinite; }
+
+  /* Song action btn */
+  .pf-act { width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.4);display:inline-flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:all .18s;flex-shrink:0; }
+  .pf-act:hover { background:rgba(22,163,74,.15);border-color:rgba(22,163,74,.5);color:#16a34a; }
+  .pf-act.red:hover { background:rgba(220,53,69,.12);border-color:rgba(220,53,69,.4);color:#dc3545; }
+
+  /* Edit / pwd modal input */
+  .pf-modal-input { width:100%;padding:10px 40px 10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);border-radius:10px;color:var(--text-color);font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;box-sizing:border-box; }
+  .pf-modal-input:focus { border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.12); }
+
+  /* Scrollbar inside song lists */
+  .pf-songlist::-webkit-scrollbar { width:4px; }
+  .pf-songlist::-webkit-scrollbar-thumb { background:rgba(22,163,74,.25);border-radius:4px; }
+</style>
+
+<!-- ============================================================
+     NOT LOGGED IN
+     ============================================================ -->
+<div v-if="!currentUser" v-cloak
+     style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:55vh;gap:16px;animation:fadeSlideUp .5s ease both;">
+  <div style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.04);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;">
+    <i class="ti ti-lock" style="font-size:30px;color:rgba(255,255,255,0.2);"></i>
+  </div>
+  <p style="color:var(--text-muted);font-size:14px;margin:0;">Vui lòng đăng nhập để xem trang hồ sơ.</p>
+  <a href="/login" style="padding:9px 28px;background:#16a34a;color:#fff;border-radius:30px;font-size:14px;font-weight:600;text-decoration:none;transition:background .2s;" onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">Đăng nhập</a>
+</div>
+
+<!-- ============================================================
+     PROFILE PAGE MAIN
+     ============================================================ -->
+<div v-if="currentUser" v-cloak style="max-width:900px;margin:0 auto;padding:36px 24px 80px;animation:fadeSlideUp .4s ease both;">
+
+  <!-- ═══════════════════════════════════════
+       TOP SECTION: AVATAR + INFO (FLEX ROW)
+       ═══════════════════════════════════════ -->
+  <div style="display:flex;align-items:flex-start;gap:32px;margin-bottom:40px;flex-wrap:wrap;">
+
+    <!-- AVATAR -->
+    <div class="pf-avatar-wrap" style="flex-shrink:0;">
+      <div class="pf-avatar-inner"
+           style="width:130px;height:130px;border-radius:50%;overflow:hidden;border:3px solid rgba(22,163,74,0.25);box-shadow:0 8px 30px rgba(0,0,0,0.5);background:linear-gradient(145deg,#0d2b14,#051009);position:relative;">
+        <img v-if="profilePageData.photo"
+             :src="profilePageData.photo"
+             style="width:100%;height:100%;object-fit:cover;"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+        <div :style="profilePageData.photo ? 'display:none' : 'display:flex'"
+             style="width:100%;height:100%;align-items:center;justify-content:center;font-size:54px;font-weight:800;color:rgba(255,255,255,0.75);letter-spacing:-2px;text-shadow:0 2px 10px rgba(0,0,0,0.5);">
+          {{ (profilePageData.fullname || currentUser || '?').charAt(0).toUpperCase() }}
+        </div>
+        <!-- Online dot -->
+        <div style="position:absolute;bottom:6px;right:6px;width:16px;height:16px;background:#16a34a;border-radius:50%;border:2.5px solid var(--card-bg);box-shadow:0 0 8px rgba(22,163,74,0.7);"></div>
+      </div>
+    </div>
+
+    <!-- INFO COLUMN -->
+    <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:14px;padding-top:4px;">
+
+      <!-- Row 1: Name + Edit + Settings -->
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:26px;font-weight:800;color:var(--text-color);letter-spacing:-0.5px;line-height:1;">
+          {{ currentUser.charAt(0).toUpperCase() }}
+        </span>
+        <!-- Edit Profile -->
+        <button @click="openEditProfileModal"
+                style="display:inline-flex;align-items:center;gap:6px;padding:5px 15px;background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:30px;color:var(--text-color);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.borderColor='rgba(255,255,255,0.4)'"
+                onmouseout="this.style.background='transparent';this.style.borderColor='rgba(255,255,255,0.2)'">
+          <i class="ti ti-edit" style="font-size:14px;"></i> Edit Profile
+        </button>
+        <!-- Settings -->
+        <button class="pf-settings-btn"
+                @click="openChangePasswordModal"
+                style="display:inline-flex;align-items:center;gap:6px;padding:5px 15px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:30px;color:var(--text-muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;"
+                onmouseover="this.style.background='rgba(22,163,74,0.08)';this.style.borderColor='rgba(22,163,74,0.4)';this.style.color='#16a34a'"
+                onmouseout="this.style.background='transparent';this.style.borderColor='rgba(255,255,255,0.12)';this.style.color='var(--text-muted)'">
+          <i class="ti ti-settings pf-settings-icon" style="font-size:14px;"></i> Settings
+        </button>
+      </div>
+
+      <!-- Row 2: Username + Copy -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12.5px;color:var(--text-muted);font-family:'Courier New',monospace;">
+          @{{ currentUser }}
+        </span>
+        <button @click="copyUID"
+                style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:2px 4px;font-size:12px;transition:color .2s;border-radius:4px;"
+                onmouseover="this.style.color='#16a34a'" onmouseout="this.style.color='var(--text-muted)'"
+                title="Sao chép">
+          <i class="ti ti-copy"></i>
+        </button>
+      </div>
+
+      <!-- Row 3: Stats inline -->
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <div style="font-size:13.5px;color:var(--text-muted);">
+          <strong style="color:var(--text-color);font-weight:700;font-size:15px;margin-right:4px;">{{ profileStats.total }}</strong>Bài đã tạo
+        </div>
+        <div style="width:1px;height:13px;background:var(--border-color);"></div>
+        <div style="font-size:13.5px;color:var(--text-muted);">
+          <strong style="color:var(--text-color);font-weight:700;font-size:15px;margin-right:4px;">{{ profileFavoriteSongs.length }}</strong>Yêu thích
+        </div>
+        <div style="width:1px;height:13px;background:var(--border-color);"></div>
+        <div style="font-size:13.5px;color:var(--text-muted);">
+          <strong style="color:#16a34a;font-weight:700;font-size:15px;margin-right:4px;">{{ profileStats.completed }}</strong>Hoàn thành
+        </div>
+      </div>
+
+      <!-- Row 4: Pill badges -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <!-- Token -->
+        <span class="pf-pill"
+              style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:30px;font-size:12.5px;color:rgba(255,255,255,0.8);font-weight:500;white-space:nowrap;">
+          <i class="ti ti-coin" style="color:#f59e0b;font-size:14px;"></i>
+          {{ profilePageData.token_balance || userTokens || 0 }} Token
+        </span>
+        <!-- Admin badge -->
+        <span v-if="isAdmin" class="pf-pill"
+              style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;background:rgba(220,53,69,0.08);border:1px solid rgba(220,53,69,0.2);border-radius:30px;font-size:12.5px;color:rgba(255,255,255,0.8);font-weight:500;">
+          <i class="ti ti-shield-lock" style="color:#dc3545;font-size:14px;"></i> Admin
+        </span>
+        <!-- Pending -->
+        <span class="pf-pill"
+              style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;background:rgba(22,163,74,0.07);border:1px solid rgba(22,163,74,0.18);border-radius:30px;font-size:12.5px;color:rgba(255,255,255,0.8);font-weight:500;white-space:nowrap;">
+          <i class="ti ti-music" style="color:#16a34a;font-size:14px;"></i>
+          {{ profileStats.pending }} Đang xử lý
+        </span>
+        <!-- Member -->
+        <span class="pf-pill"
+              style="display:inline-flex;align-items:center;gap:7px;padding:6px 14px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:30px;font-size:12.5px;color:rgba(255,255,255,0.8);font-weight:500;white-space:nowrap;">
+          <i class="ti ti-timeline" style="color:#8b5cf6;font-size:14px;"></i> MusicAI Member
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────── DIVIDER ─────────────── -->
+  <div style="border-top:1px solid var(--border-color);margin-bottom:0;"></div>
+
+  <!-- ═══════════════════════════════════════
+       TAB NAVIGATION (centered)
+       ═══════════════════════════════════════ -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:0;border-bottom:1px solid var(--border-color);margin-bottom:0;">
+
+    <!-- Tab: Nhạc đã tạo -->
+    <button class="pf-tab" :class="{'pf-active': profileTab === 'generated'}"
+            @click="profileTab = 'generated'"
+            style="display:flex;align-items:center;gap:7px;padding:14px 36px;background:transparent;border:none;border-bottom:2px solid transparent;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:-1px;transition:color .2s;"
+            :style="profileTab === 'generated' ? 'color:var(--text-color);border-bottom-color:var(--text-color);font-weight:600;' : 'color:var(--text-muted);'">
+      <i class="ti ti-wand" style="font-size:15px;"></i>
+      Nhạc đã tạo
+      <span v-if="profileStats.total > 0"
+            style="background:rgba(22,163,74,0.15);color:#16a34a;border-radius:20px;padding:1px 8px;font-size:11px;font-weight:700;">
+        {{ profileStats.total }}
+      </span>
+    </button>
+
+    <!-- Tab: Yêu thích -->
+    <button class="pf-tab" :class="{'pf-active': profileTab === 'favorites'}"
+            @click="switchToFavTab"
+            style="display:flex;align-items:center;gap:7px;padding:14px 36px;background:transparent;border:none;border-bottom:2px solid transparent;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:-1px;transition:color .2s;"
+            :style="profileTab === 'favorites' ? 'color:var(--text-color);border-bottom-color:var(--text-color);font-weight:600;' : 'color:var(--text-muted);'">
+      <i class="ti ti-heart" style="font-size:15px;"></i>
+      Yêu thích
+      <span v-if="profileFavoriteSongs.length > 0"
+            style="background:rgba(220,53,69,0.12);color:#dc3545;border-radius:20px;padding:1px 8px;font-size:11px;font-weight:700;">
+        {{ profileFavoriteSongs.length }}
+      </span>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB CONTENT: NHẠC ĐÃ TẠO
+       ═══════════════════════════════════════ -->
+  <div v-if="profileTab === 'generated'" style="padding:32px 0 0;min-height:280px;animation:fadeSlideUp .3s ease both;">
+
+    <!-- Loading -->
+    <div v-if="isLoadingProfileSongs"
+         style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:60px 0;">
+      <div class="spinner-border text-success" role="status" style="width:26px;height:26px;border-width:2px;"></div>
+      <span style="font-size:13px;color:var(--text-muted);">Đang tải nhạc...</span>
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="profileGeneratedSongs.length === 0"
+         style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:60px 0;color:var(--text-muted);">
+      <i class="ti ti-music-off" style="font-size:40px;opacity:0.25;display:block;"></i>
+      <p style="margin:0;font-size:14px;">Bạn chưa tạo bài nhạc nào</p>
+      <a href="/" style="margin-top:8px;font-size:13px;color:#16a34a;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+        <i class="ti ti-wand"></i> Tạo nhạc ngay →
+      </a>
+    </div>
+
+    <!-- List -->
+    <div v-else class="pf-songlist" style="max-height:500px;overflow-y:auto;padding-right:4px;">
+      <div v-for="(song, index) in profileGeneratedSongs" :key="song.id" class="pf-song-row"
+           style="display:flex;align-items:center;gap:14px;padding:11px 10px;border-bottom:1px solid rgba(255,255,255,0.04);">
+
+        <!-- Số thứ tự -->
+        <span style="width:24px;text-align:right;font-size:13px;color:var(--text-muted);flex-shrink:0;">{{ index + 1 }}</span>
+
+        <!-- Icon -->
+        <div style="width:42px;height:42px;border-radius:9px;background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="ti ti-music-bolt" style="font-size:17px;color:#16a34a;"></i>
+        </div>
+
+        <!-- Title + Prompt -->
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;color:var(--text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            {{ song.title || 'Đang xử lý...' }}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
+            {{ song.prompt }}
+          </div>
+        </div>
+
+        <!-- Status badge -->
+        <span style="flex-shrink:0;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.4px;text-transform:uppercase;"
+              :style="song.status==='COMPLETED' ? 'background:rgba(22,163,74,0.12);color:#16a34a;border:1px solid rgba(22,163,74,0.2);'
+                    : song.status==='PENDING'   ? 'background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);'
+                    :                             'background:rgba(220,53,69,0.12);color:#dc3545;border:1px solid rgba(220,53,69,0.2);'">
+          {{ song.status === 'COMPLETED' ? 'Xong' : song.status === 'PENDING' ? 'Chờ' : 'Lỗi' }}
+        </span>
+
+        <!-- Visibility badge -->
+        <span v-if="song.status==='COMPLETED'"
+              style="flex-shrink:0;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:20px;letter-spacing:.4px;text-transform:uppercase;"
+              :style="song.isPublic ? 'background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.22);'
+                                    : 'background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.22);'">
+          {{ song.isPublic ? 'Public' : 'Private' }}
+        </span>
+
+        <!-- Time -->
+        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;min-width:68px;text-align:right;">
+          {{ formatRelativeTime(song.createdAt) }}
+        </span>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button v-if="song.status==='COMPLETED'" class="pf-act" @click="playTrack(song)" title="Phát">
+            <i class="ti ti-player-play-filled"></i>
+          </button>
+          <button v-if="song.status==='COMPLETED'" class="pf-act" @click="addToPlaylist(song)" title="Thêm playlist">
+            <i class="ti ti-playlist-add"></i>
+          </button>
+          <button v-if="song.status==='COMPLETED'"
+                  class="pf-act"
+                  @click="toggleProfileSongVisibility(song)"
+                  :title="song.isPublic ? 'Chuyển sang riêng tư' : 'Công khai bài nhạc'">
+            <i :class="song.isPublic ? 'ti ti-lock' : 'ti ti-world'"></i>
+          </button>
+          <button class="pf-act red" @click="deleteGeneratedSong(song)" title="Xóa bài nhạc">
+            <i class="ti ti-trash"></i>
+          </button>
+        </div>
+
+      </div><!-- /song row -->
+
+      <!-- Load more -->
+      <div v-if="profileSongPagination.hasMore"
+           @click="loadMoreProfileSongs"
+           style="text-align:center;padding:16px 0;font-size:13px;color:var(--text-muted);cursor:pointer;transition:color .2s;"
+           onmouseover="this.style.color='var(--text-color)'" onmouseout="this.style.color='var(--text-muted)'">
+        <i class="ti ti-dots me-1"></i>Tải thêm
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TAB CONTENT: YÊU THÍCH
+       ═══════════════════════════════════════ -->
+  <div v-if="profileTab === 'favorites'" style="padding:32px 0 0;min-height:280px;animation:fadeSlideUp .3s ease both;">
+
+    <!-- Loading -->
+    <div v-if="isLoadingProfileFav"
+         style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:60px 0;">
+      <div class="spinner-border" style="color:#dc3545;width:26px;height:26px;border-width:2px;" role="status"></div>
+      <span style="font-size:13px;color:var(--text-muted);">Đang tải yêu thích...</span>
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="profileFavoriteSongs.length === 0"
+         style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:60px 0;color:var(--text-muted);">
+      <i class="ti ti-heart-off" style="font-size:40px;opacity:0.25;display:block;"></i>
+      <p style="margin:0;font-size:14px;">Chưa có bài hát yêu thích nào</p>
+      <a href="/" style="margin-top:8px;font-size:13px;color:#16a34a;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+        <i class="ti ti-compass"></i> Khám phá nhạc →
+      </a>
+    </div>
+
+    <!-- List -->
+    <div v-else class="pf-songlist" style="max-height:500px;overflow-y:auto;padding-right:4px;">
+      <div v-for="(song, index) in profileFavoriteSongs" :key="song.id" class="pf-song-row"
+           style="display:flex;align-items:center;gap:14px;padding:11px 10px;border-bottom:1px solid rgba(255,255,255,0.04);">
+
+        <span style="width:24px;text-align:right;font-size:13px;color:var(--text-muted);flex-shrink:0;">{{ index + 1 }}</span>
+
+        <div style="width:42px;height:42px;border-radius:9px;background:rgba(220,53,69,0.08);border:1px solid rgba(220,53,69,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="ti ti-heart-filled" style="font-size:17px;color:#dc3545;"></i>
+        </div>
+
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;color:var(--text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            {{ song.title }}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
+            {{ song.prompt }}
+          </div>
+        </div>
+
+        <span style="font-size:12px;color:#dc3545;flex-shrink:0;display:flex;align-items:center;gap:3px;">
+          <i class="ti ti-heart-filled" style="font-size:11px;"></i>{{ song.total_likes || 0 }}
+        </span>
+
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="pf-act red" @click="removeFavAndUpdate(song)" title="Bỏ thích">
+            <i class="ti ti-heart-broken"></i>
+          </button>
+          <button class="pf-act" @click="playTrack(song)" title="Phát">
+            <i class="ti ti-player-play-filled"></i>
+          </button>
+          <button class="pf-act" @click="addToPlaylist(song)" title="Thêm playlist">
+            <i class="ti ti-playlist-add"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /profile wrap -->
+
+
+<!-- ============================================================
+     MODAL: ĐỔI MẬT KHẨU
+     ============================================================ -->
+<div v-if="showChangePasswordModal" v-cloak
+     style="position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;animation:overlayIn .2s ease;"
+     @click.self="showChangePasswordModal = false">
+  <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:22px;width:380px;max-width:92vw;padding:30px;box-shadow:0 32px 90px rgba(0,0,0,0.6);animation:boxSlideUp .28s cubic-bezier(.34,1.4,.64,1);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:11px;background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.22);display:flex;align-items:center;justify-content:center;">
+          <i class="ti ti-key" style="font-size:18px;color:#16a34a;"></i>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text-color);">Đổi mật khẩu</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">Bảo mật tài khoản của bạn</div>
+        </div>
+      </div>
+      <button @click="showChangePasswordModal = false"
+              style="background:none;border:none;font-size:22px;color:var(--text-muted);cursor:pointer;padding:0;line-height:1;transition:color .2s;"
+              onmouseover="this.style.color='#dc3545'" onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+    </div>
+
+    <!-- Fields -->
+    <div style="margin-bottom:13px;">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;">Mật khẩu hiện tại</label>
+      <div style="position:relative;">
+        <input class="pf-modal-input" :type="pwdVisibility.old ? 'text' : 'password'"
+               v-model="changePasswordForm.oldPassword" placeholder="Nhập mật khẩu hiện tại">
+        <button @click="pwdVisibility.old = !pwdVisibility.old" type="button"
+                style="position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px;transition:color .2s;"
+                onmouseover="this.style.color='#16a34a'" onmouseout="this.style.color='var(--text-muted)'">
+          <i :class="pwdVisibility.old ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:13px;">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;">Mật khẩu mới</label>
+      <div style="position:relative;">
+        <input class="pf-modal-input" :type="pwdVisibility.new ? 'text' : 'password'"
+               v-model="changePasswordForm.newPassword" placeholder="Tối thiểu 6 ký tự">
+        <button @click="pwdVisibility.new = !pwdVisibility.new" type="button"
+                style="position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px;transition:color .2s;"
+                onmouseover="this.style.color='#16a34a'" onmouseout="this.style.color='var(--text-muted)'">
+          <i :class="pwdVisibility.new ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;">Xác nhận mật khẩu mới</label>
+      <div style="position:relative;">
+        <input class="pf-modal-input" :type="pwdVisibility.confirm ? 'text' : 'password'"
+               v-model="changePasswordForm.confirmNewPassword" placeholder="Nhập lại mật khẩu mới"
+               :style="changePasswordForm.confirmNewPassword && changePasswordForm.newPassword !== changePasswordForm.confirmNewPassword ? 'border-color:#dc3545;' : ''">
+        <button @click="pwdVisibility.confirm = !pwdVisibility.confirm" type="button"
+                style="position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px;transition:color .2s;"
+                onmouseover="this.style.color='#16a34a'" onmouseout="this.style.color='var(--text-muted)'">
+          <i :class="pwdVisibility.confirm ? 'ti ti-eye-off' : 'ti ti-eye'"></i>
+        </button>
+      </div>
+      <span v-if="changePasswordForm.confirmNewPassword && changePasswordForm.newPassword !== changePasswordForm.confirmNewPassword"
+            style="font-size:11px;color:#dc3545;margin-top:5px;display:block;">
+        <i class="ti ti-alert-circle me-1"></i>Mật khẩu xác nhận không trùng khớp
+      </span>
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:8px;">
+      <button @click="showChangePasswordModal = false"
+              style="flex:1;padding:11px;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);border-radius:11px;color:var(--text-muted);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;"
+              onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.color='var(--text-color)'"
+              onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='var(--text-muted)'">
+        Hủy
+      </button>
+      <button @click="submitChangePassword"
+              style="flex:1;padding:11px;background:#16a34a;border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:6px;"
+              onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
+        <i class="ti ti-lock-check"></i>Xác nhận đổi
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     MODAL: EDIT PROFILE
+     ============================================================ -->
+<div v-if="showEditProfileModal" v-cloak
+     style="position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;animation:overlayIn .2s ease;"
+     @click.self="showEditProfileModal = false">
+  <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:22px;width:400px;max-width:92vw;padding:30px;box-shadow:0 32px 90px rgba(0,0,0,0.6);animation:boxSlideUp .28s cubic-bezier(.34,1.4,.64,1);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:11px;background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.22);display:flex;align-items:center;justify-content:center;">
+          <i class="ti ti-user-edit" style="font-size:18px;color:#16a34a;"></i>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text-color);">Chỉnh sửa hồ sơ</div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin-top:1px;">Cập nhật thông tin cá nhân</div>
+        </div>
+      </div>
+      <button @click="showEditProfileModal = false"
+              style="background:none;border:none;font-size:22px;color:var(--text-muted);cursor:pointer;padding:0;line-height:1;transition:color .2s;"
+              onmouseover="this.style.color='#dc3545'" onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+    </div>
+
+    <div style="margin-bottom:13px;">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;">Họ và tên</label>
+      <input class="pf-modal-input" type="text" v-model="profileForm.fullname" placeholder="Nhập tên đầy đủ...">
+    </div>
+    <div style="margin-bottom:13px;">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;">Địa chỉ Email</label>
+      <input class="pf-modal-input" type="email" v-model="profileForm.email" placeholder="username@gmail.com">
+    </div>
+    <div style="margin-bottom:22px;">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;">URL ảnh đại diện</label>
+      <input class="pf-modal-input" type="text" v-model="profileForm.photo" placeholder="https://...">
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button @click="showEditProfileModal = false"
+              style="flex:1;padding:11px;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);border-radius:11px;color:var(--text-muted);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;"
+              onmouseover="this.style.background='rgba(255,255,255,0.09)';this.style.color='var(--text-color)'"
+              onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='var(--text-muted)'">
+        Hủy
+      </button>
+      <button @click="submitEditProfile"
+              style="flex:1;padding:11px;background:#16a34a;border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:6px;"
+              onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
+        <i class="ti ti-device-floppy"></i>Lưu thay đổi
+      </button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /workspace-area -->
+</body>
+</html>

@@ -60,7 +60,20 @@ new Vue({
             content: ''
         },
         replyingToCommentId: null, // ID của bình luận đang được trả lời
-        editingComment: null // Đối tượng comment đang được sửa
+        editingComment: null, // Đối tượng comment đang được sửa
+
+        // --- DỮ LIỆU CHO TRANG HỒ SƠ CÁ NHÂN ---
+        profileTab: 'generated',
+        profilePageData: { fullname: '', photo: '', token_balance: 0 },
+        profileStats: { total: 0, completed: 0, pending: 0, failed: 0 },
+        profileGeneratedSongs: [],
+        profileFavoriteSongs: [],
+        isLoadingProfileSongs: false,
+        isLoadingProfileFav: false,
+        showChangePasswordModal: false,
+        showEditProfileModal: false,
+        profileSongPagination: { page: 0, size: 20, hasMore: false },
+        pwdVisibility: { old: false, new: false, confirm: false }
     },
     computed: {
         filteredSongs() {
@@ -126,6 +139,10 @@ new Vue({
         else if (window.location.pathname.startsWith('/favorites')) {
             this.loadFavoriteSongs();
         } 
+        else if (window.location.pathname.startsWith('/profile')) {
+            this.loadProfilePageData();
+            this.loadProfileSongs(false);
+        }
         else if (window.location.pathname.startsWith('/song/')) {
             const pathParts = window.location.pathname.split('/');
             const songId = pathParts[pathParts.length - 1];
@@ -163,7 +180,9 @@ new Vue({
         },
 
         loadPublicSongs() {
-            axios.get('/api/songs/public')
+            // Thêm timestamp để bypass browser cache (tránh lỗi liked_by_me sai sau logout)
+            const ts = Date.now();
+            axios.get(`/api/songs/public?_t=${ts}`)
                 .then(response => {
                     // Backend đã trả về đầy đủ thông tin 'total_likes' và 'liked_by_me'
                     this.publicSongs = Array.isArray(response.data) ? response.data : [];
@@ -470,10 +489,18 @@ new Vue({
                 localStorage.removeItem('music_username');
                 localStorage.removeItem('jwt_token');
                 localStorage.removeItem('music_is_admin');
+                // XÓA COOKIE jwt_token (quan trọng: JwtFilter đọc cả cookie)
+                document.cookie = 'jwt_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
                 this.currentUser = null;
                 this.isAdmin = false;
                 this.userTokens = 0;
                 this.generationForm.username = '';
+                // Reset trạng thái liked của tất cả bài hát để tránh hiển thị sai sau logout
+                this.publicSongs = this.publicSongs.map(song => ({
+                    ...song,
+                    liked_by_me: false
+                }));
+                this.favoriteSongs = [];
                 window.location.href = '/';
             };
 
@@ -669,6 +696,228 @@ new Vue({
             if (hours < 24) return `${hours} giờ trước`;
             if (days < 7) return `${days} ngày trước`;
             return date.toLocaleDateString('vi-VN');
+        },
+
+        // =========================================================
+        // === CÁC HÀM CHO TRANG HỒ SƠ CÁ NHÂN /profile ===
+        // =========================================================
+
+        loadProfilePageData() {
+            if (!this.currentUser) return;
+            axios.get(`/api/users/${this.currentUser}/profile`)
+                .then(response => {
+                    this.profilePageData = {
+                        fullname: response.data.fullname || '',
+                        photo: response.data.photo || '',
+                        token_balance: response.data.token_balance || 0
+                    };
+                })
+                .catch(error => console.error('Lỗi tải thông tin profile:', error));
+        },
+
+        loadProfileSongs(append) {
+            if (!this.currentUser) return;
+            this.isLoadingProfileSongs = !append;
+            const page = append ? this.profileSongPagination.page + 1 : 0;
+            axios.get(`/api/users/${this.currentUser}/songs?page=${page}&size=20`)
+                .then(response => {
+                    const data = response.data;
+                    const songs = data.content || [];
+                    if (append) {
+                        this.profileGeneratedSongs = this.profileGeneratedSongs.concat(songs);
+                    } else {
+                        this.profileGeneratedSongs = songs;
+                    }
+                    this.profileSongPagination.page = data.number || 0;
+                    this.profileSongPagination.hasMore = !data.last;
+
+                    // Cập nhật thống kê
+                    this.profileStats.total = data.totalElements || songs.length;
+                    const allSongs = this.profileGeneratedSongs;
+                    this.profileStats.completed = allSongs.filter(s => s.status === 'COMPLETED').length;
+                    this.profileStats.pending = allSongs.filter(s => s.status === 'PENDING').length;
+                    this.profileStats.failed = allSongs.filter(s => s.status === 'FAILED').length;
+                })
+                .catch(error => console.error('Lỗi tải nhạc đã tạo:', error))
+                .finally(() => { this.isLoadingProfileSongs = false; });
+        },
+
+        loadMoreProfileSongs() {
+            this.loadProfileSongs(true);
+        },
+
+        toggleProfileSongVisibility(song) {
+            if (!song || !song.id || song.status !== 'COMPLETED') return;
+
+            const currentIsPublic = song.isPublic !== undefined ? song.isPublic : !!song.is_public;
+            const newIsPublic = !currentIsPublic;
+            const actionText = newIsPublic ? 'công khai' : 'chuyển sang riêng tư';
+
+            Swal.fire({
+                title: newIsPublic ? 'Công khai bài nhạc?' : 'Chuyển sang riêng tư?',
+                text: newIsPublic
+                    ? 'Mọi người có thể nghe và tương tác với bài nhạc này.'
+                    : 'Bài nhạc sẽ không còn xuất hiện trong kho nhạc công khai.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#6e7881',
+                confirmButtonText: newIsPublic ? 'Công khai' : 'Riêng tư',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                const oldIsPublic = currentIsPublic;
+                song.isPublic = newIsPublic;
+                song.is_public = newIsPublic;
+
+                axios.put(`/api/songs/${song.id}/setting`, { is_public: newIsPublic })
+                    .then(response => {
+                        if (response.data && response.data.is_public !== undefined) {
+                            song.isPublic = response.data.is_public;
+                            song.is_public = response.data.is_public;
+                        }
+
+                        const publicIndex = this.publicSongs.findIndex(s => s.id === song.id);
+                        if (song.isPublic) {
+                            if (publicIndex === -1) this.publicSongs.unshift(song);
+                        } else if (publicIndex > -1) {
+                            this.publicSongs.splice(publicIndex, 1);
+                        }
+
+                        this.Toast.fire({ icon: 'success', title: `Đã ${actionText} bài nhạc.` });
+                    })
+                    .catch(error => {
+                        song.isPublic = oldIsPublic;
+                        song.is_public = oldIsPublic;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Cập nhật thất bại',
+                            text: error.response?.data?.message || error.response?.data || 'Không thể cập nhật chế độ bài nhạc.'
+                        });
+                    });
+            });
+        },
+
+        deleteGeneratedSong(song) {
+            if (!song || !song.id) return;
+
+            Swal.fire({
+                title: 'Xóa bài nhạc này?',
+                text: 'Bài nhạc sẽ bị xóa khỏi hồ sơ, playlist, album, lượt thích và bình luận liên quan.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6e7881',
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                axios.delete(`/api/songs/${song.id}`)
+                    .then(response => {
+                        this.profileGeneratedSongs = this.profileGeneratedSongs.filter(s => s.id !== song.id);
+                        this.profileFavoriteSongs = this.profileFavoriteSongs.filter(s => s.id !== song.id);
+                        this.publicSongs = this.publicSongs.filter(s => s.id !== song.id);
+                        this.sessionPlaylist = this.sessionPlaylist.filter(s => s.id !== song.id);
+                        sessionStorage.setItem('music_session_playlist', JSON.stringify(this.sessionPlaylist));
+
+                        if (this.currentTrack && this.currentTrack.id === song.id) {
+                            const audio = document.getElementById('audio-element');
+                            if (audio) audio.pause();
+                            this.currentTrack = { id: null, title: '', prompt: '', status: '', audioUrl: '' };
+                        }
+
+                        this.profileStats.total = Math.max(0, this.profileStats.total - 1);
+                        if (song.status === 'COMPLETED') this.profileStats.completed = Math.max(0, this.profileStats.completed - 1);
+                        if (song.status === 'PENDING') this.profileStats.pending = Math.max(0, this.profileStats.pending - 1);
+                        if (song.status === 'FAILED') this.profileStats.failed = Math.max(0, this.profileStats.failed - 1);
+
+                        this.Toast.fire({ icon: 'success', title: response.data.message || 'Đã xóa bài nhạc.' });
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Xóa thất bại',
+                            text: error.response?.data?.message || 'Không thể xóa bài nhạc này.'
+                        });
+                    });
+            });
+        },
+
+        loadProfileFavorites() {
+            if (!this.currentUser) return;
+            this.isLoadingProfileFav = true;
+            axios.get('/api/songs/my-favorites')
+                .then(response => {
+                    this.profileFavoriteSongs = Array.isArray(response.data) ? response.data : [];
+                })
+                .catch(error => console.error('Lỗi tải yêu thích profile:', error))
+                .finally(() => { this.isLoadingProfileFav = false; });
+        },
+
+        switchToFavTab() {
+            this.profileTab = 'favorites';
+            if (this.profileFavoriteSongs.length === 0) {
+                this.loadProfileFavorites();
+            }
+        },
+
+        removeFromProfileFav(song) {
+            setTimeout(() => {
+                const idx = this.profileFavoriteSongs.findIndex(s => s.id === song.id);
+                if (idx > -1) this.profileFavoriteSongs.splice(idx, 1);
+            }, 300);
+        },
+
+        openChangePasswordModal() {
+            this.changePasswordForm = { oldPassword: '', newPassword: '', confirmNewPassword: '' };
+            this.pwdVisibility = { old: false, new: false, confirm: false };
+            this.showChangePasswordModal = true;
+        },
+
+        openEditProfileModal() {
+            if (!this.currentUser) return;
+            axios.get(`/api/users/${this.currentUser}/profile`)
+                .then(response => {
+                    this.profileForm.fullname = response.data.fullname || '';
+                    this.profileForm.email = response.data.email || '';
+                    this.profileForm.photo = response.data.photo || '';
+                    this.showEditProfileModal = true;
+                })
+                .catch(() => Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải thông tin cá nhân' }));
+        },
+
+        submitEditProfile() {
+            axios.put(`/api/users/${this.currentUser}/profile`, this.profileForm)
+                .then(() => {
+                    this.showEditProfileModal = false;
+                    this.loadProfilePageData();
+                    this.Toast.fire({ icon: 'success', title: 'Cập nhật hồ sơ thành công!' });
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Cập nhật thất bại',
+                        text: error.response && error.response.data ? (error.response.data.message || 'Lỗi dữ liệu') : 'Vui lòng kiểm tra lại thông tin.'
+                    });
+                });
+        },
+
+        copyUID() {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(this.currentUser)
+                    .then(() => this.Toast.fire({ icon: 'success', title: 'Đã sao chép @' + this.currentUser }))
+                    .catch(() => {});
+            }
+        },
+
+        removeFavAndUpdate(song) {
+            this.toggleLike(song);
+            setTimeout(() => {
+                const idx = this.profileFavoriteSongs.findIndex(s => s.id === song.id);
+                if (idx > -1) this.profileFavoriteSongs.splice(idx, 1);
+            }, 400);
         }
     }
 });

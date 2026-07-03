@@ -16,6 +16,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
 
     void deleteByUserUsernameAndSongId(String username, Integer songId);
 
+    void deleteBySongId(Integer songId);
+
     boolean existsByUserUsernameAndSongId(String username, Integer songId);
     
     @Query("SELECT f.song.id as songId, COUNT(f.id) as likeCount FROM Favorite f WHERE f.song.id IN :songIds GROUP BY f.song.id")
