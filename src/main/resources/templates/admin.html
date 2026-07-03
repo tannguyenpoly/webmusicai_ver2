@@ -433,10 +433,6 @@
                     <i class="ti ti-gift"></i>
                     <span class="nav-label">Gói token</span>
                 </a>
-                <a class="nav-item" :class="{ active: activeTab === 'orders' }" @click.prevent="activeTab = 'orders'" href="#">
-                    <i class="ti ti-receipt"></i>
-                    <span class="nav-label">Đơn hàng</span>
-                </a>
                 <a class="nav-item" :class="{ active: activeTab === 'revenue' }" @click.prevent="activeTab = 'revenue'" href="#">
                     <i class="ti ti-coin"></i>
                     <span class="nav-label">Doanh thu</span>
@@ -757,46 +753,6 @@
                 </div>
             </div>
 
-            <!-- ========== ORDERS ========== -->
-            <div class="section-tab" :class="{ active: activeTab === 'orders' }">
-                <div class="page-header">
-                    <h4><i class="ti ti-receipt text-success me-2"></i>Quản lý đơn hàng</h4>
-                    <div class="d-flex gap-2">
-                        <select v-model="orderStatusFilter" @change="loadOrders" class="form-select-custom">
-                            <option value="">Tất cả</option>
-                            <option value="PENDING">Chờ thanh toán</option>
-                            <option value="SUCCESS">Thành công</option>
-                            <option value="FAILED">Thất bại</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="card-custom">
-                    <div class="card-body p-0">
-                        <table class="table table-custom">
-                            <thead><tr>
-                                <th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th>
-                            </tr></thead>
-                            <tbody>
-                                <tr v-for="o in orders" :key="o.id">
-                                    <td class="text-muted-sync" style="font-size: 12px;">{{ o.orderCode }}</td>
-                                    <td class="fw-medium">@{{ o.user?.username }}</td>
-                                    <td>{{ o.pkg?.name }}</td>
-                                    <td class="text-center fw-medium">{{ formatPrice(o.totalPrice) }}</td>
-                                    <td class="text-center">
-                                        <span class="badge-status" :class="'badge-' + (o.status ? o.status.toLowerCase() : 'pending')">{{ o.status }}</span>
-                                    </td>
-                                    <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(o.createdAt) }}</td>
-                                </tr>
-                                <tr v-if="orders.length === 0">
-                                    <td colspan="6" class="text-center text-muted-sync py-4">Chưa có đơn hàng.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
             <!-- ========== REVENUE ========== -->
             <div class="section-tab" :class="{ active: activeTab === 'revenue' }">
                 <div class="page-header">
@@ -862,6 +818,40 @@
                             <div class="stat-value" style="font-size: 24px;">{{ revenueData.failedOrders }}</div>
                             <div class="stat-label">Đơn thất bại</div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="card-custom">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-receipt text-success me-2"></i>Danh sách đơn hàng</span>
+                        <select v-model="orderStatusFilter" @change="loadRevenue" class="form-select-custom" style="width: auto;">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING">Chờ thanh toán</option>
+                            <option value="SUCCESS">Thành công</option>
+                            <option value="FAILED">Thất bại</option>
+                        </select>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-custom">
+                            <thead><tr>
+                                <th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th>
+                            </tr></thead>
+                            <tbody>
+                                <tr v-for="o in orders" :key="o.id">
+                                    <td class="text-muted-sync" style="font-size: 12px;">{{ o.orderCode }}</td>
+                                    <td class="fw-medium">@{{ o.user?.username }}</td>
+                                    <td>{{ o.pkg?.name }}</td>
+                                    <td class="text-center fw-medium">{{ formatPrice(o.totalPrice) }}</td>
+                                    <td class="text-center">
+                                        <span class="badge-status" :class="'badge-' + (o.status ? o.status.toLowerCase() : 'pending')">{{ o.status }}</span>
+                                    </td>
+                                    <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(o.createdAt) }}</td>
+                                </tr>
+                                <tr v-if="orders.length === 0">
+                                    <td colspan="6" class="text-center text-muted-sync py-4">Chưa có đơn hàng.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -982,7 +972,6 @@ new Vue({
         this.loadSongs(0);
         this.loadGenres();
         this.loadPackages();
-        this.loadOrders();
         this.loadRevenue();
     },
 
@@ -1245,8 +1234,11 @@ new Vue({
 
         // ===== ORDERS =====
         loadOrders() {
-            const status = this.orderStatusFilter;
-            const url = status ? `/api/admin/orders?status=${status}` : '/api/admin/orders';
+            const params = [];
+            if (this.revenueFrom) params.push(`from=${this.revenueFrom}`);
+            if (this.revenueTo) params.push(`to=${this.revenueTo}`);
+            if (this.orderStatusFilter) params.push(`status=${this.orderStatusFilter}`);
+            const url = '/api/admin/orders' + (params.length ? '?' + params.join('&') : '');
             axios.get(url).then(r => { this.orders = r.data; }).catch(() => {});
         },
 
@@ -1259,7 +1251,10 @@ new Vue({
             if (params.length) url += '?' + params.join('&');
 
             axios.get(url)
-                .then(r => { this.revenueData = r.data; })
+                .then(r => {
+                    this.revenueData = r.data;
+                    this.loadOrders();
+                })
                 .catch(e => {
                     if (e.response?.data?.error) {
                         Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response.data.error });
@@ -1270,6 +1265,7 @@ new Vue({
         clearRevenueFilter() {
             this.revenueFrom = '';
             this.revenueTo = '';
+            this.orderStatusFilter = '';
             this.loadRevenue();
         },
 

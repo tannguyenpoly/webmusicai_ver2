@@ -116,16 +116,21 @@ public class AdminRestController {
 
     @GetMapping("/orders")
     public ResponseEntity<?> getAllOrders(
-            @RequestParam(defaultValue = "") String status) {
+            @RequestParam(defaultValue = "") String status,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
 
-        List<Order> orders;
-        if (status != null && !status.trim().isEmpty()) {
-            orders = orderRepo.findByStatus(status.trim());
-        } else {
-            orders = orderRepo.findAll();
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date fromDate = (from != null && !from.isEmpty()) ? sdf.parse(from) : null;
+            Date toDate = (to != null && !to.isEmpty()) ? new Date(sdf.parse(to).getTime() + 86400000L - 1) : null;
+            String statusParam = (status != null && !status.isEmpty()) ? status : null;
+
+            List<Order> orders = orderRepo.findFiltered(fromDate, toDate, statusParam);
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Định dạng ngày không hợp lệ (yyyy-MM-dd)"));
         }
-        orders.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
-        return ResponseEntity.ok(orders);
     }
     // ============ DOANH THU ============
 

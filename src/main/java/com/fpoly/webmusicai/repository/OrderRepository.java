@@ -28,4 +28,7 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
 	@Query("SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o WHERE o.status = 'SUCCESS' AND o.createdAt <= :to")
 	Long getRevenueTo(@Param("to") Date to);
+
+	@Query("SELECT o FROM Order o WHERE (:from IS NULL OR o.createdAt >= :from) AND (:to IS NULL OR o.createdAt <= :to) AND (:status IS NULL OR o.status = :status) ORDER BY o.createdAt DESC")
+	List<Order> findFiltered(@Param("from") Date from, @Param("to") Date to, @Param("status") String status);
 }
