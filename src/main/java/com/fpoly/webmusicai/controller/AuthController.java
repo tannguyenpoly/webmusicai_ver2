@@ -57,8 +57,6 @@ public class AuthController {
 			SecurityContextHolder.getContext().setAuthentication(auth);
 
 			User user = userRepo.findById(username).get();
-
-			// Sinh JWT token thật
 			String token = jwtService.generateToken(username);
 
 			Map<String, Object> response = new HashMap<>();
@@ -85,29 +83,25 @@ public class AuthController {
 		String fullname = data.get("fullname");
 		String email = data.get("email");
 
-		// Kiểm tra username đã tồn tại chưa
 		if (userRepo.existsById(username)) {
 			return ResponseEntity.badRequest().body("Username đã tồn tại!");
 		}
 
-		// Tạo user mới
 		User user = new User();
 		user.setUsername(username);
 		user.setPassword(passwordEncoder.encode(password));
 		user.setFullname(fullname);
 		user.setEmail(email);
-		user.setTokenBalance(5); // tặng 5 token miễn phí
+		user.setTokenBalance(5); 
 		user.setEnabled(true);
 		userRepo.save(user);
 
-		// Gán role USER
 		Role role = roleRepo.findById("USER").orElseThrow();
 		Authority authority = new Authority();
 		authority.setUser(user);
 		authority.setRole(role);
 		authorityRepo.save(authority);
 
-		// Gửi email chào mừng (bất đồng bộ, không ảnh hưởng response)
 		mailService.sendWelcomeEmail(email, fullname, username);
 
 		return ResponseEntity

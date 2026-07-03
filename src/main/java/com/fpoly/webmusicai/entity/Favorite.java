@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "Favorites", schema = "dbo")  // ← đổi tên bảng
+@Table(name = "Favorites", schema = "dbo")
 public class Favorite implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

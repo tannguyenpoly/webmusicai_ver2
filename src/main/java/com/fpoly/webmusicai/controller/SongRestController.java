@@ -57,9 +57,6 @@ public class SongRestController {
     @Autowired
     MusicGeneratorService musicService;
 
-    // ==========================================
-    // 1. LẤY DANH SÁCH BÀI HÁT PUBLIC
-    // ==========================================
     @GetMapping("/public")
     public ResponseEntity<?> getPublicSongs() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -72,18 +69,15 @@ public class SongRestController {
 
         List<Integer> songIds = songs.stream().map(Song::getId).toList();
 
-        // Lấy tổng số lượt thích cho tất cả bài hát trong 1 câu lệnh query
         Map<Integer, Long> likeCounts = favoriteRepo.countLikesBySongIds(songIds).stream()
                 .collect(Collectors.toMap(LikeCount::getSongId, LikeCount::getLikeCount));
 
-        // Lấy danh sách ID bài hát mà người dùng hiện tại đã thích
         Set<Integer> likedByCurrentUser = (username != null)
                 ? favoriteRepo.findLikedSongIdsByUser(username, songIds)
                 : Collections.emptySet();
 
-        // Chuyển đổi Song thành Map để thêm thông tin 'total_likes' và 'liked_by_me'
         List<Map<String, Object>> result = songs.stream().map(song -> {
-            Map<String, Object> songMap = song.toMap(); // Giả sử có phương thức toMap() trong Entity
+            Map<String, Object> songMap = song.toMap(); 
             songMap.put("total_likes", likeCounts.getOrDefault(song.getId(), 0L));
             songMap.put("liked_by_me", likedByCurrentUser.contains(song.getId()));
             return songMap;
@@ -97,9 +91,6 @@ public class SongRestController {
                 .body(result);
     }
 
-    // ==========================================
-    // 2. LẤY DANH SÁCH BÀI HÁT YÊU THÍCH CỦA TÔI
-    // ==========================================
     @GetMapping("/my-favorites")
     public ResponseEntity<?> getMyFavoriteSongs() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -109,7 +100,6 @@ public class SongRestController {
         }
         String username = auth.getName();
         
-        // 1. Lấy danh sách các bài hát yêu thích của người dùng
         List<Song> favoriteSongs = favoriteRepo.findByUserUsernameOrderByCreatedAtDesc(username)
                 .stream()
                 .map(Favorite::getSong)
@@ -119,18 +109,14 @@ public class SongRestController {
             return ResponseEntity.ok(Collections.emptyList());
         }
 
-        // 2. Lấy ID của tất cả các bài hát để truy vấn số lượt thích một cách hiệu quả
         List<Integer> songIds = favoriteSongs.stream().map(Song::getId).toList();
 
-        // 3. Lấy tổng số lượt thích cho tất cả các bài hát này trong một lần truy vấn
         Map<Integer, Long> likeCounts = favoriteRepo.countLikesBySongIds(songIds).stream()
                 .collect(Collectors.toMap(LikeCount::getSongId, LikeCount::getLikeCount));
 
-        // 4. Xây dựng kết quả trả về, thêm các thông tin cần thiết cho UI
         List<Map<String, Object>> result = favoriteSongs.stream().map(song -> {
             Map<String, Object> songMap = song.toMap();
             songMap.put("total_likes", likeCounts.getOrDefault(song.getId(), 0L));
-            // Đối với trang "yêu thích của tôi", trường này luôn là true
             songMap.put("liked_by_me", true);
             return songMap;
         }).toList();
@@ -143,9 +129,6 @@ public class SongRestController {
                 .body(result);
     }
 
-    // ==========================================
-    // 3. TẠO NHẠC MỚI TỪ GOOGLE COLAB AI
-    // ==========================================
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/generate")
     public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
@@ -161,7 +144,6 @@ public class SongRestController {
         if (user.getTokenBalance() < 1)
             return ResponseEntity.badRequest().body("Bạn không đủ Token!");
 
-        // Khấu trừ token và lưu giao dịch
         user.setTokenBalance(user.getTokenBalance() - 1);
         userRepo.save(user);
 
@@ -171,7 +153,6 @@ public class SongRestController {
         trans.setDescription("Tạo nhạc: " + prompt);
         transRepo.save(trans);
 
-        // Lưu bản ghi ban đầu ở trạng thái PENDING
         Song song = new Song();
         song.setTitle(title != null && !title.isBlank() ? title : "Đang tạo...");
         song.setPrompt(prompt);
@@ -182,17 +163,14 @@ public class SongRestController {
         song.setUser(user);
         songRepo.save(song);
 
-        // Đồng bộ hóa việc lưu dữ liệu bằng Thread bất đồng bộ với lõi Colab
         final Integer currentSongId = song.getId();
         new Thread(() -> {
             try {
-                // Gọi sang Colab thông qua kết nối mạng đồng bộ (Chờ xử lý mất 15-20s)
                 Map<String, Object> result = musicService.generateMusic(prompt);
 
                 String base64AudioUrl = (String) result.get("audio_url");
                 String aiTitle = (String) result.get("title");
 
-                // Tìm lại thực thể tươi mới từ DB để tránh lỗi ngắt kết nối thực thể (Detached Entity) trong Thread riêng
                 Optional<Song> freshSongOpt = songRepo.findById(currentSongId);
                 if (freshSongOpt.isPresent()) {
                     Song freshSong = freshSongOpt.get();
@@ -220,9 +198,6 @@ public class SongRestController {
         return ResponseEntity.ok(response);
     }
 
-    // ==========================================
-    // 4. KIỂM TRA TRẠNG THÁI TIẾN ĐỘ BÀI HÁT (POLLING)
-    // ==========================================
     @GetMapping("/{id}/status")
     public ResponseEntity<?> getSongStatus(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -265,9 +240,6 @@ public class SongRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ==========================================
-    // 5. CẬP NHẬT THIẾT LẬP (ĐỔI TÊN / CHẾ ĐỘ RIÊNG TƯ)
-    // ==========================================
     @PutMapping("/{id}/setting")
     public ResponseEntity<?> renameSong(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -322,9 +294,6 @@ public class SongRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ==========================================
-    // 6. THÍCH / BỎ THÍCH BÀI HÁT (TOGGLE LIKE)
-    // ==========================================
     @Transactional
     @PostMapping("/{id}/like")
     public ResponseEntity<?> toggleLike(@PathVariable Integer id) {
@@ -371,9 +340,6 @@ public class SongRestController {
         return ResponseEntity.ok(Map.of("song_id", id, "total_likes", totalLikes, "liked_by_me", liked));
     }
 
-    // ==========================================
-    // 7. QUẢN LÝ BÌNH LUẬN (COMMENTS)
-    // ==========================================
     @GetMapping("/{id}/comments")
     public ResponseEntity<?> getComments(@PathVariable Integer id,
                                          @RequestParam(defaultValue = "0") int page,
@@ -492,9 +458,6 @@ public class SongRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    // ==========================================
-    // 8. REMIX LẠI BÀI HÁT QUA COLAB AI
-    // ==========================================
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/{id}/remix")
     public ResponseEntity<?> remixSong(@PathVariable Integer id, @RequestBody Map<String, String> body) {
@@ -547,13 +510,11 @@ public class SongRestController {
 
         new Thread(() -> {
             try {
-                // Gọi sang Service kết nối lõi Colab AI sinh bản phối mới
                 Map<String, Object> result = musicService.generateMusic(remixPrompt);
 
                 String audioUrl = (String) result.get("audio_url");
                 String aiTitle = (String) result.get("title");
 
-                // Lấy dữ liệu fresh từ DB trong Thread độc lập trước khi thực hiện cập nhật
                 Optional<Song> freshRemixOpt = songRepo.findById(currentRemixId);
                 if (freshRemixOpt.isPresent()) {
                     Song freshRemix = freshRemixOpt.get();
@@ -583,7 +544,6 @@ public class SongRestController {
         return ResponseEntity.ok(response);
     }
 
-    // Xem tất cả bản remix của 1 bài gốc
     @GetMapping("/{id}/remixes")
     public ResponseEntity<?> getRemixes(@PathVariable Integer id) {
         if (!songRepo.existsById(id)) {

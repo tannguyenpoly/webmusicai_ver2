@@ -54,11 +54,9 @@ public class UserRestController {
 	@Autowired
 	PasswordEncoder passwordEncoder;
 
-	// === TÍNH NĂNG ĐỒNG BỘ ĐĂNG NHẬP GOOGLE OAUTH2 CỦA THÀNH VIÊN 4 ===
 	@GetMapping("/auth-session")
 	public ResponseEntity<?> getAuthSession() {
 		String username = SecurityContextHolder.getContext().getAuthentication().getName();
-		// Nếu chưa xác thực hoặc là anonymousUser của Spring Security
 		if (username == null || "anonymousUser".equalsIgnoreCase(username)) {
 			return ResponseEntity.status(401).body(Map.of("message", "Chưa đăng nhập hệ thống"));
 		}
@@ -223,7 +221,6 @@ public class UserRestController {
 				.ok(Map.of("message", "Nạp thành công " + amount + " token!", "token_balance", user.getTokenBalance()));
 	}
 
-	// Xem token còn lại + lịch sử nhạc
 	@GetMapping("/me")
 	public ResponseEntity<?> getMyProfile(Authentication authentication) {
 		String username = authentication.getName();
