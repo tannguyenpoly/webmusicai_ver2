@@ -42,7 +42,7 @@ new Vue({
 
         // ================= DATA CHO TRANG PROFILE =================
         profilePageData: {}, // Chứa thông tin user cho trang profile
-        profileStats: { total: 0, completed: 0, pending: 0 }, // Thống kê
+        profileStats: { total: 0, completed: 0, pending: 0, totalFavorites: 0 }, // Thống kê
         profileTab: 'generated', // 'generated' hoặc 'favorites'
         profileGeneratedSongs: [], // Danh sách nhạc đã tạo
         profileFavoriteSongs: [], // Danh sách nhạc yêu thích ở profile
@@ -186,7 +186,17 @@ new Vue({
         // ================= CÁC HÀM CHO TRANG PROFILE =================
         loadProfilePageData() {
             axios.get(`/api/users/${this.currentUser}/profile`)
-                .then(res => { this.profilePageData = res.data; })
+                .then(res => {
+                    this.profilePageData = res.data;
+                    if (res.data.total_songs !== undefined) {
+                        this.profileStats.total = res.data.total_songs;
+                        this.profileStats.completed = res.data.completed_songs;
+                        this.profileStats.pending = res.data.pending_songs;
+                    }
+                    if (res.data.total_favorites !== undefined) {
+                        this.profileStats.totalFavorites = res.data.total_favorites;
+                    }
+                })
                 .catch(err => console.error(err));
         },
 
@@ -196,7 +206,6 @@ new Vue({
                 this.profileGeneratedSongs = [];
             }
             this.isLoadingProfileSongs = true;
-            // API lấy danh sách bài hát do user tạo (Backend cần có API /api/songs/my-songs)
             axios.get(`/api/songs/my-songs?page=${this.profileSongPagination.page}&size=${this.profileSongPagination.size}`)
                 .then(res => {
                     const data = res.data;
@@ -210,14 +219,13 @@ new Vue({
 
                     if (data.content) {
                         this.profileSongPagination.hasMore = !data.last;
-                        this.profileStats.total = data.totalElements;
+                        if (this.profileStats.total === 0 || !loadMore) {
+                            this.profileStats.total = data.totalElements;
+                        }
                     } else {
                         this.profileSongPagination.hasMore = false;
                         this.profileStats.total = this.profileGeneratedSongs.length;
                     }
-
-                    this.profileStats.completed = this.profileGeneratedSongs.filter(s => s.status === 'COMPLETED').length;
-                    this.profileStats.pending = this.profileGeneratedSongs.filter(s => s.status === 'PENDING').length;
                 })
                 .catch(err => console.error(err))
                 .finally(() => { this.isLoadingProfileSongs = false; });
@@ -238,13 +246,15 @@ new Vue({
         loadProfileFavorites() {
             this.isLoadingProfileFav = true;
             axios.get('/api/songs/my-favorites')
-                .then(res => { this.profileFavoriteSongs = Array.isArray(res.data) ? res.data : []; })
+                .then(res => {
+                    this.profileFavoriteSongs = Array.isArray(res.data) ? res.data : [];
+                    this.profileStats.totalFavorites = this.profileFavoriteSongs.length;
+                })
                 .catch(err => console.error(err))
                 .finally(() => { this.isLoadingProfileFav = false; });
         },
 
         toggleProfileSongVisibility(song) {
-            // Đổi trạng thái hiển thị Public/Private (Backend cần có API PUT /api/songs/{id}/visibility)
             axios.put(`/api/songs/${song.id}/visibility`)
                 .then(res => {
                     song.isPublic = res.data.isPublic !== undefined ? res.data.isPublic : !song.isPublic;
@@ -283,6 +293,9 @@ new Vue({
             axios.post(`/api/songs/${song.id}/like`)
                 .then(res => {
                     this.profileFavoriteSongs = this.profileFavoriteSongs.filter(s => s.id !== song.id);
+                    if (this.profileStats.totalFavorites > 0) {
+                        this.profileStats.totalFavorites--;
+                    }
                     this.Toast.fire({ icon: 'success', title: 'Đã bỏ yêu thích bài hát.' });
                 })
                 .catch(err => this.Toast.fire({ icon: 'error', title: 'Lỗi xử lý.' }));

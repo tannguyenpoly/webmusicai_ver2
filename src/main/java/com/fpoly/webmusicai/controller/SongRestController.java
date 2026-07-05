@@ -137,6 +137,22 @@ public class SongRestController {
                 .body(result);
     }
 
+    @GetMapping("/my-songs")
+    public ResponseEntity<?> getMySongs(@RequestParam(defaultValue = "0") int page,
+                                        @RequestParam(defaultValue = "10") int size) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Vui lòng đăng nhập để xem nhạc của bạn."));
+        }
+        String username = auth.getName();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Song> songPage = songRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
+
+        Page<Map<String, Object>> mapPage = songPage.map(Song::toMap);
+        return ResponseEntity.ok(mapPage);
+    }
+
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/generate")
     public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
@@ -296,6 +312,31 @@ public class SongRestController {
 
             return ResponseEntity.ok(response);
 
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/visibility")
+    public ResponseEntity<?> toggleVisibility(@PathVariable Integer id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        String username = auth.getName();
+
+        return songRepo.findById(id).map(song -> {
+            if (!song.getUser().getUsername().equals(username)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền đổi trạng thái bài hát này!"));
+            }
+            if (!"COMPLETED".equals(song.getStatus())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Chỉ có thể đổi quyền riêng tư của bài hát đã hoàn thành!"));
+            }
+
+            boolean currentPublic = song.getIsPublic() != null && song.getIsPublic();
+            song.setIsPublic(!currentPublic);
+            songRepo.save(song);
+
+            log.info("User {} đổi trạng thái công khai bài #{}: {}", username, id, song.getIsPublic());
+            return ResponseEntity.ok(Map.of("id", song.getId(), "isPublic", song.getIsPublic(), "message", song.getIsPublic() ? "Đã công khai bài hát" : "Đã chuyển thành riêng tư"));
         }).orElse(ResponseEntity.notFound().build());
     }
 
