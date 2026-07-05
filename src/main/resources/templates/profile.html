@@ -204,7 +204,7 @@
                 </div>
                 <div class="col-4">
                     <div class="card bg-transparent border shadow-sm text-center py-3 rounded-4" style="border-color: var(--border-color) !important;">
-                        <h4 class="fw-bold text-danger mb-0">{{ profileFavoriteSongs.length }}</h4>
+                        <h4 class="fw-bold text-danger mb-0">{{ profileStats.totalFavorites !== undefined ? profileStats.totalFavorites : profileFavoriteSongs.length }}</h4>
                         <span class="small text-muted-sync">Yêu thích</span>
                     </div>
                 </div>
@@ -228,7 +228,7 @@
             <li class="nav-item">
                 <button class="nav-link border-0 bg-transparent" :class="{active: profileTab === 'favorites'}" @click="switchToFavTab">
                     <i class="ti ti-heart me-1"></i> Yêu thích
-                    <span class="badge bg-white text-success ms-1 rounded-pill" v-if="profileTab === 'favorites'">{{ profileFavoriteSongs.length }}</span>
+                    <span class="badge bg-white text-success ms-1 rounded-pill" v-if="profileTab === 'favorites'">{{ profileStats.totalFavorites !== undefined ? profileStats.totalFavorites : profileFavoriteSongs.length }}</span>
                 </button>
             </li>
         </ul>

@@ -13,6 +13,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
 
     List<Favorite> findByUserUsernameOrderByCreatedAtDesc(String username);
 
+    long countByUserUsername(String username);
+
     long countBySongId(Integer songId);
 
     void deleteByUserUsernameAndSongId(String username, Integer songId);

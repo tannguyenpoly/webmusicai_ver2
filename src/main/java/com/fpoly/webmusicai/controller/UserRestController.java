@@ -52,6 +52,9 @@ public class UserRestController {
 	TransactionRepository transRepo;
 
 	@Autowired
+	com.fpoly.webmusicai.repository.FavoriteRepository favoriteRepo;
+
+	@Autowired
 	PasswordEncoder passwordEncoder;
 
 	@GetMapping("/auth-session")
@@ -93,6 +96,17 @@ public class UserRestController {
 		profile.put("email", user.getEmail());
 		profile.put("photo", user.getPhoto());
 		profile.put("token_balance", user.getTokenBalance());
+
+		long totalSongs = songRepo.countByUserUsername(username);
+		long completedSongs = songRepo.countByUserUsernameAndStatus(username, "COMPLETED");
+		long pendingSongs = songRepo.countByUserUsernameAndStatus(username, "PENDING");
+		long totalFavorites = favoriteRepo.countByUserUsername(username);
+
+		profile.put("total_songs", totalSongs);
+		profile.put("completed_songs", completedSongs);
+		profile.put("pending_songs", pendingSongs);
+		profile.put("total_favorites", totalFavorites);
+
 		return ResponseEntity.ok(profile);
 	}
 

@@ -66,7 +66,7 @@ public class SecurityConfig {
     }
 
     private boolean isPublicPath(String path, String method) {
-        if ("GET".equals(method) && path.equals("/api/orders/vnpay-callback")) {
+        if ("GET".equals(method) && path.equals("/api/orders/vnpay-return")) {
             return true;
         }
 
