@@ -1,5 +1,7 @@
 package com.fpoly.webmusicai.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +96,12 @@ public class UserRestController {
 		profile.put("username", user.getUsername());
 		profile.put("fullname", user.getFullname());
 		profile.put("email", user.getEmail());
-		profile.put("photo", user.getPhoto());
+		String photo = user.getPhoto();
+		if (photo == null || photo.trim().isEmpty()) {
+			String name = user.getFullname() != null ? user.getFullname() : user.getUsername();
+			photo = "https://ui-avatars.com/api/?name=" + URLEncoder.encode(name, StandardCharsets.UTF_8) + "&background=16a34a&color=fff&rounded=true";
+		}
+		profile.put("photo", photo);
 		profile.put("token_balance", user.getTokenBalance());
 
 		long totalSongs = songRepo.countByUserUsername(username);

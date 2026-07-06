@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public class MusicGeneratorService {
                 log.info("AI Colab đã tạo nhạc thành công! Kích thước: {} bytes", audioBytes.length);
 
                 // Chuyển mảng byte thành chuỗi Base64 để thẻ <audio> ở Front-end đọc được ngay
-                String base64Audio = java.util.Base64.getEncoder().encodeToString(audioBytes);
+                String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("title", "AI Generated - " + prompt);

@@ -5,6 +5,7 @@ new Vue({
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
 
         currentUser: null,
+        userPhoto: null,
         isAdmin: false,
         userTokens: 0,
         publicSongs: [],
@@ -26,6 +27,7 @@ new Vue({
 
         loginForm: { username: '', password: '' },
         registerForm: { username: '', fullname: '', email: '', password: '', confirmPassword: '' },
+        forgotPasswordForm: { email: '', otp: '', newPassword: '', confirmPassword: '', step: 1, isSending: false },
         filters: { keyword: '' },
         pollingTimer: null,
 
@@ -101,6 +103,18 @@ new Vue({
             window.history.replaceState(null, null, window.location.pathname);
         }
 
+        // XỬ LÝ ĐĂNG NHẬP OAUTH2 GOOGLE
+        const tokenParam = urlParams.get('token');
+        const userParam = urlParams.get('username');
+        const isAdminParam = urlParams.get('isAdmin');
+        if (tokenParam && userParam) {
+            localStorage.setItem('jwt_token', tokenParam);
+            localStorage.setItem('music_username', userParam);
+            localStorage.setItem('music_is_admin', isAdminParam === 'true');
+            window.history.replaceState(null, null, window.location.pathname);
+            this.Toast.fire({ icon: 'success', title: `Chào mừng ${userParam} đã đăng nhập!` });
+        }
+
         const savedUser = localStorage.getItem('music_username');
         const savedToken = localStorage.getItem('jwt_token');
 
@@ -147,6 +161,17 @@ new Vue({
         this.loadSessionPlaylist();
     },
     methods: {
+        formatAvatarUrl(url, name) {
+            if (!url || url.trim() === '' || url.includes('/images/default-avatar.png')) {
+                const displayName = name || this.currentUser || '?';
+                return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=16a34a&color=fff&rounded=true`;
+            }
+            if (url.includes('ui-avatars.com') && !url.includes('rounded=true')) {
+                return url + '&rounded=true';
+            }
+            return url;
+        },
+
         toggleTheme() {
             this.isDarkMode = !this.isDarkMode;
             const currentTheme = this.isDarkMode ? 'dark' : 'light';
@@ -157,8 +182,13 @@ new Vue({
         loadUserTokenBalance(username) {
             axios.get(`/api/users/${username}/profile`)
                 .then(response => {
-                    if (response.data && response.data.token_balance !== undefined) {
-                        this.userTokens = response.data.token_balance;
+                    if (response.data) {
+                        if (response.data.token_balance !== undefined) {
+                            this.userTokens = response.data.token_balance;
+                        }
+                        if (response.data.photo) {
+                            this.userPhoto = response.data.photo;
+                        }
                     }
                 })
                 .catch(error => {
@@ -684,6 +714,82 @@ new Vue({
                     let errorMsg = "Tài khoản hoặc Email đã tồn tại.";
                     if (error.response && error.response.data) { errorMsg = error.response.data.message || error.response.data || errorMsg; }
                     Swal.fire({ icon: 'error', title: 'Đăng ký thất bại', text: errorMsg, confirmButtonColor: '#dc3545' });
+                });
+        },
+
+        openForgotPasswordModal() {
+            this.forgotPasswordForm = { email: '', otp: '', newPassword: '', confirmPassword: '', step: 1, isSending: false };
+            const modalElem = document.getElementById('forgotPasswordModal');
+            if (modalElem) {
+                const modal = new bootstrap.Modal(modalElem);
+                modal.show();
+            }
+        },
+
+        sendForgotPasswordOtp() {
+            if (!this.forgotPasswordForm.email || !this.forgotPasswordForm.email.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng nhập Email của bạn!' });
+                return;
+            }
+            this.forgotPasswordForm.isSending = true;
+            axios.post('/api/auth/forgot-password', { email: this.forgotPasswordForm.email.trim() })
+                .then(res => {
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: res.data.message || 'Đã gửi mã OTP qua Email.' });
+                    this.forgotPasswordForm.step = 2;
+                })
+                .catch(err => {
+                    let msg = 'Không thể gửi mã OTP. Vui lòng thử lại sau.';
+                    if (err.response && err.response.data) {
+                        msg = err.response.data.message || err.response.data || msg;
+                    }
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                })
+                .finally(() => {
+                    this.forgotPasswordForm.isSending = false;
+                });
+        },
+
+        submitResetPassword() {
+            if (!this.forgotPasswordForm.otp || !this.forgotPasswordForm.otp.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng nhập mã OTP 6 chữ số!' });
+                return;
+            }
+            if (!this.forgotPasswordForm.newPassword || this.forgotPasswordForm.newPassword.length < 6) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Mật khẩu mới phải có ít nhất 6 ký tự!' });
+                return;
+            }
+            if (this.forgotPasswordForm.newPassword !== this.forgotPasswordForm.confirmPassword) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Mật khẩu xác nhận không trùng khớp!' });
+                return;
+            }
+            this.forgotPasswordForm.isSending = true;
+            axios.post('/api/auth/reset-password', {
+                email: this.forgotPasswordForm.email.trim(),
+                otp: this.forgotPasswordForm.otp.trim(),
+                newPassword: this.forgotPasswordForm.newPassword
+            })
+                .then(res => {
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: res.data.message || 'Đặt lại mật khẩu thành công!' })
+                        .then(() => {
+                            const modalElem = document.getElementById('forgotPasswordModal');
+                            if (modalElem) {
+                                const modal = bootstrap.Modal.getInstance(modalElem);
+                                if (modal) modal.hide();
+                            }
+                            if (this.loginForm) {
+                                this.loginForm.password = '';
+                            }
+                        });
+                })
+                .catch(err => {
+                    let msg = 'Đặt lại mật khẩu thất bại!';
+                    if (err.response && err.response.data) {
+                        msg = err.response.data.message || err.response.data || msg;
+                    }
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                })
+                .finally(() => {
+                    this.forgotPasswordForm.isSending = false;
                 });
         },
 

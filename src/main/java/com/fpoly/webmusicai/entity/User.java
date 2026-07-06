@@ -1,6 +1,7 @@
 package com.fpoly.webmusicai.entity;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -56,5 +57,5 @@ public class User implements Serializable {
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "pro_expired_at")
-    private java.util.Date proExpiredAt;
+    private Date proExpiredAt;
 }
