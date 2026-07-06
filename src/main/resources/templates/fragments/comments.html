@@ -24,7 +24,8 @@
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid var(--border-color);
+            border: 2px solid #16a34a;
+            box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);
         }
 
         .comment-content-wrapper {
@@ -93,6 +94,95 @@
 
 <body>
     <div th:fragment="comments-section" class="comment-section card p-4 mt-4">
+        <style>
+            .comment-section {
+                transition: all 0.3s ease;
+            }
+
+            .comment-thread {
+                padding-left: 20px;
+                border-left: 2px solid var(--border-color);
+                margin-left: 20px;
+            }
+
+            .comment-box {
+                display: flex;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+
+            .comment-avatar {
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 50% !important;
+                object-fit: cover !important;
+                border: 2px solid #16a34a !important;
+                box-shadow: 0 0 5px rgba(22, 163, 74, 0.3) !important;
+            }
+
+            .comment-content-wrapper {
+                flex: 1;
+            }
+
+            .comment-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 4px;
+            }
+
+            .comment-author {
+                font-weight: 600;
+                color: var(--text-color);
+                font-size: 14px;
+            }
+
+            .comment-time {
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            .comment-body {
+                font-size: 15px;
+                line-height: 1.6;
+                white-space: pre-wrap;
+            }
+
+            .comment-actions {
+                display: flex;
+                gap: 15px;
+                margin-top: 8px;
+            }
+
+            .comment-action-btn {
+                background: none;
+                border: none;
+                color: var(--text-muted);
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: color 0.2s;
+            }
+
+            .comment-action-btn:hover {
+                color: #16a34a;
+            }
+
+            .reply-form {
+                margin-top: 15px;
+                animation: fadeIn 0.4s ease;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            .comment-form .form-control {
+                min-height: 80px;
+            }
+        </style>
+
         <h4 class="fw-bold mb-4 d-flex align-items-center">
             <i class="ti ti-messages me-2 text-success"></i>
             Bình luận ({{ commentPagination.totalElements }})
@@ -123,7 +213,7 @@
             <!-- Dùng template để tránh tạo thẻ div thừa -->
             <template v-for="(comment, index) in commentPagination.content">
                 <div class="comment-box">
-                    <img :src="comment.user.photo || '/images/default-avatar.png'" class="comment-avatar" alt="Avatar">
+                    <img :src="formatAvatarUrl(comment.user.photo, comment.user.fullname || comment.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
                     <div class="comment-content-wrapper">
                         <div class="comment-header">
                             <span class="comment-author">{{ comment.user.fullname }}</span>
@@ -155,7 +245,7 @@
                         <!-- DANH SÁCH CÁC BÌNH LUẬN TRẢ LỜI (REPLIES) -->
                         <div v-if="comment.replies && comment.replies.length > 0" class="comment-thread mt-4">
                             <div v-for="(reply, replyIndex) in comment.replies" class="comment-box">
-                                <img :src="reply.user.photo || '/images/default-avatar.png'" class="comment-avatar" alt="Avatar">
+                                <img :src="formatAvatarUrl(reply.user.photo, reply.user.fullname || reply.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
                                 <div class="comment-content-wrapper">
                                     <div class="comment-header">
                                         <span class="comment-author">{{ reply.user.fullname }}</span>

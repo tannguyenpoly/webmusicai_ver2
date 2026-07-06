@@ -1,7 +1,12 @@
 package com.fpoly.webmusicai.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -121,6 +126,11 @@ public class AuthController {
 		user.setPassword(passwordEncoder.encode(password));
 		user.setFullname(fullname);
 		user.setEmail(email);
+		try {
+			user.setPhoto("https://ui-avatars.com/api/?name=" + URLEncoder.encode(fullname, StandardCharsets.UTF_8) + "&background=16a34a&color=fff&rounded=true");
+		} catch (Exception e) {
+			user.setPhoto(null);
+		}
 		user.setTokenBalance(5); 
 		user.setEnabled(true);
 		userRepo.save(user);
@@ -135,5 +145,83 @@ public class AuthController {
 
 		return ResponseEntity
 				.ok(Map.of("message", "Đăng ký thành công! Kiểm tra email của bạn.", "username", username));
+	}
+
+	private static class OtpData {
+		String code;
+		long expiryTime;
+
+		OtpData(String code, long expiryTime) {
+			this.code = code;
+			this.expiryTime = expiryTime;
+		}
+	}
+
+	private final Map<String, OtpData> otpStorage = new ConcurrentHashMap<>();
+
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> data) {
+		String email = data.get("email");
+		if (email == null || email.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Email không được để trống!");
+		}
+
+		List<User> users = userRepo.findByEmail(email.trim());
+		if (users.isEmpty()) {
+			return ResponseEntity.badRequest().body("Email không tồn tại trong hệ thống!");
+		}
+
+		String otp = String.format("%06d", new Random().nextInt(900000) + 100000);
+		long expiry = System.currentTimeMillis() + (5 * 60 * 1000);
+
+		otpStorage.put(email.trim().toLowerCase(), new OtpData(otp, expiry));
+
+		mailService.sendResetPasswordOtp(email.trim(), otp);
+
+		return ResponseEntity.ok(Map.of("message", "Mã xác nhận (OTP) 6 chữ số đã được gửi tới email của bạn."));
+	}
+
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> data) {
+		String email = data.get("email");
+		String otp = data.get("otp");
+		String newPassword = data.get("newPassword");
+
+		if (email == null || email.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Email không được để trống!");
+		}
+		if (otp == null || otp.trim().isEmpty()) {
+			return ResponseEntity.badRequest().body("Mã xác nhận không được để trống!");
+		}
+		if (newPassword == null || newPassword.trim().isEmpty() || newPassword.length() < 6) {
+			return ResponseEntity.badRequest().body("Mật khẩu mới phải có ít nhất 6 ký tự!");
+		}
+
+		String key = email.trim().toLowerCase();
+		OtpData storedOtp = otpStorage.get(key);
+
+		if (storedOtp == null || !storedOtp.code.equals(otp.trim())) {
+			return ResponseEntity.badRequest().body("Mã xác nhận (OTP) không chính xác!");
+		}
+
+		if (System.currentTimeMillis() > storedOtp.expiryTime) {
+			otpStorage.remove(key);
+			return ResponseEntity.badRequest().body("Mã xác nhận (OTP) đã hết hạn! Vui lòng yêu cầu mã mới.");
+		}
+
+		List<User> users = userRepo.findByEmail(email.trim());
+		if (users.isEmpty()) {
+			return ResponseEntity.badRequest().body("Không tìm thấy tài khoản người dùng!");
+		}
+
+		String encodedPassword = passwordEncoder.encode(newPassword);
+		for (User user : users) {
+			user.setPassword(encodedPassword);
+			userRepo.save(user);
+		}
+
+		otpStorage.remove(key);
+
+		return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới."));
 	}
 }

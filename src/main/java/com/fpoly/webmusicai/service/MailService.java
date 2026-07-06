@@ -37,4 +37,27 @@ public class MailService {
 			log.error("Lỗi gửi email tới {}: {}", toEmail, e.getMessage());
 		}
 	}
+
+	@Async
+	public void sendResetPasswordOtp(String toEmail, String otpCode) {
+		try {
+			SimpleMailMessage message = new SimpleMailMessage();
+			message.setFrom(fromEmail);
+			message.setTo(toEmail);
+			message.setSubject(" Mã xác nhận khôi phục mật khẩu - WebMusicAI");
+			message.setText(
+					"Xin chào,\n\n"
+							+ "Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản WebMusicAI của mình.\n"
+							+ "Mã xác nhận (OTP) của bạn là: " + otpCode + "\n\n"
+							+ "Mã xác nhận này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.\n\n"
+							+ "Trân trọng,\n"
+							+ "Đội ngũ WebMusicAI");
+
+			mailSender.send(message);
+			log.info("Đã gửi mã OTP đặt lại mật khẩu tới: {}", toEmail);
+
+		} catch (Exception e) {
+			log.error("Lỗi gửi email OTP tới {}: {}", toEmail, e.getMessage());
+		}
+	}
 }
