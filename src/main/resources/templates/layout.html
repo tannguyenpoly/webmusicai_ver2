@@ -81,6 +81,10 @@
             color: var(--text-muted) !important;
         }
 
+        .swal2-container {
+            z-index: 99999 !important;
+        }
+
         /* Tùy biến thanh cuộn siêu mảnh */
         ::-webkit-scrollbar {
             width: 6px;
@@ -341,17 +345,23 @@
                 </div>
 
                 <div class="card-body px-4 pb-4 pt-2">
+                    <!-- Alert Thông báo lỗi -->
+                    <div v-if="profileModalError" class="alert alert-danger d-flex align-items-center gap-2 py-2 px-3 mb-3 border-0 rounded-3" style="background: rgba(220, 38, 38, 0.12); color: #dc2626; font-size: 13px; border-left: 4px solid #dc2626 !important;">
+                        <i class="ti ti-alert-circle fs-5"></i>
+                        <span>{{ profileModalError }}</span>
+                    </div>
+
                     <!-- Tab Navigation -->
                     <ul class="nav nav-pills nav-fill mb-4"
                         style="background: rgba(0,0,0,0.05); border-radius: 12px; padding: 4px;">
                         <li class="nav-item">
                             <a class="nav-link py-1" :class="{'active': profileModalTab === 'info'}"
-                                @click.prevent="profileModalTab = 'info'" href="#"
+                                @click.prevent="profileModalTab = 'info'; profileModalError = '';" href="#"
                                 style="border-radius: 10px; font-size: 13px; font-weight: 500;">Thông tin</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link py-1" :class="{'active': profileModalTab === 'password'}"
-                                @click.prevent="profileModalTab = 'password'" href="#"
+                                @click.prevent="profileModalTab = 'password'; profileModalError = '';" href="#"
                                 style="border-radius: 10px; font-size: 13px; font-weight: 500;">Mật khẩu</a>
                         </li>
                     </ul>
@@ -369,10 +379,16 @@
                                 placeholder="username@gmail.com">
                         </div>
                         <div class="mb-4">
-                            <label class="form-label small fw-medium text-muted-sync">Đường dẫn ảnh đại diện
-                                (URL)</label>
-                            <input type="text" v-model="profileForm.photo" class="form-control custom-theme-input py-2"
-                                placeholder="https://...">
+                            <label class="form-label small fw-medium text-muted-sync mb-2 d-block">Ảnh đại diện</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <img :src="formatAvatarUrl(profileForm.photo, profileForm.fullname || currentUser)" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #16a34a;" alt="avatar preview">
+                                <div>
+                                    <button type="button" @click="triggerAvatarUpload" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1.5 fw-medium">
+                                        <i class="ti ti-upload me-1"></i> Tải ảnh từ máy tính
+                                    </button>
+                                    <div class="small text-muted-sync mt-1" style="font-size: 11px;">Hỗ trợ .jpg, .png, .webp (Tối đa 5MB)</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -410,6 +426,7 @@
                 </div>
             </div>
         </div>
+        <input type="file" ref="avatarFileInput" id="avatarFileInputHidden" class="d-none" accept="image/*" @change="uploadAvatarFile">
     </div>
 
     <script th:src="@{/js/main.js}"></script>

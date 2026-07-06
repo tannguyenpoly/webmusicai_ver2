@@ -65,7 +65,7 @@ public class SecurityConfig {
 
             if (isAdminPath(path, method)) {
                 boolean isAdmin = auth != null && auth.isAuthenticated()
-                        && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                        && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equalsIgnoreCase("ADMIN"));
                 return new AuthorizationDecision(isAdmin);
             }
 

@@ -1,5 +1,7 @@
 package com.fpoly.webmusicai.controller;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -53,7 +55,7 @@ public class AuthController {
 	JwtService jwtService;
 
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
+	public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, HttpServletResponse httpResponse) {
 		String username = loginData.get("username");
 		String password = loginData.get("password");
 
@@ -78,8 +80,15 @@ public class AuthController {
 			response.put("fullname", user.getFullname());
 			response.put("token_balance", user.getTokenBalance());
 
-			boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+			boolean isAdmin = auth.getAuthorities().stream()
+					.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equalsIgnoreCase("ADMIN"));
 			response.put("isAdmin", isAdmin);
+
+			Cookie cookie = new Cookie("jwt_token", token);
+			cookie.setPath("/");
+			cookie.setHttpOnly(false);
+			cookie.setMaxAge(86400);
+			httpResponse.addCookie(cookie);
 
 			return ResponseEntity.ok(response);
 

@@ -7,6 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -150,6 +155,63 @@ public class UserRestController {
 		return ResponseEntity.ok(Map.of("message", "Cập nhật hồ sơ thành công!"));
 	}
 
+	@PostMapping("/{username}/avatar")
+	public ResponseEntity<?> uploadAvatar(@PathVariable String username,
+			@RequestParam("file") MultipartFile file) {
+		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+		if (!username.equals(currentUsername) && SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+				.stream().noneMatch(a -> a.getAuthority().contains("ADMIN"))) {
+			return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
+		}
+
+		if (file == null || file.isEmpty()) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng chọn file ảnh hợp lệ!"));
+		}
+
+		String contentType = file.getContentType();
+		if (contentType == null || !contentType.startsWith("image/")) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Chỉ chấp nhận file định dạng hình ảnh (.jpg, .png, .webp, .gif)!"));
+		}
+
+		try {
+			String originalFilename = file.getOriginalFilename();
+			String ext = ".png";
+			if (originalFilename != null && originalFilename.contains(".")) {
+				ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+			}
+
+			String newFileName = "avatar-" + username + "-" + System.currentTimeMillis() + ext;
+
+			Path uploadDir = Paths.get("src/main/resources/static/images/avatars");
+			if (!Files.exists(uploadDir)) {
+				Files.createDirectories(uploadDir);
+			}
+			Path filePath = uploadDir.resolve(newFileName);
+			Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+			try {
+				Path targetDir = Paths.get("target/classes/static/images/avatars");
+				if (!Files.exists(targetDir)) {
+					Files.createDirectories(targetDir);
+				}
+				Files.copy(filePath, targetDir.resolve(newFileName), StandardCopyOption.REPLACE_EXISTING);
+			} catch (Exception ignored) {}
+
+			String avatarUrl = "/images/avatars/" + newFileName;
+
+			Optional<User> userOpt = userRepo.findById(username);
+			if (userOpt.isPresent()) {
+				User user = userOpt.get();
+				user.setPhoto(avatarUrl);
+				userRepo.save(user);
+			}
+
+			return ResponseEntity.ok(Map.of("message", "Tải ảnh đại diện thành công!", "photo", avatarUrl));
+		} catch (Exception e) {
+			return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi lưu file ảnh: " + e.getMessage()));
+		}
+	}
+
 	@PutMapping("/{username}/change-password")
 	public ResponseEntity<?> changePassword(@PathVariable String username,
 			@Valid @RequestBody ChangePasswordRequest request, BindingResult bindingResult) {
@@ -160,7 +222,18 @@ public class UserRestController {
 		}
 
 		if (bindingResult.hasErrors()) {
-			return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng nhập đầy đủ thông tin!"));
+			String firstError = bindingResult.getFieldErrors().get(0).getDefaultMessage();
+			return ResponseEntity.badRequest().body(Map.of("message", firstError));
+		}
+
+		if (request.getOldPassword() == null || request.getOldPassword().trim().isEmpty()
+				|| request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()
+				|| request.getConfirmNewPassword() == null || request.getConfirmNewPassword().trim().isEmpty()) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Các trường không được để trống!"));
+		}
+
+		if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu mới và xác nhận mật khẩu không khớp!"));
 		}
 
 		Optional<User> userOpt = userRepo.findById(username);
@@ -172,7 +245,7 @@ public class UserRestController {
 		String currentPassword = user.getPassword();
 
 		if (!passwordEncoder.matches(request.getOldPassword(), currentPassword)) {
-			return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu cũ không chính xác!"));
+			return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu hiện tại không đúng!"));
 		}
 
 		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
