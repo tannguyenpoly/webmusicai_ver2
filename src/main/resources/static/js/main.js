@@ -33,6 +33,7 @@ new Vue({
 
         profileModalTab: 'info',
         showProfileModal: false,
+        profileModalError: '',
         profileForm: { fullname: '', email: '', photo: '' },
         changePasswordForm: { oldPassword: '', newPassword: '', confirmNewPassword: '' },
 
@@ -214,6 +215,62 @@ new Vue({
         },
 
         // ================= CÁC HÀM CHO TRANG PROFILE =================
+        triggerAvatarUpload() {
+            if (this.$refs.avatarFileInput) {
+                this.$refs.avatarFileInput.click();
+            } else {
+                const elem = document.getElementById('avatarFileInputHidden');
+                if (elem) elem.click();
+            }
+        },
+
+        uploadAvatarFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn file hình ảnh (.jpg, .png, .webp, .gif)!' });
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Dung lượng ảnh tối đa là 5MB!' });
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            Swal.fire({
+                title: 'Đang tải ảnh lên...',
+                text: 'Vui lòng chờ trong giây lát',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            axios.post(`/api/users/${this.currentUser}/avatar`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            .then(res => {
+                const newPhoto = res.data.photo;
+                this.userPhoto = newPhoto;
+                if (this.profilePageData) {
+                    this.profilePageData.photo = newPhoto;
+                }
+                if (this.profileForm) {
+                    this.profileForm.photo = newPhoto;
+                }
+                Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh đại diện mới thành công!' });
+            })
+            .catch(err => {
+                let msg = 'Tải ảnh đại diện thất bại!';
+                if (err.response && err.response.data && err.response.data.message) {
+                    msg = err.response.data.message;
+                }
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+            });
+        },
+
         loadProfilePageData() {
             axios.get(`/api/users/${this.currentUser}/profile`)
                 .then(res => {
@@ -479,6 +536,7 @@ new Vue({
 					localStorage.setItem('music_username', response.data.username);
 					localStorage.setItem('jwt_token', response.data.token);
 					localStorage.setItem('music_is_admin', response.data.isAdmin);
+					document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
 
 					if (btn) {
 						btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!';
@@ -492,7 +550,6 @@ new Vue({
 
 					setTimeout(() => {
 						if (response.data.isAdmin) {
-							document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
 							window.location.href = '/admin';
 						} else {
 							window.location.href = '/';
@@ -680,11 +737,11 @@ new Vue({
                     localStorage.setItem('music_username', response.data.username);
                     localStorage.setItem('jwt_token', response.data.token);
                     localStorage.setItem('music_is_admin', response.data.isAdmin);
+                    document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
                     if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!'; btn.style.background = '#15803d'; }
                     this.Toast.fire({ icon: 'success', title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.` });
                     setTimeout(() => {
                         if (response.data.isAdmin) {
-                            document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
                             window.location.href = '/admin';
                         } else { window.location.href = '/'; }
                     }, 1000);
@@ -811,6 +868,7 @@ new Vue({
 
         openProfileModal() {
             this.profileModalTab = 'info';
+            this.profileModalError = '';
             this.changePasswordForm = { oldPassword: '', newPassword: '', confirmNewPassword: '' };
             if (!this.currentUser) return;
             axios.get(`/api/users/${this.currentUser}/profile`)
@@ -824,31 +882,108 @@ new Vue({
                 .catch(error => { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải thông tin cá nhân' }); });
         },
 
-        closeProfileModal() { this.showProfileModal = false; },
+        closeProfileModal() {
+            this.showProfileModal = false;
+            this.profileModalError = '';
+        },
 
         submitUpdateProfile() {
+            this.profileModalError = '';
+            if (!this.profileForm.fullname || !this.profileForm.fullname.trim()) {
+                const msg = 'Họ và tên không được để trống!';
+                this.profileModalError = msg;
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
+                return;
+            }
+            if (!this.profileForm.email || !this.profileForm.email.trim()) {
+                const msg = 'Địa chỉ Email không được để trống!';
+                this.profileModalError = msg;
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
+                return;
+            }
             axios.put(`/api/users/${this.currentUser}/profile`, this.profileForm)
                 .then(response => {
                     this.Toast.fire({ icon: 'success', title: 'Cập nhật hồ sơ thành công!' });
                     if (window.location.pathname === '/profile') this.loadProfilePageData();
                     this.showProfileModal = false;
                 })
-                .catch(error => { Swal.fire({ icon: 'error', title: 'Cập nhật thất bại', text: error.response && error.response.data ? (error.response.data.message || 'Lỗi dữ liệu') : 'Vui lòng kiểm tra lại thông tin.' }); });
+                .catch(error => {
+                    let msg = 'Vui lòng kiểm tra lại thông tin.';
+                    if (error.response && error.response.data) {
+                        if (typeof error.response.data === 'string') {
+                            msg = error.response.data;
+                        } else if (error.response.data.message) {
+                            msg = error.response.data.message;
+                        } else if (typeof error.response.data === 'object') {
+                            msg = Object.values(error.response.data).join(', ');
+                        }
+                    }
+                    this.profileModalError = msg;
+                    Swal.fire({ icon: 'error', title: 'Cập nhật thất bại', text: msg });
+                });
         },
 
         submitChangePassword() {
-            if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmNewPassword) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu mới và mật khẩu xác nhận không trùng khớp!' });
+            this.profileModalError = '';
+            const oldPass = this.changePasswordForm.oldPassword ? this.changePasswordForm.oldPassword.trim() : '';
+            const newPass = this.changePasswordForm.newPassword ? this.changePasswordForm.newPassword.trim() : '';
+            const confirmPass = this.changePasswordForm.confirmNewPassword ? this.changePasswordForm.confirmNewPassword.trim() : '';
+
+            if (!oldPass) {
+                const msg = 'Mật khẩu hiện tại không được để trống!';
+                this.profileModalError = msg;
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
                 return;
             }
-            const payload = { oldPassword: this.changePasswordForm.oldPassword, newPassword: this.changePasswordForm.newPassword };
+            if (!newPass) {
+                const msg = 'Mật khẩu mới không được để trống!';
+                this.profileModalError = msg;
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
+                return;
+            }
+            if (newPass.length < 6) {
+                const msg = 'Mật khẩu mới phải có ít nhất 6 ký tự!';
+                this.profileModalError = msg;
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
+                return;
+            }
+            if (!confirmPass) {
+                const msg = 'Xác nhận mật khẩu mới không được để trống!';
+                this.profileModalError = msg;
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
+                return;
+            }
+            if (newPass !== confirmPass) {
+                const msg = 'Mật khẩu mới và xác nhận mật khẩu không khớp!';
+                this.profileModalError = msg;
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
+                return;
+            }
+
+            const payload = {
+                oldPassword: oldPass,
+                newPassword: newPass,
+                confirmNewPassword: confirmPass
+            };
+
             axios.put(`/api/users/${this.currentUser}/change-password`, payload)
                 .then(response => {
                     this.showProfileModal = false;
                     Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.', confirmButtonColor: '#16a34a' })
                         .then(() => { this.handleLogout(false); });
                 })
-                .catch(error => { Swal.fire({ icon: 'error', title: 'Đổi mật khẩu thất bại', text: error.response && error.response.data ? error.response.data.message : 'Đã có lỗi xảy ra.' }); });
+                .catch(error => {
+                    let msg = 'Đã có lỗi xảy ra.';
+                    if (error.response && error.response.data) {
+                        if (typeof error.response.data === 'string') {
+                            msg = error.response.data;
+                        } else if (error.response.data.message) {
+                            msg = error.response.data.message;
+                        }
+                    }
+                    this.profileModalError = msg;
+                    Swal.fire({ icon: 'error', title: 'Đổi mật khẩu thất bại', text: msg });
+                });
         },
 
         loadPackages() {
