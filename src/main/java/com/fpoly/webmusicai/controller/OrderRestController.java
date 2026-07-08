@@ -17,6 +17,7 @@ import com.fpoly.webmusicai.entity.*;
 import com.fpoly.webmusicai.entity.Package;
 import com.fpoly.webmusicai.repository.*;
 import com.fpoly.webmusicai.config.VNPayConfig; // Import class cấu hình vừa tạo
+import com.fpoly.webmusicai.service.MailService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -33,6 +34,8 @@ public class OrderRestController {
     UserRepository userRepo;
     @Autowired
     TransactionRepository transRepo;
+    @Autowired
+    MailService mailService;
 
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(@RequestBody Map<String, Integer> body, HttpServletRequest req) throws IOException {
@@ -195,6 +198,9 @@ public class OrderRestController {
                     trans.setAmount(pkg.getTokens());
                     trans.setDescription("Thanh toán VNPAY thành công gói " + pkg.getName() + " - Mã: " + orderCode);
                     transRepo.save(trans);
+
+                    // Gửi email hóa đơn
+                    mailService.sendInvoiceEmail(user, order);
 
                     response.sendRedirect("/orders?status=success");
                     return;
