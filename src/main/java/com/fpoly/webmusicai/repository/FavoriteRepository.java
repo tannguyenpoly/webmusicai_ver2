@@ -17,6 +17,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Integer> {
 
     long countBySongId(Integer songId);
 
+    @Modifying
+    @org.springframework.transaction.annotation.Transactional
     void deleteByUserUsernameAndSongId(String username, Integer songId);
 
     @Modifying

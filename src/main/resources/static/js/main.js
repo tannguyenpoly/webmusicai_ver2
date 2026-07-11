@@ -30,6 +30,16 @@ new Vue({
         forgotPasswordForm: { email: '', otp: '', newPassword: '', confirmPassword: '', step: 1, isSending: false },
         filters: { keyword: '' },
         pollingTimer: null,
+        showQueue: false,
+        uploadingSongId: null,
+        isPlaying: false,
+        isOnSongDetailPage: false,
+        profileUsername: '',
+        isFollowing: false,
+        followersCount: 0,
+        followingCount: 0,
+        editingSongForm: { id: null, title: '', prompt: '', isPublic: false, coverUrl: '' },
+        isSavingSongEdit: false,
 
         profileModalTab: 'info',
         showProfileModal: false,
@@ -78,6 +88,12 @@ new Vue({
         });
     },
     mounted() {
+        this.isOnSongDetailPage = window.location.pathname.startsWith('/song/');
+        if (this.isOnSongDetailPage) {
+            const style = document.createElement('style');
+            style.innerHTML = '.suno-sticky-player { display: none !important; }';
+            document.head.appendChild(style);
+        }
         this.Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -152,10 +168,19 @@ new Vue({
         }
         // ================= LUỒNG LOAD CHO TRANG PROFILE =================
         else if (window.location.pathname === '/profile') {
-            if (this.currentUser) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userParam = urlParams.get('u');
+            this.profileUsername = userParam || this.currentUser;
+
+            if (this.profileUsername) {
                 this.loadProfilePageData();
                 this.loadProfileGeneratedSongs();
-                this.loadProfileFavorites(); // Load sẵn số lượng cho tab yêu thích
+                if (this.currentUser && this.profileUsername === this.currentUser) {
+                    this.loadProfileFavorites();
+                } else {
+                    this.profileTab = 'generated'; // force public tab
+                }
+                this.loadFollowStatus();
             }
         }
 
@@ -171,6 +196,356 @@ new Vue({
                 return url + '&rounded=true';
             }
             return url;
+        },
+
+        getSongCover(song) {
+            if (!song) return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80';
+            let id = typeof song === 'object' ? song.id : song;
+            let customUrl = typeof song === 'object' ? song.coverUrl : null;
+            
+            if (!customUrl && id && this.publicSongs) {
+                const found = this.publicSongs.find(s => s.id === id);
+                if (found && found.coverUrl) {
+                    customUrl = found.coverUrl;
+                }
+            }
+            if (!customUrl && id && this.favoriteSongs) {
+                const found = this.favoriteSongs.find(s => s.id === id);
+                if (found && found.coverUrl) {
+                    customUrl = found.coverUrl;
+                }
+            }
+            if (!customUrl && id && this.profileGeneratedSongs) {
+                const found = this.profileGeneratedSongs.find(s => s.id === id);
+                if (found && found.coverUrl) {
+                    customUrl = found.coverUrl;
+                }
+            }
+            
+            if (customUrl && customUrl.trim() !== '') {
+                if (customUrl.startsWith('/images/')) {
+                    let time = Date.now();
+                    if (typeof song === 'object') {
+                        const dateStr = song.created_at || song.createdAt;
+                        if (dateStr) {
+                            const parsed = Date.parse(dateStr);
+                            if (!isNaN(parsed)) time = parsed;
+                        }
+                    }
+                    return customUrl + '?v=' + time;
+                }
+                return customUrl;
+            }
+            
+            const covers = [
+                'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1510915228340-29c85a43dcfe?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1516223725307-6f76b9ec8742?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1484755560695-a4c73004ffd6?w=400&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1525201548942-d8c8709e4a88?w=400&auto=format&fit=crop&q=80'
+            ];
+            return covers[id % covers.length];
+        },
+
+        triggerSongCoverUpload(songId) {
+            this.uploadingSongId = songId;
+            this.$nextTick(() => {
+                const elem = document.getElementById('songCoverFileInputHidden');
+                if (elem) elem.click();
+            });
+        },
+
+        uploadSongCoverFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn file hình ảnh (.jpg, .png, .webp, .gif)!' });
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Dung lượng ảnh tối đa là 5MB!' });
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            Swal.fire({
+                title: 'Đang tải ảnh bìa lên...',
+                text: 'Vui lòng chờ trong giây lát',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            const songId = this.uploadingSongId;
+            axios.post(`/api/songs/${songId}/cover`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            .then(res => {
+                const coverUrl = res.data.coverUrl;
+                
+                // Cập nhật trong publicSongs
+                const song = this.publicSongs.find(s => s.id === songId);
+                if (song) {
+                    Vue.set(song, 'coverUrl', coverUrl);
+                }
+                
+                // Cập nhật trong currentTrack
+                if (this.currentTrack.id === songId) {
+                    Vue.set(this.currentTrack, 'coverUrl', coverUrl);
+                }
+                
+                // Cập nhật trong sessionPlaylist
+                const playlistSong = this.sessionPlaylist.find(s => s.id === songId);
+                if (playlistSong) {
+                    Vue.set(playlistSong, 'coverUrl', coverUrl);
+                }
+                
+                // Cập nhật trong favoriteSongs
+                const favSong = this.favoriteSongs.find(s => s.id === songId);
+                if (favSong) {
+                    Vue.set(favSong, 'coverUrl', coverUrl);
+                }
+                
+                // Cập nhật trong danh sách profile
+                if (this.profileGeneratedSongs) {
+                    const profSong = this.profileGeneratedSongs.find(s => s.id === songId);
+                    if (profSong) Vue.set(profSong, 'coverUrl', coverUrl);
+                }
+                if (this.profileFavoriteSongs) {
+                    const profFav = this.profileFavoriteSongs.find(s => s.id === songId);
+                    if (profFav) Vue.set(profFav, 'coverUrl', coverUrl);
+                }
+
+                Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh bìa mới cho bài hát thành công!' });
+            })
+            .catch(err => {
+                let msg = 'Tải ảnh bìa thất bại!';
+                if (err.response && err.response.data && err.response.data.message) {
+                    msg = err.response.data.message;
+                }
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+            });
+        },
+
+        renameSong(songId) {
+            const track = this.publicSongs.find(s => s.id === songId) || this.currentTrack;
+            if (!track) return;
+            
+            Swal.fire({
+                title: 'Đổi tên bài hát',
+                input: 'text',
+                inputValue: track.title,
+                inputPlaceholder: 'Nhập tên bài hát mới...',
+                showCancelButton: true,
+                confirmButtonText: 'Lưu',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#16a34a',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) {
+                        return 'Tên bài hát không được để trống!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const newTitle = result.value.trim();
+                    axios.put(`/api/songs/${songId}/setting`, { title: newTitle })
+                        .then(res => {
+                            if (this.currentTrack.id === songId) {
+                                this.currentTrack.title = newTitle;
+                            }
+                            
+                            const publicSong = this.publicSongs.find(s => s.id === songId);
+                            if (publicSong) publicSong.title = newTitle;
+                            
+                            const favSong = this.favoriteSongs.find(s => s.id === songId);
+                            if (favSong) favSong.title = newTitle;
+                            
+                            const playSong = this.sessionPlaylist.find(s => s.id === songId);
+                            if (playSong) playSong.title = newTitle;
+                            
+                            if (this.profileGeneratedSongs) {
+                                const profSong = this.profileGeneratedSongs.find(s => s.id === songId);
+                                if (profSong) profSong.title = newTitle;
+                            }
+                            if (this.profileFavoriteSongs) {
+                                const profFav = this.profileFavoriteSongs.find(s => s.id === songId);
+                                if (profFav) profFav.title = newTitle;
+                            }
+                            
+                            this.Toast.fire({ icon: 'success', title: 'Đổi tên bài hát thành công!' });
+                        })
+                        .catch(err => {
+                            Swal.fire('Lỗi', err.response?.data?.message || err.response?.data || 'Không thể đổi tên bài hát.', 'error');
+                        });
+                }
+            });
+        },
+
+        goToSongDetail(songId) {
+            window.location.href = `/song/${songId}`;
+        },
+
+        loadFollowStatus() {
+            if (!this.profileUsername) return;
+            axios.get(`/api/users/${this.profileUsername}/follow-status`)
+                .then(res => {
+                    this.isFollowing = res.data.isFollowing;
+                    this.followersCount = res.data.followersCount;
+                    this.followingCount = res.data.followingCount;
+                })
+                .catch(err => console.error(err));
+        },
+
+        toggleFollow() {
+            if (!this.currentUser) {
+                Swal.fire({ icon: 'warning', title: 'Đăng nhập', text: 'Vui lòng đăng nhập để thực hiện theo dõi!' });
+                return;
+            }
+            const action = this.isFollowing ? 'unfollow' : 'follow';
+            axios.post(`/api/users/${this.profileUsername}/${action}`)
+                .then(res => {
+                    this.isFollowing = !this.isFollowing;
+                    this.loadFollowStatus();
+                    this.Toast.fire({ icon: 'success', title: res.data.message });
+                })
+                .catch(err => {
+                    Swal.fire({ icon: 'error', title: 'Thất bại', text: err.response?.data?.message || 'Có lỗi xảy ra!' });
+                });
+        },
+
+        openSongEditModal(song) {
+            this.editingSongForm = {
+                id: song.id,
+                title: song.title,
+                prompt: song.prompt,
+                isPublic: song.isPublic !== undefined ? song.isPublic : song.is_public,
+                coverUrl: song.coverUrl
+            };
+            this.isSavingSongEdit = false;
+            
+            const modalElem = document.getElementById('songEditModal');
+            if (modalElem) {
+                const modal = new bootstrap.Modal(modalElem);
+                modal.show();
+            }
+        },
+
+        triggerSongEditCoverUpload() {
+            const fileInput = document.getElementById('songEditCoverFileInputHidden');
+            if (fileInput) fileInput.click();
+        },
+
+        uploadSongEditCoverFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn file hình ảnh!' });
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            Swal.fire({
+                title: 'Đang tải ảnh lên...',
+                text: 'Vui lòng chờ',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            axios.post(`/api/songs/${this.editingSongForm.id}/cover`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            .then(res => {
+                this.editingSongForm.coverUrl = res.data.coverUrl;
+                Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh bìa thành công!' });
+            })
+            .catch(err => {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || 'Không thể tải ảnh lên!' });
+            });
+        },
+
+        saveSongEdit() {
+            this.isSavingSongEdit = true;
+            axios.put(`/api/songs/${this.editingSongForm.id}/setting`, {
+                title: this.editingSongForm.title,
+                prompt: this.editingSongForm.prompt,
+                is_public: this.editingSongForm.isPublic,
+                cover_url: this.editingSongForm.coverUrl
+            })
+            .then(res => {
+                const songId = this.editingSongForm.id;
+                const newTitle = this.editingSongForm.title;
+                const newPrompt = this.editingSongForm.prompt;
+                const newIsPublic = this.editingSongForm.isPublic;
+                const newCoverUrl = this.editingSongForm.coverUrl;
+
+                const updateInList = (list) => {
+                    if (!list) return;
+                    const item = list.find(s => s.id === songId);
+                    if (item) {
+                        Vue.set(item, 'title', newTitle);
+                        Vue.set(item, 'prompt', newPrompt);
+                        Vue.set(item, 'isPublic', newIsPublic);
+                        Vue.set(item, 'coverUrl', newCoverUrl);
+                    }
+                };
+
+                updateInList(this.publicSongs);
+                updateInList(this.favoriteSongs);
+                updateInList(this.sessionPlaylist);
+                updateInList(this.profileGeneratedSongs);
+                updateInList(this.profileFavoriteSongs);
+
+                if (this.currentTrack.id === songId) {
+                    Vue.set(this.currentTrack, 'title', newTitle);
+                    Vue.set(this.currentTrack, 'prompt', newPrompt);
+                    Vue.set(this.currentTrack, 'coverUrl', newCoverUrl);
+                    Vue.set(this.currentTrack, 'isPublic', newIsPublic);
+                }
+
+                const modalElem = document.getElementById('songEditModal');
+                if (modalElem) {
+                    const modal = bootstrap.Modal.getInstance(modalElem);
+                    if (modal) modal.hide();
+                }
+
+                this.Toast.fire({ icon: 'success', title: 'Cập nhật bài viết thành công!' });
+                this.loadPublicSongs();
+            })
+            .catch(err => {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || err.response?.data || 'Không thể cập nhật bài viết!' });
+            })
+            .finally(() => {
+                this.isSavingSongEdit = false;
+            });
+        },
+
+        getListensCount(songId) {
+            if (!songId) return '0';
+            if (songId > 10) {
+                return ((songId * 3 + 5) % 100) + ' lượt nghe';
+            }
+            const seedPlays = (songId * 73 + 124) % 800 + 50;
+            return seedPlays + 'K';
+        },
+
+        getLikesCount(song) {
+            if (!song) return '0';
+            if (song.id > 10) {
+                return (song.total_likes || 0);
+            }
+            const seedLikes = (song.id * 23 + 17) % 80 + 10;
+            return (seedLikes + (song.total_likes || 0)) + 'K';
         },
 
         toggleTheme() {
@@ -401,7 +776,7 @@ new Vue({
                     const data = response.data;
                     this.Toast.fire({ icon: 'success', title: 'AI đang xử lý giai điệu ngầm...' });
                     this.userTokens = data.remaining_tokens;
-                    this.currentTrack = { id: data.songId, title: "AI đang tiến hành xử lý bài hát...", prompt: this.generationForm.prompt, status: "PENDING", audioUrl: "" };
+                    this.currentTrack = { id: data.songId, title: "AI đang tiến hành xử lý bài hát...", prompt: this.generationForm.prompt, status: "PENDING", audioUrl: "", username: this.currentUser };
                     this.generationForm.prompt = '';
                     this.isGenerating = false;
                     this.startPollingStatus(data.songId);
@@ -413,6 +788,21 @@ new Vue({
         },
 
         playTrack(song) {
+            if (this.currentTrack.id === song.id && this.currentTrack.status === 'COMPLETED') {
+                const audio = document.getElementById('audio-element');
+                if (audio) {
+                    if (audio.paused) {
+                        audio.play().then(() => {
+                            this.isPlaying = true;
+                        }).catch(err => console.error(err));
+                    } else {
+                        audio.pause();
+                        this.isPlaying = false;
+                    }
+                    return;
+                }
+            }
+
 			if (this.pollingTimer && this.currentTrack.id === song.id && this.currentTrack.status === 'PENDING') return;
 			if (this.pollingTimer) clearInterval(this.pollingTimer);
 
@@ -421,12 +811,20 @@ new Vue({
 				title: song.title,
 				prompt: song.prompt,
 				status: 'COMPLETED',
-				audioUrl: song.audioUrl
+				audioUrl: song.audioUrl,
+				coverUrl: song.coverUrl,
+				username: song.username
 			};
+            this.isPlaying = true;
 
 			this.$nextTick(() => {
 				const audio = document.getElementById('audio-element');
-				if (audio) { audio.load(); audio.play(); }
+				if (audio) { 
+                    audio.load(); 
+                    audio.play().then(() => {
+                        this.isPlaying = true;
+                    }).catch(err => console.error(err));
+                }
 			});
 		},
 
@@ -459,6 +857,8 @@ new Vue({
 			axios.get(`/api/songs/${songId}/status`)
 				.then(response => {
 					this.currentTrack = response.data;
+					this.profileUsername = response.data.username;
+					this.loadFollowStatus();
 					this.loadComments(songId);
 				})
 				.catch(error => {
@@ -656,9 +1056,25 @@ new Vue({
         },
 
         playTrack(song) {
+            if (this.currentTrack.id === song.id && this.currentTrack.status === 'COMPLETED') {
+                const audio = document.getElementById('audio-element');
+                if (audio) {
+                    if (audio.paused) {
+                        audio.play().then(() => {
+                            this.isPlaying = true;
+                        }).catch(err => console.error(err));
+                    } else {
+                        audio.pause();
+                        this.isPlaying = false;
+                    }
+                    return;
+                }
+            }
+
             if (this.pollingTimer && this.currentTrack.id === song.id && this.currentTrack.status === 'PENDING') return;
             if (this.pollingTimer) clearInterval(this.pollingTimer);
-            this.currentTrack = { id: song.id, title: song.title, prompt: song.prompt, status: 'COMPLETED', audioUrl: song.audioUrl };
+            this.currentTrack = { id: song.id, title: song.title, prompt: song.prompt, status: 'COMPLETED', audioUrl: song.audioUrl, coverUrl: song.coverUrl, username: song.username };
+            this.isPlaying = true;
             this.$nextTick(() => { const audio = document.getElementById('audio-element'); if (audio) { audio.load(); audio.play(); } });
         },
 
@@ -691,6 +1107,8 @@ new Vue({
             axios.get(`/api/songs/${songId}/status`)
                 .then(response => {
                     this.currentTrack = response.data;
+                    this.profileUsername = response.data.username;
+                    this.loadFollowStatus();
                     this.loadComments(songId);
                 })
                 .catch(error => { Swal.fire('Lỗi', 'Không tìm thấy bài hát hoặc bạn không có quyền truy cập.', 'error'); });
@@ -1087,8 +1505,20 @@ new Vue({
         },
 
         formatRelativeTime(dateString) {
-            const date = new Date(dateString); const now = new Date(); const seconds = Math.round((now - date) / 1000);
-            const minutes = Math.round(seconds / 60); const hours = Math.round(minutes / 60); const days = Math.round(hours / 24);
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return dateString.substring(0, 10);
+            }
+            const now = new Date();
+            const seconds = Math.round((now - date) / 1000);
+            const minutes = Math.round(seconds / 60);
+            const hours = Math.round(minutes / 60);
+            const days = Math.round(hours / 24);
+            
+            if (seconds < 0) {
+                return 'Vừa xong';
+            }
             if (seconds < 60) return `${seconds} giây trước`;
             if (minutes < 60) return `${minutes} phút trước`;
             if (hours < 24) return `${hours} giờ trước`;

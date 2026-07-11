@@ -301,6 +301,403 @@
             color: #16a34a !important;
             text-decoration: underline !important;
         }
+
+        /* ========================================================= */
+        /* SUNO EXPLORE GRID & SONG CARDS                            */
+        /* ========================================================= */
+        .suno-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .suno-card {
+            display: flex;
+            flex-direction: column;
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            cursor: pointer;
+        }
+
+        .suno-cover-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1.25;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #111;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease;
+        }
+
+        .suno-card:hover .suno-cover-wrapper {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 30px rgba(22, 163, 74, 0.25);
+        }
+
+        .suno-cover-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .suno-card:hover .suno-cover-img {
+            transform: scale(1.06);
+        }
+
+        .suno-play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .suno-card:hover .suno-play-overlay {
+            opacity: 1;
+        }
+
+        .suno-play-btn-circle {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: #16a34a;
+            color: #ffffff !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .suno-play-btn-circle:hover {
+            transform: scale(1.1);
+            background: #15803d;
+        }
+
+        .suno-top-play-btn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            color: #ffffff !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 10;
+            transition: background 0.2s;
+        }
+        
+        .suno-top-play-btn:hover {
+            background: #16a34a;
+        }
+
+        .suno-stats-overlay {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .suno-stat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(10, 10, 12, 0.65);
+            backdrop-filter: blur(10px);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .suno-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 12px 0 4px 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: color 0.2s;
+        }
+        
+        .suno-card:hover .suno-card-title {
+            color: #16a34a;
+        }
+
+        .suno-card-author-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .suno-card-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 50% !important;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .suno-card-author-name {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            font-weight: 500;
+        }
+
+        /* ========================================================= */
+        /* STICKY BOTTOM PLAYER & QUEUE                              */
+        /* ========================================================= */
+        .suno-sticky-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 90px;
+            background: rgba(10, 15, 13, 0.82) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color) !important;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        [data-theme="light"] .suno-sticky-player {
+            background: rgba(245, 247, 245, 0.85) !important;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.06);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .suno-player-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 30%;
+            min-width: 220px;
+        }
+
+        .suno-player-cover {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .suno-player-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0 0 2px 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .suno-player-prompt {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .suno-player-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 40%;
+            max-width: 600px;
+        }
+
+        .suno-audio-wrapper {
+            width: 100%;
+        }
+
+        .suno-player-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            width: 30%;
+            min-width: 180px;
+        }
+
+        .suno-player-btn-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color) !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: var(--text-color) !important;
+            font-size: 16px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .suno-player-btn-circle:hover {
+            background: rgba(22, 163, 74, 0.15) !important;
+            border-color: #16a34a !important;
+            color: #16a34a !important;
+            transform: scale(1.05);
+        }
+
+        .suno-player-btn-circle.active-like {
+            background: rgba(220, 53, 69, 0.12) !important;
+            border-color: #dc3545 !important;
+            color: #dc3545 !important;
+        }
+
+        .suno-player-btn-circle.active-like:hover {
+            background: rgba(220, 53, 69, 0.2) !important;
+            color: #dc3545 !important;
+        }
+
+        .suno-player-btn-circle.active-queue {
+            background: rgba(22, 163, 74, 0.2) !important;
+            border-color: #16a34a !important;
+            color: #16a34a !important;
+        }
+
+        /* Queue Drawer Popup */
+        .suno-queue-drawer {
+            position: fixed;
+            bottom: 105px;
+            right: 40px;
+            width: 340px;
+            max-height: 420px;
+            background: var(--card-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 20px !important;
+            z-index: 10001;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 20px;
+            animation: sunoFadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes sunoFadeUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .suno-queue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .suno-queue-list {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 2px;
+        }
+
+        /* Hero styles for banner */
+        .suno-hero-section {
+            text-align: center;
+            padding: 60px 0 35px 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .suno-hero-title {
+            font-size: 56px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 16px;
+            background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        [data-theme="light"] .suno-hero-title {
+            background: linear-gradient(180deg, #111827 0%, #374151 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .suno-hero-subtitle {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 650px;
+            margin: 0 auto 30px auto;
+            line-height: 1.6;
+        }
+
+        /* Sleek prompt box style */
+        .suno-prompt-box {
+            max-width: 680px;
+            margin: 0 auto 40px auto;
+            background: rgba(17, 22, 18, 0.5) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color) !important;
+            border-radius: 24px !important;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            text-align: left;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        [data-theme="light"] .suno-prompt-box {
+            background: rgba(255, 255, 255, 0.6) !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.04);
+        }
+
+        .suno-prompt-box:focus-within {
+            border-color: rgba(22, 163, 74, 0.4) !important;
+            box-shadow: 0 20px 40px rgba(22, 163, 74, 0.08);
+        }
     </style>
 
     <script>
@@ -427,9 +824,136 @@
             </div>
         </div>
         <input type="file" ref="avatarFileInput" id="avatarFileInputHidden" class="d-none" accept="image/*" @change="uploadAvatarFile">
+        <input type="file" id="songCoverFileInputHidden" class="d-none" accept="image/*" @change="uploadSongCoverFile">
+
+        <!-- MODAL CHỈNH SỬA BÀI VIẾT (SONG EDIT MODAL) -->
+        <div class="modal fade" id="songEditModal" tabindex="-1" aria-hidden="true" v-cloak>
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content custom-theme-modal border border-secondary shadow-lg" style="background: rgba(18, 22, 19, 0.98); backdrop-filter: blur(20px); border-radius: 16px;">
+                    <div class="modal-header border-bottom border-secondary-subtle py-3 px-4">
+                        <h5 class="modal-title fw-bold text-white"><i class="ti ti-edit text-success me-2"></i> Chỉnh sửa bài viết</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 text-start">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-white-50">Tên bài hát</label>
+                            <input type="text" v-model="editingSongForm.title" class="form-control custom-theme-input py-2 text-white" placeholder="Nhập tên bài hát...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-white-50">Caption / Mô tả ý tưởng</label>
+                            <textarea v-model="editingSongForm.prompt" class="form-control custom-theme-input py-2 text-white" rows="3" placeholder="Nhập caption bài viết..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-white-50">Trạng thái bài viết</label>
+                            <select v-model="editingSongForm.isPublic" class="form-select custom-theme-input py-2 text-white" style="background-color: var(--card-bg) !important;">
+                                <option :value="true">🌍 Công khai (Explore)</option>
+                                <option :value="false">🔒 Riêng tư (Private)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-white-50 d-block mb-2">Ảnh bìa bài viết</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <img :src="getSongCover(editingSongForm)" class="rounded border border-secondary" style="width: 70px; height: 70px; object-fit: cover;" alt="Cover Art">
+                                <button type="button" @click="triggerSongEditCoverUpload" class="btn btn-sm btn-outline-success px-3 py-2 fw-medium rounded-pill">
+                                    <i class="ti ti-upload me-1"></i> Tải ảnh mới
+                                </button>
+                            </div>
+                            <input type="file" id="songEditCoverFileInputHidden" class="d-none" accept="image/*" @change="uploadSongEditCoverFile">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top border-secondary-subtle py-3 px-4">
+                        <button type="button" class="btn action-btn-gray px-4" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" @click="saveSongEdit" class="btn btn-main-sync px-4" :disabled="isSavingSongEdit">
+                            <span v-if="isSavingSongEdit" class="spinner-border spinner-border-sm me-1"></span> Lưu thay đổi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STICKY BOTTOM PLAYER BAR -->
+        <div v-if="currentTrack.id && !isOnSongDetailPage" class="suno-sticky-player" v-cloak>
+            <!-- Left Info -->
+            <div class="suno-player-left">
+                <img :src="getSongCover(currentTrack)" class="suno-player-cover" alt="Song Cover" />
+                <div class="overflow-hidden flex-grow-1">
+                    <div class="d-flex align-items-center gap-2">
+                        <h6 class="suno-player-title mb-0 text-truncate" :title="currentTrack.title" style="max-width: 185px;">{{ currentTrack.title }}</h6>
+                        <!-- Edit Button only for owner or admin -->
+                        <button v-if="currentTrack.username === currentUser || isAdmin" @click="openSongEditModal(currentTrack)" class="btn p-0 border-0 text-success" title="Chỉnh sửa bài viết" style="background: transparent;">
+                            <i class="ti ti-edit" style="font-size: 13px;"></i>
+                        </button>
+                    </div>
+                    <p class="suno-player-prompt" :title="currentTrack.prompt">{{ currentTrack.prompt }}</p>
+                </div>
+            </div>
+            
+            <!-- Center Controls -->
+            <div class="suno-player-center">
+                <div class="suno-audio-wrapper">
+                    <!-- Notification if pending -->
+                    <div v-if="currentTrack.status === 'PENDING'" class="text-warning small text-center mb-1">
+                        <span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px;"></span> AI đang tạo nhạc...
+                    </div>
+                    <!-- Audio Tag -->
+                    <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay @play="isPlaying = true" @pause="isPlaying = false" class="custom-audio-player w-100" v-if="currentTrack.audioUrl"></audio>
+                </div>
+            </div>
+            
+            <!-- Right Actions -->
+            <div class="suno-player-right">
+                <!-- Upload Cover button (only for song owner or admin) -->
+                <button v-if="currentTrack.username === currentUser || isAdmin" @click="triggerSongCoverUpload(currentTrack.id)" class="suno-player-btn-circle" title="Tải ảnh bìa mới">
+                    <i class="ti ti-camera"></i>
+                </button>
+
+                <!-- Like button -->
+                <button @click="toggleLike(currentTrack)" class="suno-player-btn-circle" :class="{'active-like': currentTrack.liked_by_me}" :title="currentTrack.liked_by_me ? 'Bỏ thích' : 'Thích bài hát này'">
+                    <i :class="['ti', currentTrack.liked_by_me ? 'ti-heart-filled' : 'ti-heart']"></i>
+                </button>
+                
+                <!-- Download button -->
+                <a :href="'/api/songs/' + currentTrack.id + '/download'" class="suno-player-btn-circle text-decoration-none" title="Tải bài hát">
+                    <i class="ti ti-download"></i>
+                </a>
+                
+                <!-- Queue toggle -->
+                <button @click="showQueue = !showQueue" class="suno-player-btn-circle" :class="{'active-queue': showQueue}" title="Danh sách phát tạm">
+                    <i class="ti ti-playlist"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- PLAYLIST QUEUE DRAWER -->
+        <div v-if="showQueue && currentTrack.id" class="suno-queue-drawer" v-cloak>
+            <div class="suno-queue-header">
+                <h6 class="mb-0 text-white fw-bold d-flex align-items-center">
+                    <i class="ti ti-list text-success me-2"></i> Danh sách phát tạm
+                </h6>
+                <button @click="clearPlaylist" v-if="sessionPlaylist.length > 0" class="btn btn-sm text-danger border-0 p-0 fw-bold" style="font-size: 11px;">XÓA SẠCH</button>
+            </div>
+            <div class="suno-queue-list custom-scrollbar">
+                <ul class="list-group list-group-flush bg-transparent">
+                    <li v-for="(track, index) in sessionPlaylist" :key="index" class="list-group-item d-flex justify-content-between align-items-center py-2 px-0 bg-transparent border-bottom" style="border-color: var(--border-color) !important;">
+                        <div class="text-truncate me-2" style="max-width: 80%;">
+                            <a href="#" @click.prevent="playTrack(track)" class="text-decoration-none fw-medium song-link-hover" style="font-size: 13px; color: var(--text-color);">
+                                <span class="text-success me-1">{{ index + 1 }}.</span> {{ track.title }}
+                            </a>
+                        </div>
+                        <button @click="removeTrack(index)" class="btn btn-sm p-0 border-0" title="Xóa khỏi danh sách">
+                            <i class="ti ti-circle-minus text-danger" style="font-size: 16px;"></i>
+                        </button>
+                    </li>
+                    <li v-if="sessionPlaylist.length === 0" class="text-center text-muted py-4 small bg-transparent">
+                        Chưa có bài hát trong danh sách tạm.
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
 
-    <script th:src="@{/js/main.js}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/main.js(v=${#dates.createNow().getTime()})}"></script>
 </body>
 
 </html>

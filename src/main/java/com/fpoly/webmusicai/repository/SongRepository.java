@@ -22,6 +22,10 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
 
 	Page<Song> findByUserUsernameOrderByCreatedAtDesc(String username, Pageable pageable);
 
+	Page<Song> findByUserUsernameAndIsPublicTrueOrderByCreatedAtDesc(String username, Pageable pageable);
+
+	List<Song> findByUserUsernameAndIsPublicTrueOrderByCreatedAtDesc(String username);
+
 	long countByUserUsername(String username);
 
 	long countByUserUsernameAndStatus(String username, String status);
