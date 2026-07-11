@@ -87,10 +87,8 @@ public class UserRestController {
 	@GetMapping("/{username}/profile")
 	public ResponseEntity<?> getProfile(@PathVariable String username) {
 		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-		if (!username.equals(currentUsername) && SecurityContextHolder.getContext().getAuthentication().getAuthorities()
-				.stream().noneMatch(a -> a.getAuthority().contains("ADMIN"))) {
-			return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
-		}
+		boolean isOwnerOrAdmin = username.equals(currentUsername) || SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+				.stream().anyMatch(a -> a.getAuthority().contains("ADMIN"));
 
 		Optional<User> userOpt = userRepo.findById(username);
 		if (!userOpt.isPresent()) {
@@ -100,14 +98,18 @@ public class UserRestController {
 		Map<String, Object> profile = new HashMap<>();
 		profile.put("username", user.getUsername());
 		profile.put("fullname", user.getFullname());
-		profile.put("email", user.getEmail());
+		
+		if (isOwnerOrAdmin) {
+			profile.put("email", user.getEmail());
+			profile.put("token_balance", user.getTokenBalance());
+		}
+		
 		String photo = user.getPhoto();
 		if (photo == null || photo.trim().isEmpty()) {
 			String name = user.getFullname() != null ? user.getFullname() : user.getUsername();
 			photo = "https://ui-avatars.com/api/?name=" + URLEncoder.encode(name, StandardCharsets.UTF_8) + "&background=16a34a&color=fff&rounded=true";
 		}
 		profile.put("photo", photo);
-		profile.put("token_balance", user.getTokenBalance());
 
 		long totalSongs = songRepo.countByUserUsername(username);
 		long completedSongs = songRepo.countByUserUsernameAndStatus(username, "COMPLETED");
@@ -259,12 +261,16 @@ public class UserRestController {
 			@RequestParam(defaultValue = "10") int size) {
 
 		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-		if (!username.equals(currentUsername)) {
-			return ResponseEntity.status(403).body(Map.of("message", "Không có quyền truy cập!"));
-		}
+		boolean isOwnerOrAdmin = username.equals(currentUsername) || SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+				.stream().anyMatch(a -> a.getAuthority().contains("ADMIN"));
 
 		Pageable pageable = PageRequest.of(page, size);
-		Page<Song> songPage = songRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
+		Page<Song> songPage;
+		if (isOwnerOrAdmin) {
+			songPage = songRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
+		} else {
+			songPage = songRepo.findByUserUsernameAndIsPublicTrueOrderByCreatedAtDesc(username, pageable);
+		}
 		return ResponseEntity.ok(songPage);
 	}
 
@@ -337,5 +343,70 @@ public class UserRestController {
 		response.put("songs", songs);
 
 		return ResponseEntity.ok(response);
+	}
+	@Autowired
+	com.fpoly.webmusicai.repository.FollowRepository followRepo;
+
+	@PostMapping("/{username}/follow")
+	public ResponseEntity<?> followUser(@PathVariable String username) {
+		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+		if (currentUsername == null || "anonymousUser".equalsIgnoreCase(currentUsername)) {
+			return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập để thực hiện follow!"));
+		}
+		if (currentUsername.equals(username)) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Bạn không thể tự theo dõi chính mình!"));
+		}
+
+		Optional<User> followerOpt = userRepo.findById(currentUsername);
+		Optional<User> followingOpt = userRepo.findById(username);
+		if (followerOpt.isEmpty() || followingOpt.isEmpty()) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Người dùng không tồn tại!"));
+		}
+
+		Optional<com.fpoly.webmusicai.entity.Follow> followOpt = followRepo.findByFollowerAndFollowing(currentUsername, username);
+		if (followOpt.isPresent()) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Bạn đã theo dõi người này rồi!"));
+		}
+
+		com.fpoly.webmusicai.entity.Follow follow = new com.fpoly.webmusicai.entity.Follow();
+		follow.setFollower(followerOpt.get());
+		follow.setFollowing(followingOpt.get());
+		followRepo.save(follow);
+
+		return ResponseEntity.ok(Map.of("message", "Theo dõi thành công!"));
+	}
+
+	@PostMapping("/{username}/unfollow")
+	public ResponseEntity<?> unfollowUser(@PathVariable String username) {
+		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+		if (currentUsername == null || "anonymousUser".equalsIgnoreCase(currentUsername)) {
+			return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập!"));
+		}
+
+		Optional<com.fpoly.webmusicai.entity.Follow> followOpt = followRepo.findByFollowerAndFollowing(currentUsername, username);
+		if (followOpt.isEmpty()) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Bạn chưa theo dõi người này!"));
+		}
+
+		followRepo.delete(followOpt.get());
+		return ResponseEntity.ok(Map.of("message", "Hủy theo dõi thành công!"));
+	}
+
+	@GetMapping("/{username}/follow-status")
+	public ResponseEntity<?> getFollowStatus(@PathVariable String username) {
+		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+		boolean isFollowing = false;
+		if (currentUsername != null && !"anonymousUser".equalsIgnoreCase(currentUsername)) {
+			isFollowing = followRepo.findByFollowerAndFollowing(currentUsername, username).isPresent();
+		}
+
+		long followersCount = followRepo.countFollowers(username);
+		long followingCount = followRepo.countFollowing(username);
+
+		return ResponseEntity.ok(Map.of(
+			"isFollowing", isFollowing,
+			"followersCount", followersCount,
+			"followingCount", followingCount
+		));
 	}
 }

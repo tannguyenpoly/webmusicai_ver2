@@ -1,5 +1,10 @@
 package com.fpoly.webmusicai.controller;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -243,11 +248,14 @@ public class SongRestController {
             result.put("status", song.getStatus());
             result.put("created_at", song.getCreatedAt());
 
-            // Bổ sung thông tin về lượt thích
+            // Bổ sung thông tin về lượt thích và người tạo
             long totalLikes = favoriteRepo.countBySongId(id);
             boolean likedByMe = currentUser != null && favoriteRepo.existsByUserUsernameAndSongId(currentUser, id);
             result.put("total_likes", totalLikes);
             result.put("liked_by_me", likedByMe);
+            result.put("username", song.getUser().getUsername());
+            result.put("fullname", song.getUser().getFullname());
+            result.put("coverUrl", song.getCoverUrl());
 
             switch (song.getStatus()) {
                 case "COMPLETED" -> {
@@ -274,14 +282,15 @@ public class SongRestController {
 
         return songRepo.findById(id).map(song -> {
             boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
+            boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+            if (!isOwner && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền chỉnh sửa bài viết này!");
+            }
 
             Map<String, Object> changes = new HashMap<>();
 
             if (body.containsKey("title")) {
-                if (!isOwner) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền đổi tên bài nhạc này!");
-                }
-
                 String newTitle = (String) body.get("title");
                 if (newTitle == null || newTitle.isBlank()) {
                     return ResponseEntity.badRequest().body("Tên bài nhạc không được để trống!");
@@ -292,14 +301,28 @@ public class SongRestController {
                 changes.put("new_title", song.getTitle());
             }
 
-            if (body.containsKey("is_public")) {
+            if (body.containsKey("prompt")) {
+                String newPrompt = (String) body.get("prompt");
+                String oldPrompt = song.getPrompt();
+                song.setPrompt(newPrompt != null ? newPrompt.trim() : "");
+                changes.put("old_prompt", oldPrompt);
+                changes.put("new_prompt", song.getPrompt());
+            }
+
+            if (body.containsKey("is_public") || body.containsKey("isPublic")) {
                 if (!"COMPLETED".equals(song.getStatus())) {
                     return ResponseEntity.badRequest().body("Chỉ có thể public bài nhạc đã hoàn thành!");
                 }
-
-                boolean newIsPublic = Boolean.parseBoolean(body.get("is_public").toString());
+                Object val = body.containsKey("is_public") ? body.get("is_public") : body.get("isPublic");
+                boolean newIsPublic = Boolean.parseBoolean(val.toString());
                 song.setIsPublic(newIsPublic);
                 changes.put("is_public", newIsPublic);
+            }
+
+            if (body.containsKey("cover_url") || body.containsKey("coverUrl")) {
+                Object val = body.containsKey("cover_url") ? body.get("cover_url") : body.get("coverUrl");
+                song.setCoverUrl(val != null ? val.toString().trim() : null);
+                changes.put("cover_url", song.getCoverUrl());
             }
 
             songRepo.save(song);
@@ -680,6 +703,73 @@ public class SongRestController {
         } catch (Exception e) {
             log.error("Lỗi khi giải mã hoặc tạo file download cho bài hát ID {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/{id}/cover")
+    public ResponseEntity<?> uploadCover(@PathVariable Integer id,
+                                         @RequestParam("file") MultipartFile file) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        Optional<Song> songOpt = songRepo.findById(id);
+        if (songOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Song song = songOpt.get();
+        boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
+
+        if (!isOwner && !isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền đổi ảnh bìa cho bài hát này!"));
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng chọn file ảnh hợp lệ!"));
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Chỉ chấp nhận file định dạng hình ảnh (.jpg, .png, .webp, .gif)!"));
+        }
+
+        try {
+            String originalFilename = file.getOriginalFilename();
+            String ext = ".png";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            String newFileName = "cover-" + id + "-" + System.currentTimeMillis() + ext;
+
+            Path uploadDir = Paths.get("src/main/resources/static/images/covers");
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+            Path filePath = uploadDir.resolve(newFileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            try {
+                Path targetDir = Paths.get("target/classes/static/images/covers");
+                if (!Files.exists(targetDir)) {
+                    Files.createDirectories(targetDir);
+                }
+                Files.copy(filePath, targetDir.resolve(newFileName), StandardCopyOption.REPLACE_EXISTING);
+            } catch (Exception ignored) {}
+
+            String coverUrl = "/images/covers/" + newFileName;
+            song.setCoverUrl(coverUrl);
+            songRepo.save(song);
+
+            log.info("User {} tải ảnh bìa mới cho bài hát ID {}: {}", username, id, coverUrl);
+            return ResponseEntity.ok(Map.of("message", "Tải ảnh bìa thành công!", "coverUrl", coverUrl));
+        } catch (Exception e) {
+            log.error("Lỗi lưu file ảnh bìa: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi lưu file ảnh: " + e.getMessage()));
         }
     }
 }

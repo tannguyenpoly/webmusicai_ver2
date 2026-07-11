@@ -47,6 +47,9 @@ public class Song implements Serializable {
 	@Column(name = "parent_id")
 	private Integer parentId;
 
+	@Column(name = "cover_url", columnDefinition = "VARCHAR(500)")
+	private String coverUrl;
+
 	@ManyToOne
 	@JoinColumn(name = "username")
 	private User user;
@@ -66,6 +69,7 @@ public class Song implements Serializable {
 		map.put("createdAt", this.getCreatedAt());
 		map.put("isRemix", this.getIsRemix());
 		map.put("parentId", this.getParentId());
+		map.put("coverUrl", this.getCoverUrl());
 
 		if (this.getUser() != null) {
 			map.put("username", this.getUser().getUsername());
