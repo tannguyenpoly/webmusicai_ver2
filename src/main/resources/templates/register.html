@@ -49,6 +49,17 @@
             justify-content: center;
             gap: 10px;
             margin-bottom: 6px;
+            text-decoration: none;
+        }
+
+        .logo-row:hover .logo-icon-wrap {
+            background: rgba(22, 163, 74, 0.2);
+            border-color: rgba(22, 163, 74, 0.45);
+            transform: scale(1.05) rotate(5deg);
+        }
+
+        .logo-row:hover .logo-title {
+            color: #4ade80;
         }
 
         .logo-icon-wrap {
@@ -57,6 +68,7 @@
             border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             border: 1px solid rgba(22,163,74,0.25);
+            transition: all 0.3s ease;
         }
 
         .logo-icon-wrap i { font-size: 20px; color: #16a34a; }
@@ -66,6 +78,7 @@
             font-weight: 500;
             color: #fff;
             letter-spacing: -0.3px;
+            transition: color 0.3s ease;
         }
 
         .logo-title span { color: #16a34a; }
@@ -238,12 +251,12 @@
     <div class="login-card">
         <div class="accent-bar"></div>
 
-        <div class="logo-row">
+        <a href="/" class="logo-row">
             <div class="logo-icon-wrap">
                 <i class="ti ti-music"></i>
             </div>
             <span class="logo-title">Music<span>AI</span></span>
-        </div>
+        </a>
 
         <p class="logo-subtitle">Tạo tài khoản để nhận token trải nghiệm miễn phí</p>
 

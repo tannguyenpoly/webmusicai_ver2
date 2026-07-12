@@ -724,11 +724,14 @@
 
         .suno-content-wrapper {
             flex: 1;
-            margin-left: 250px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             transition: all 0.3s ease;
+        }
+
+        .suno-margin-left-sync {
+            margin-left: 250px;
         }
 
         .suno-nav-link {
@@ -760,8 +763,8 @@
                 transform: translateX(-100%);
                 display: none !important;
             }
-            .suno-content-wrapper {
-                margin-left: 0;
+            .suno-margin-left-sync {
+                margin-left: 0 !important;
             }
         }
     </style>
@@ -774,14 +777,16 @@
 
 <body>
     <div id="app">
-        <!-- TOP HEADER: Only visible on mobile/tablet (d-lg-none) -->
-        <div th:replace="~{fragments/header :: header}"></div>
+        <!-- TOP HEADER: Visible only when NOT logged in -->
+        <div style="display: none;" v-show="currentUser === null">
+            <div th:replace="~{fragments/header :: header}"></div>
+        </div>
 
         <!-- MAIN LAYOUT WRAPPER -->
         <div class="suno-wrapper">
             
-            <!-- LEFT SIDEBAR: Only visible on desktop (d-none d-lg-flex) -->
-            <div class="suno-sidebar d-none d-lg-flex" v-cloak>
+            <!-- LEFT SIDEBAR: Only visible on desktop when logged in -->
+            <div class="suno-sidebar d-none" :class="{ 'd-lg-flex': currentUser !== null }" v-cloak>
                 <!-- Logo -->
                 <div class="d-flex align-items-center justify-content-between mb-4">
                     <a href="/" class="d-flex align-items-center text-decoration-none fw-bold" style="color: var(--text-color) !important; font-size: 20px;">
@@ -851,7 +856,7 @@
             </div>
 
             <!-- CONTENT WRAPPER -->
-            <div class="suno-content-wrapper">
+            <div class="suno-content-wrapper" :class="{ 'suno-margin-left-sync': currentUser !== null }">
                 <main class="container py-4">
                     <div th:replace="${view}"></div>
                 </main>

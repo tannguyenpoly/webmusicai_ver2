@@ -1386,6 +1386,7 @@ new Vue({
                 localStorage.removeItem('music_username');
                 localStorage.removeItem('jwt_token');
                 localStorage.removeItem('music_is_admin');
+                document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
                 this.currentUser = null;
                 this.isAdmin = false;
                 this.userTokens = 0;
