@@ -3,6 +3,7 @@ new Vue({
     data: {
         // QUẢN LÝ THEO DÕI CHẾ ĐỘ SÁNG / TỐI ĐỒNG BỘ LAYOUT VÀ INDEX
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
+        currentPage: window.location.pathname,
 
         currentUser: null,
         userPhoto: null,
@@ -187,6 +188,10 @@ new Vue({
         this.loadSessionPlaylist();
     },
     methods: {
+        isTrackPlaying(songId) {
+            return this.currentTrack && this.currentTrack.id === songId && this.isPlaying;
+        },
+
         formatAvatarUrl(url, name) {
             if (!url || url.trim() === '' || url.includes('/images/default-avatar.png')) {
                 const displayName = name || this.currentUser || '?';
