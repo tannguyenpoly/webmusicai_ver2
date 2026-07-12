@@ -31,6 +31,7 @@
             --table-hover: rgba(255, 255, 255, 0.02);
             --btn-outline-guest: rgba(255, 255, 255, 0.4);
             --btn-outline-guest-hover: rgba(255, 255, 255, 0.1);
+            --brand-green: #22c55e;
         }
 
         [data-theme="light"] {
@@ -43,6 +44,7 @@
             --table-hover: rgba(0, 0, 0, 0.02);
             --btn-outline-guest: rgba(0, 0, 0, 0.4);
             --btn-outline-guest-hover: rgba(0, 0, 0, 0.05);
+            --brand-green: #16a34a;
         }
 
         body {
@@ -698,6 +700,70 @@
             border-color: rgba(22, 163, 74, 0.4) !important;
             box-shadow: 0 20px 40px rgba(22, 163, 74, 0.08);
         }
+        /* Suno Sidebar Layout Styles */
+        .suno-wrapper {
+            display: flex;
+            min-height: 100vh;
+            flex: 1;
+        }
+
+        .suno-sidebar {
+            width: 250px;
+            background: var(--card-bg) !important;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1000;
+            padding: 24px 16px;
+            transition: all 0.3s ease;
+        }
+
+        .suno-content-wrapper {
+            flex: 1;
+            margin-left: 250px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .suno-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            color: var(--text-muted) !important;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .suno-nav-link:hover {
+            color: var(--text-color) !important;
+            background: rgba(120, 120, 120, 0.05);
+        }
+
+        .suno-nav-link.active {
+            color: var(--text-color) !important;
+            background: rgba(120, 120, 120, 0.1) !important;
+            font-weight: 600;
+        }
+
+        @media (max-width: 991px) {
+            .suno-sidebar {
+                transform: translateX(-100%);
+                display: none !important;
+            }
+            .suno-content-wrapper {
+                margin-left: 0;
+            }
+        }
     </style>
 
     <script>
@@ -708,14 +774,91 @@
 
 <body>
     <div id="app">
-        <!-- Sử dụng Header từ fragment để tối ưu và dễ bảo trì -->
+        <!-- TOP HEADER: Only visible on mobile/tablet (d-lg-none) -->
         <div th:replace="~{fragments/header :: header}"></div>
 
-        <main class="container">
-            <div th:replace="${view}"></div>
-        </main>
+        <!-- MAIN LAYOUT WRAPPER -->
+        <div class="suno-wrapper">
+            
+            <!-- LEFT SIDEBAR: Only visible on desktop (d-none d-lg-flex) -->
+            <div class="suno-sidebar d-none d-lg-flex" v-cloak>
+                <!-- Logo -->
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <a href="/" class="d-flex align-items-center text-decoration-none fw-bold" style="color: var(--text-color) !important; font-size: 20px;">
+                        <i class="ti ti-wand text-success me-2" style="filter: drop-shadow(0 0 5px #16a34a);"></i>
+                        <span>Music<span class="text-success">AI</span></span>
+                    </a>
+                </div>
 
-        <div th:replace="~{fragments/footer :: footer}"></div>
+                <!-- User Account Info / Token balance -->
+                <div v-if="currentUser !== null" class="p-3 rounded-4 mb-3 d-flex align-items-center justify-content-between" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center gap-2.5 min-w-0" @click="showProfileModal = true; profileModalTab = 'info';" style="cursor: pointer;">
+                        <img :src="formatAvatarUrl(userPhoto, currentUser)" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--brand-green);" alt="Avatar">
+                        <div class="text-truncate">
+                            <div class="fw-bold small text-truncate" style="color: var(--text-color);">{{ currentUser }}</div>
+                            <div class="text-muted-sync" style="font-size: 10px;">
+                                <i class="ti ti-coin text-warning me-0.5"></i> <span class="fw-bold text-warning">{{ userTokens }} Tokens</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button @click="handleLogout" class="btn btn-sm p-1 text-danger border-0" title="Đăng xuất" style="background: transparent;">
+                        <i class="ti ti-logout" style="font-size: 15px;"></i>
+                    </button>
+                </div>
+                
+                <div v-else class="p-3 rounded-4 mb-3 text-center" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color);">
+                    <div class="small text-muted-sync mb-2.5" style="font-size: 11px;">Đăng nhập để sáng tạo nhạc!</div>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="/login" class="btn btn-sm btn-success px-2.5 py-1.5 fw-medium flex-grow-1" style="background: var(--brand-green); border: 0; font-size: 11px;">Đăng nhập</a>
+                        <a href="/register" class="btn btn-sm btn-register-sync px-2.5 py-1.5 flex-grow-1" style="font-size: 11px;">Đăng ký</a>
+                    </div>
+                </div>
+
+                <!-- Upgrade button -->
+                <a href="/orders" class="btn w-100 py-2 mb-4 fw-bold text-white d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px; background: linear-gradient(135deg, #15803d, #22c55e); border: 0; font-size: 13px;">
+                    <i class="ti ti-sparkles"></i> Upgrade to Pro
+                </a>
+
+                <!-- Nav Menu Items -->
+                <div class="nav flex-column gap-1.5">
+                    <a href="/" class="suno-nav-link" :class="{ active: currentPage === '/' }">
+                        <i class="ti ti-home fs-5"></i> <span>Home</span>
+                    </a>
+                    <a href="/#explore-section" class="suno-nav-link">
+                        <i class="ti ti-compass fs-5"></i> <span>Explore</span>
+                    </a>
+                    <a href="/create" class="suno-nav-link" :class="{ active: currentPage === '/create' }">
+                        <i class="ti ti-music fs-5"></i> <span>Create</span>
+                    </a>
+                    <a href="/profile" class="suno-nav-link" :class="{ active: currentPage === '/profile' }">
+                        <i class="ti ti-books fs-5"></i> <span>Library</span>
+                    </a>
+                    <a href="/favorites" class="suno-nav-link" :class="{ active: currentPage === '/favorites' }">
+                        <i class="ti ti-heart fs-5"></i> <span>Favorites</span>
+                    </a>
+                    <a v-if="isAdmin" href="/admin" class="suno-nav-link" :class="{ active: currentPage === '/admin' }">
+                        <i class="ti ti-shield-lock fs-5 text-danger"></i> <span class="text-danger fw-bold">Admin Panel</span>
+                    </a>
+                </div>
+
+                <!-- Bottom ToggleTheme -->
+                <div class="mt-auto pt-3 border-top" style="border-color: var(--border-color) !important;">
+                    <button @click="toggleTheme" class="btn btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-2" style="background: rgba(120, 120, 120, 0.04); border: 1px solid var(--border-color); color: var(--text-color); font-size: 11px;">
+                        <i :class="isDarkMode ? 'ti ti-moon' : 'ti ti-sun'"></i>
+                        <span>{{ isDarkMode ? 'Chế độ Tối' : 'Chế độ Sáng' }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTENT WRAPPER -->
+            <div class="suno-content-wrapper">
+                <main class="container py-4">
+                    <div th:replace="${view}"></div>
+                </main>
+                <div th:replace="~{fragments/footer :: footer}"></div>
+            </div>
+            
+        </div>
 
         <!-- GIAO DIỆN MODAL HỒ SƠ CÁ NHÂN -->
         <div v-if="showProfileModal" v-cloak

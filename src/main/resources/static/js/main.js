@@ -30,6 +30,19 @@ new Vue({
         registerForm: { username: '', fullname: '', email: '', password: '', confirmPassword: '' },
         forgotPasswordForm: { email: '', otp: '', newPassword: '', confirmPassword: '', step: 1, isSending: false },
         filters: { keyword: '' },
+        workspaceFilters: {
+            liked: false,
+            public: false,
+            private: false,
+            pending: false
+        },
+        workspaceSortOption: 'newest',
+        sortLabels: {
+            newest: 'Newest',
+            oldest: 'Oldest',
+            most_liked: 'Most Liked',
+            least_liked: 'Least Liked'
+        },
         pollingTimer: null,
         showQueue: false,
         uploadingSongId: null,
@@ -74,6 +87,60 @@ new Vue({
                     (s.prompt && s.prompt.toLowerCase().includes(kw))
                 );
             }
+            return result;
+        },
+        activeFiltersCount() {
+            let count = 0;
+            if (this.workspaceFilters.liked) count++;
+            if (this.workspaceFilters.public) count++;
+            if (this.workspaceFilters.private) count++;
+            if (this.workspaceFilters.pending) count++;
+            return count;
+        },
+        filteredProfileSongs() {
+            let result = [...this.profileGeneratedSongs];
+            if (this.filters.keyword && this.filters.keyword.trim() !== '') {
+                const kw = this.filters.keyword.toLowerCase();
+                result = result.filter(s =>
+                    (s.title && s.title.toLowerCase().includes(kw)) ||
+                    (s.prompt && s.prompt.toLowerCase().includes(kw))
+                );
+            }
+            
+            const activeOptions = [];
+            if (this.workspaceFilters.public) activeOptions.push('PUBLIC');
+            if (this.workspaceFilters.private) activeOptions.push('PRIVATE');
+            
+            if (activeOptions.length > 0) {
+                result = result.filter(s => activeOptions.includes(s.visibility));
+            }
+            
+            if (this.workspaceFilters.pending) {
+                result = result.filter(s => s.status === 'PENDING');
+            }
+            
+            if (this.workspaceFilters.liked) {
+                result = result.filter(s => this.profileFavoriteSongs.some(fav => (fav.song && fav.song.id === s.id) || fav.songId === s.id));
+            }
+            
+            if (this.workspaceSortOption === 'newest') {
+                result.sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0));
+            } else if (this.workspaceSortOption === 'oldest') {
+                result.sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0));
+            } else if (this.workspaceSortOption === 'most_liked') {
+                const getLikes = (song) => {
+                    const baseLikes = song.id > 10 ? 0 : ((song.id * 23 + 17) % 80 + 10) * 1000;
+                    return baseLikes + (song.total_likes || song.totalLikes || 0);
+                };
+                result.sort((a, b) => getLikes(b) - getLikes(a));
+            } else if (this.workspaceSortOption === 'least_liked') {
+                const getLikes = (song) => {
+                    const baseLikes = song.id > 10 ? 0 : ((song.id * 23 + 17) % 80 + 10) * 1000;
+                    return baseLikes + (song.total_likes || song.totalLikes || 0);
+                };
+                result.sort((a, b) => getLikes(a) - getLikes(b));
+            }
+            
             return result;
         }
     },
@@ -153,6 +220,13 @@ new Vue({
         if (window.location.pathname === '/') {
             this.loadPublicSongs();
         }
+        else if (window.location.pathname === '/create') {
+            if (this.currentUser) {
+                this.profileUsername = this.currentUser;
+                this.loadProfileGeneratedSongs();
+                this.loadProfileFavorites();
+            }
+        }
         else if (window.location.pathname.startsWith('/favorites')) {
             this.loadFavoriteSongs();
         }
@@ -161,6 +235,7 @@ new Vue({
             const songId = pathParts[pathParts.length - 1];
             if (songId) {
                 this.loadSingleSongAndComments(songId);
+                this.loadPublicSongs();
             }
         }
         else if (window.location.pathname === '/orders') {
@@ -190,6 +265,25 @@ new Vue({
     methods: {
         isTrackPlaying(songId) {
             return this.currentTrack && this.currentTrack.id === songId && this.isPlaying;
+        },
+
+        toggleFilterOption(option) {
+            if (option === 'public') {
+                this.workspaceFilters.public = !this.workspaceFilters.public;
+                if (this.workspaceFilters.public) this.workspaceFilters.private = false;
+            } else if (option === 'private') {
+                this.workspaceFilters.private = !this.workspaceFilters.private;
+                if (this.workspaceFilters.private) this.workspaceFilters.public = false;
+            } else {
+                this.workspaceFilters[option] = !this.workspaceFilters[option];
+            }
+        },
+
+        resetWorkspaceFilters() {
+            this.workspaceFilters.liked = false;
+            this.workspaceFilters.public = false;
+            this.workspaceFilters.private = false;
+            this.workspaceFilters.pending = false;
         },
 
         formatAvatarUrl(url, name) {
@@ -537,8 +631,8 @@ new Vue({
 
         getListensCount(songId) {
             if (!songId) return '0';
-            if (songId > 10) {
-                return ((songId * 3 + 5) % 100) + ' lượt nghe';
+            if (songId > 8) {
+                return '0 lượt nghe';
             }
             const seedPlays = (songId * 73 + 124) % 800 + 50;
             return seedPlays + 'K';
@@ -546,10 +640,11 @@ new Vue({
 
         getLikesCount(song) {
             if (!song) return '0';
-            if (song.id > 10) {
+            const id = typeof song === 'object' ? song.id : song;
+            if (id > 8) {
                 return (song.total_likes || 0);
             }
-            const seedLikes = (song.id * 23 + 17) % 80 + 10;
+            const seedLikes = (id * 23 + 17) % 80 + 10;
             return (seedLikes + (song.total_likes || 0)) + 'K';
         },
 
@@ -782,6 +877,17 @@ new Vue({
                     this.Toast.fire({ icon: 'success', title: 'AI đang xử lý giai điệu ngầm...' });
                     this.userTokens = data.remaining_tokens;
                     this.currentTrack = { id: data.songId, title: "AI đang tiến hành xử lý bài hát...", prompt: this.generationForm.prompt, status: "PENDING", audioUrl: "", username: this.currentUser };
+                    if (window.location.pathname === '/' || window.location.pathname === '/profile') {
+                        this.profileGeneratedSongs.unshift({
+                            id: data.songId,
+                            title: "AI đang tiến hành xử lý bài hát...",
+                            prompt: this.generationForm.prompt,
+                            status: "PENDING",
+                            audioUrl: "",
+                            username: this.currentUser,
+                            created_at: new Date().toISOString()
+                        });
+                    }
                     this.generationForm.prompt = '';
                     this.isGenerating = false;
                     this.startPollingStatus(data.songId);
@@ -1048,7 +1154,9 @@ new Vue({
                             this.currentTrack.title = statusData.title;
                             this.currentTrack.audioUrl = statusData.audio_url;
                             this.loadPublicSongs();
-                            if(window.location.pathname === '/profile' && this.profileTab === 'generated') this.loadProfileGeneratedSongs();
+                            if (window.location.pathname === '/' || (window.location.pathname === '/profile' && this.profileTab === 'generated')) {
+                                this.loadProfileGeneratedSongs();
+                            }
                             this.Toast.fire({ icon: 'success', title: `Sinh xong bài: ${statusData.title}!` });
                             this.$nextTick(() => { const audio = document.getElementById('audio-element'); if (audio) { audio.load(); audio.play(); } });
                         } else if (statusData.status === 'FAILED') {

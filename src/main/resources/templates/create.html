@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
+
+<body>
+    <div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;" v-cloak>
+        
+        <style v-pre>
+            .suno-list-item {
+                transition: all 0.25s ease-in-out;
+            }
+            .suno-list-item:hover {
+                background: rgba(120, 120, 120, 0.05) !important;
+                border-color: rgba(22, 163, 74, 0.25) !important;
+                transform: translateX(4px);
+            }
+            .suno-item-playing {
+                background: rgba(22, 163, 74, 0.05) !important;
+                border-color: rgba(22, 163, 74, 0.4) !important;
+                box-shadow: inset 0 0 10px rgba(22, 163, 74, 0.05);
+            }
+            .song-link-hover {
+                transition: color 0.2s;
+            }
+            .song-link-hover:hover {
+                color: var(--brand-green) !important;
+            }
+            textarea.form-control, input.form-control {
+                color: var(--text-color) !important;
+            }
+            textarea.form-control::placeholder, input.form-control::placeholder {
+                color: var(--text-muted) !important;
+                opacity: 0.85;
+            }
+            input.custom-checkbox:checked {
+                background-color: var(--brand-green) !important;
+                border-color: var(--brand-green) !important;
+            }
+            .dropdown-item:hover {
+                background: rgba(22, 163, 74, 0.06) !important;
+            }
+            @media (min-width: 768px) {
+                .border-end-md {
+                    border-right: 1px solid var(--border-color) !important;
+                }
+            }
+        </style>
+
+        <!-- ================= LOGGED IN USER: SUNO-STYLE SPLIT DASHBOARD ================= -->
+        <div v-if="currentUser" class="row g-4 pt-2">
+            
+            <!-- LEFT PANEL: Generation Settings -->
+            <div class="col-lg-5 col-md-6 pe-lg-4 border-end-md">
+                <div class="d-flex flex-column">
+                    <!-- Mode Toggles (Simple / Advanced) -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex gap-1" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 20px; padding: 2px;">
+                            <button class="btn btn-sm text-success fw-bold px-3 py-1 rounded-pill" style="font-size: 11px; background: rgba(22,163,74,0.12); border: 0; color: var(--brand-green) !important;">Simple</button>
+                            <button class="btn btn-sm px-3 py-1 rounded-pill" style="font-size: 11px; border: 0; color: var(--text-muted) !important;" disabled>Advanced</button>
+                        </div>
+                        <span class="badge border text-muted-sync px-2.5 py-1" style="font-size: 10px; border-radius: 20px; background: rgba(120,120,120,0.05) !important; border-color: var(--border-color) !important;">v4.5-all</span>
+                    </div>
+
+                    <!-- Input Mode Tabs -->
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-bold d-flex align-items-center shadow-sm" style="font-size: 12px; background: var(--brand-green) !important; border: 0; color: #fff !important;">
+                            <i class="ti ti-music me-1"></i> Audio
+                        </button>
+                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center" style="font-size: 12px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); color: var(--text-muted) !important; opacity: 0.6;" disabled>
+                            <i class="ti ti-microphone me-1"></i> Voice <span class="badge bg-danger ms-1" style="font-size: 8px; padding: 2px 4px;">New</span>
+                        </button>
+                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center" style="font-size: 12px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); color: var(--text-muted) !important; opacity: 0.6;" disabled>
+                            <i class="ti ti-bulb me-1"></i> Inspo
+                        </button>
+                    </div>
+
+                    <!-- Prompt Input Area (Suno Style) -->
+                    <div class="card p-3 mb-3" style="background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 16px;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0 fw-bold small" style="font-size: 11px; letter-spacing: 0.6px; font-family: 'Inter', sans-serif; color: var(--brand-green) !important;">Ý TƯỞNG ÂM NHẠC (PROMPT)</label>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm p-0 text-muted-sync" title="Undo"><i class="ti ti-arrow-back-up" style="font-size: 14px;"></i></button>
+                                <button class="btn btn-sm p-0 text-muted-sync" title="Redo"><i class="ti ti-arrow-forward-up" style="font-size: 14px;"></i></button>
+                            </div>
+                        </div>
+                        
+                        <textarea v-model="generationForm.prompt" class="form-control border-0 bg-transparent p-0 fs-6 shadow-none"
+                            rows="5" style="resize: none; color: var(--text-color) !important;"
+                            placeholder="Hãy miêu tả phong cách nhạc bạn muốn tạo... Ví dụ: Nhạc lofi chill nhẹ nhàng, có tiếng mưa rơi tí tách, thích hợp cho học bài..."></textarea>
+                        
+                        <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top" style="border-color: var(--border-color) !important;">
+                            <button class="btn btn-sm d-flex align-items-center gap-1 py-1 px-2.5 rounded-pill" style="font-size: 11px; background: rgba(22, 163, 74, 0.08) !important; color: var(--brand-green) !important; border: 1px solid rgba(22, 163, 74, 0.15) !important;">
+                                <i class="ti ti-wand"></i> Gợi ý viết lời
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Instrumental Switch -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch d-flex align-items-center justify-content-between p-0">
+                            <label class="form-check-label text-muted-sync" for="instrumentalSwitch" style="cursor: pointer; font-size: 13px;">Không lời (Instrumental)</label>
+                            <input class="form-check-input custom-switch m-0" type="checkbox" id="instrumentalSwitch" v-model="generationForm.instrumental" style="cursor: pointer;">
+                        </div>
+                    </div>
+
+                    <!-- Create button -->
+                    <button @click="generateMusic" :disabled="isGenerating"
+                        class="btn btn-success w-100 py-2.5 fw-bold d-flex align-items-center justify-content-center shadow-lg" 
+                        style="border-radius: 12px; background: var(--brand-green) !important; border: 0; font-size: 14px; color: #fff !important;">
+                        <span v-if="isGenerating" class="spinner-border spinner-border-sm me-2"></span>
+                        <i v-else class="ti ti-music me-2" style="font-size: 18px;"></i>
+                        {{ isGenerating ? 'AI đang tạo giai điệu...' : 'Bắt đầu sinh nhạc (-1 Token)' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: Workspaces & My Generated Songs -->
+            <div class="col-lg-7 col-md-6 ps-lg-4">
+                <div class="d-flex flex-column h-100">
+                    
+                    <!-- Workspace Header -->
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                        <div>
+                            <h4 class="fw-bold mb-0" style="font-size: 18px; color: var(--text-color) !important;">Workspaces</h4>
+                            <div class="small text-muted-sync mt-0.5">Không gian làm việc &gt; Bài hát của tôi</div>
+                        </div>
+                        
+                        <!-- Search workspace songs -->
+                        <div class="input-group input-group-sm" style="max-width: 250px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; padding: 2px 10px;">
+                            <span class="input-group-text border-0 bg-transparent text-muted-sync p-0"><i class="ti ti-search" style="font-size: 14px;"></i></span>
+                            <input type="text" v-model="filters.keyword" class="form-control border-0 bg-transparent py-1 ps-2" placeholder="Tìm kiếm bài hát..." style="box-shadow: none; font-size: 12px; color: var(--text-color) !important;">
+                        </div>
+                    </div>
+
+                    <!-- Filters and Info Bar -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-secondary border-opacity-10">
+                        <div class="d-flex gap-2">
+                            <div class="dropdown">
+                                <button class="btn btn-sm px-2.5 py-1 rounded-pill dropdown-toggle d-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="font-size: 11px; background: rgba(22, 163, 74, 0.08) !important; color: var(--brand-green) !important; border: 1px solid rgba(22, 163, 74, 0.15) !important;">
+                                    <i class="ti ti-filter"></i> Filters ({{ activeFiltersCount }})
+                                </button>
+                                <ul class="dropdown-menu p-2 border-secondary shadow-lg rounded-4" style="background: var(--card-bg) !important; min-width: 240px; border: 1px solid var(--border-color) !important;">
+                                    <!-- Liked Option -->
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('liked')">
+                                        <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                                            <i class="ti ti-thumb-up"></i> Liked
+                                        </span>
+                                        <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.liked" style="cursor: pointer; border-color: var(--border-color) !important;">
+                                    </li>
+                                    <!-- Public Option -->
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('public')">
+                                        <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                                            <i class="ti ti-world"></i> Public
+                                        </span>
+                                        <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.public" style="cursor: pointer; border-color: var(--border-color) !important;">
+                                    </li>
+                                    <!-- Private Option -->
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('private')">
+                                        <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                                            <i class="ti ti-lock"></i> Private
+                                        </span>
+                                        <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.private" style="cursor: pointer; border-color: var(--border-color) !important;">
+                                    </li>
+                                    <!-- Pending Option -->
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('pending')">
+                                        <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
+                                            <i class="ti ti-loader-2"></i> Pending
+                                        </span>
+                                        <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.pending" style="cursor: pointer; border-color: var(--border-color) !important;">
+                                    </li>
+                                    <li><hr class="dropdown-divider border-secondary" style="opacity: 0.1;"></li>
+                                    <!-- Clear Option -->
+                                    <li class="dropdown-item text-center py-1.5 rounded-3 fw-bold" style="cursor: pointer; font-size: 12px; color: var(--brand-green) !important; background: transparent;" @click.stop="resetWorkspaceFilters">
+                                        Clear filters
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm px-2.5 py-1 rounded-pill dropdown-toggle d-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 11px; background: var(--card-bg) !important; color: var(--text-color) !important; border: 1px solid var(--border-color) !important;">
+                                    <i class="ti ti-sort-ascending"></i> {{ sortLabels[workspaceSortOption] }}
+                                </button>
+                                <ul class="dropdown-menu p-2 border-secondary shadow-lg rounded-4" style="background: var(--card-bg) !important; min-width: 160px; border: 1px solid var(--border-color) !important;">
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'newest'">
+                                        <span style="font-size: 13px;">Newest</span>
+                                        <i v-if="workspaceSortOption === 'newest'" class="ti ti-check text-success" style="font-size: 14px;"></i>
+                                    </li>
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'oldest'">
+                                        <span style="font-size: 13px;">Oldest</span>
+                                        <i v-if="workspaceSortOption === 'oldest'" class="ti ti-check text-success" style="font-size: 14px;"></i>
+                                    </li>
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'most_liked'">
+                                        <span style="font-size: 13px;">Most Liked</span>
+                                        <i v-if="workspaceSortOption === 'most_liked'" class="ti ti-check text-success" style="font-size: 14px;"></i>
+                                    </li>
+                                    <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'least_liked'">
+                                        <span style="font-size: 13px;">Least Liked</span>
+                                        <i v-if="workspaceSortOption === 'least_liked'" class="ti ti-check text-success" style="font-size: 14px;"></i>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <span class="small text-muted-sync">{{ filteredProfileSongs.length }} bài hát</span>
+                    </div>
+
+                    <!-- Workspace Song List -->
+                    <div style="max-height: 480px; overflow-y: auto; padding-right: 4px;" class="custom-scrollbar">
+                        <div v-for="song in filteredProfileSongs" :key="song.id" 
+                            class="d-flex align-items-center gap-3 p-2.5 mb-2 rounded-4 suno-list-item"
+                            :class="{ 'suno-item-playing': isTrackPlaying(song.id) }"
+                            style="background: rgba(120, 120, 120, 0.02); border: 1px solid var(--border-color); transition: all 0.2s;">
+                            
+                            <!-- Cover Art Thumbnail -->
+                            <div class="position-relative flex-shrink-0" style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                                <img :src="getSongCover(song)" class="w-100 h-100 object-fit-cover" alt="Cover">
+                                
+                                <!-- Pending animation -->
+                                <div v-if="song.status === 'PENDING'" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-70">
+                                    <div class="spinner-border text-success" style="width: 16px; height: 16px;" role="status"></div>
+                                </div>
+                                <!-- Play icon hover -->
+                                <div v-else class="position-absolute top-0 start-0 w-100 h-100 bg-black bg-opacity-40 d-flex align-items-center justify-content-center opacity-0 hover-opacity-100" style="transition: opacity 0.2s; cursor: pointer;" @click.stop="playTrack(song)">
+                                    <i :class="['ti text-success', isTrackPlaying(song.id) ? 'ti-player-pause-filled' : 'ti-player-play-filled']" style="font-size: 18px;"></i>
+                                </div>
+                            </div>
+
+                            <!-- Metadata -->
+                            <div class="flex-grow-1 text-truncate" style="min-width: 0;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <a :href="'/song/' + song.id" class="text-decoration-none fw-bold song-link-hover text-truncate" style="font-size: 13px; color: var(--text-color) !important;">
+                                        {{ song.title }}
+                                    </a>
+                                    <span v-if="song.visibility === 'PRIVATE'" class="badge bg-secondary py-0.5 px-1.5 text-uppercase" style="font-size: 8px; border-radius: 4px;">Private</span>
+                                </div>
+                                <div class="small text-muted-sync text-truncate mt-0.5" style="font-size: 11px;">{{ song.prompt }}</div>
+                            </div>
+
+                            <!-- Actions & Time -->
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill text-muted-sync bg-transparent px-2" style="font-size: 10px;">
+                                    {{ formatRelativeTime(song.created_at || song.createdAt) }}
+                                </span>
+                                
+                                <button v-if="song.status === 'COMPLETED'" @click="playTrack(song)" class="btn btn-sm btn-dark p-0 border-0 rounded-circle text-success d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(22, 163, 74, 0.1);">
+                                    <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause-filled' : 'ti-player-play-filled']" style="font-size: 16px;"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Empty workspace list -->
+                        <div v-if="filteredProfileSongs.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+                            <i class="ti ti-music-off mb-2 text-muted" style="font-size: 28px; display: block;"></i>
+                            <span style="font-size: 12px;">Bạn chưa sinh giai điệu nào. Hãy nhập prompt ở panel bên trái để bắt đầu!</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= GUEST USER: UNREACHABLE FOR LOGGED IN ================= -->
+        <div v-else class="text-center py-5">
+            <i class="ti ti-lock text-success mb-3" style="font-size: 48px;"></i>
+            <h4 class="fw-bold text-white">Tính năng Sáng tạo nhạc</h4>
+            <p class="text-muted-sync">Vui lòng đăng nhập để bắt đầu sáng tạo những giai điệu tuyệt vời của riêng bạn.</p>
+            <a href="/login" class="btn btn-success px-4 py-2 mt-2 rounded-pill" style="background: var(--brand-green); border: 0;">Đăng nhập ngay</a>
+        </div>
+
+    </div>
+</body>
+</html>
