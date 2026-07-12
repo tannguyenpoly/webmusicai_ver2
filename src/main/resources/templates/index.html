@@ -2,111 +2,139 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
 
 <body>
-    <div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;">
-        <!-- HERO BANNER SECTION (Suno Style) -->
-        <div class="suno-hero-section">
-            <h1 class="suno-hero-title">Mind blowing<br>song quality</h1>
-            <p class="suno-hero-subtitle">
-                Whether you have a melody in your head, lyrics you've written, or just a feeling you want to hear—MusicAI makes high-quality music creation accessible to all.
-            </p>
+    <div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;" v-cloak>
+        
+        <style v-pre>
+            .suno-list-item {
+                transition: all 0.25s ease-in-out;
+            }
+            .suno-list-item:hover {
+                background: rgba(120, 120, 120, 0.05) !important;
+                border-color: rgba(22, 163, 74, 0.25) !important;
+                transform: translateX(4px);
+            }
+            .suno-item-playing {
+                background: rgba(22, 163, 74, 0.05) !important;
+                border-color: rgba(22, 163, 74, 0.4) !important;
+                box-shadow: inset 0 0 10px rgba(22, 163, 74, 0.05);
+            }
+            .song-link-hover {
+                transition: color 0.2s;
+            }
+            .song-link-hover:hover {
+                color: var(--brand-green) !important;
+            }
+            textarea.form-control, input.form-control {
+                color: var(--text-color) !important;
+            }
+            textarea.form-control::placeholder, input.form-control::placeholder {
+                color: var(--text-muted) !important;
+                opacity: 0.85;
+            }
+            input.custom-checkbox:checked {
+                background-color: var(--brand-green) !important;
+                border-color: var(--brand-green) !important;
+            }
+            .dropdown-item:hover {
+                background: rgba(22, 163, 74, 0.06) !important;
+            }
+        </style>
 
-            <!-- PROMPT MAKER BOX -->
-            <div class="suno-prompt-box">
-                <div v-if="currentUser">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-success-emphasis" style="font-size: 11px; letter-spacing: 0.6px; font-family: 'Inter', sans-serif;">Ý TƯỞNG ÂM NHẠC (PROMPT)</label>
-                        <textarea v-model="generationForm.prompt" class="form-control border-0 bg-transparent text-white py-1 ps-0 fs-6 shadow-none"
-                            rows="2" style="resize: none; color: #fff !important;"
-                            placeholder="Ví dụ: Nhạc lofi chill nhẹ nhàng, có tiếng xèo xèo của đồ ăn review..."></textarea>
+        <!-- ================= HERO BANNER ================= -->
+        <div class="mb-5">
+            <div class="suno-hero-section">
+                <h1 class="suno-hero-title">Mind blowing<br>song quality</h1>
+                <p class="suno-hero-subtitle">
+                    Whether you have a melody in your head, lyrics you've written, or just a feeling you want to hear—MusicAI makes high-quality music creation accessible to all.
+                </p>
+
+                <!-- PROMPT MAKER BOX -->
+                <div class="suno-prompt-box">
+                    <div v-if="currentUser === null" class="text-center py-3">
+                        <i class="ti ti-lock text-muted-sync mb-2" style="font-size: 26px; display: block;"></i>
+                        <span class="text-muted-sync" style="font-size: 13px;">
+                            Vui lòng <a href="/login" class="text-success fw-bold text-decoration-none">Đăng nhập</a> tài khoản để bắt đầu sáng tạo nhạc với AI.
+                        </span>
                     </div>
-                    <div class="d-flex align-items-center justify-content-between pt-3 border-top border-secondary-subtle" style="border-color: rgba(255,255,255,0.06) !important;">
-                        <div class="form-check form-switch d-flex align-items-center mb-0">
-                            <input class="form-check-input custom-switch" type="checkbox"
-                                id="instrumentCheck" v-model="generationForm.instrumental" style="cursor: pointer;">
-                            <label class="form-check-label text-muted-sync ms-2" for="instrumentCheck"
-                                style="cursor: pointer; font-size: 13px;">Không lời (Instrumental)</label>
-                        </div>
-                        <button @click="generateMusic" :disabled="isGenerating"
-                            class="btn btn-success px-4 py-2 fw-bold d-flex align-items-center" style="border-radius: 12px; background: #16a34a; border: 0; font-size: 13px;">
-                            <span v-if="isGenerating" class="spinner-border spinner-border-sm me-2"></span>
-                            <i v-else class="ti ti-wand me-2" style="font-size: 16px;"></i> Bắt đầu sinh nhạc (-1 Token)
-                        </button>
+                    
+                    <div v-else class="text-center mt-4">
+                        <a href="/create" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill shadow-lg" style="background: var(--brand-green); border: 0; font-size: 14px;">
+                            <i class="ti ti-music me-1"></i> Bắt đầu sáng tạo nhạc ngay
+                        </a>
                     </div>
                 </div>
-                <div v-else class="text-center py-3">
-                    <i class="ti ti-lock text-muted-sync mb-2" style="font-size: 26px; display: block;"></i>
-                    <span class="text-muted-sync" style="font-size: 13px;">
-                        Vui lòng <a href="/login" class="text-success fw-bold text-decoration-none">Đăng nhập</a> tài khoản để bắt đầu sáng tạo nhạc với AI.
+            </div>
+        </div>
+
+        <!-- ================= COMMUNITY EXPLORE FEED ================= -->
+        <div id="explore-section" class="pt-4 border-top" style="border-color: var(--border-color) !important;">
+            
+            <!-- EXPLORE SECTION HEADING & SEARCH -->
+            <div class="d-flex flex-column align-items-center mb-4">
+                <h3 class="fw-bold mb-3" style="font-size: 22px; letter-spacing: -0.5px; color: var(--text-color) !important;">Khám Phá Giai Điệu Cộng Đồng</h3>
+                <div class="input-group" style="max-width: 500px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden; padding: 2px 12px;">
+                    <span class="input-group-text border-0 bg-transparent text-muted-sync"><i class="ti ti-search" style="font-size: 18px;"></i></span>
+                    <input type="text" v-model="filters.keyword" class="form-control border-0 bg-transparent py-2" placeholder="Tìm tên bài hát hoặc từ khóa prompt ý tưởng..." style="box-shadow: none; font-size: 13px; color: var(--text-color) !important;">
+                    <span class="badge px-3 py-2 d-flex align-items-center bg-success-subtle text-success border border-success-subtle ms-2 my-auto" style="border-radius: 20px; font-size: 11px;">
+                        {{ filteredSongs.length }} giai điệu
                     </span>
                 </div>
             </div>
-        </div>
 
-        <!-- EXPLORE SECTION HEADING & SEARCH -->
-        <div class="d-flex flex-column align-items-center mb-4">
-            <h3 class="fw-bold mb-3" style="font-size: 22px; letter-spacing: -0.5px;">Khám Phá Giai Điệu Cộng Đồng</h3>
-            <div class="input-group" style="max-width: 500px; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden; padding: 2px 12px;">
-                <span class="input-group-text border-0 bg-transparent text-muted-sync"><i class="ti ti-search" style="font-size: 18px;"></i></span>
-                <input type="text" v-model="filters.keyword" class="form-control border-0 bg-transparent py-2 text-white" placeholder="Tìm tên bài hát hoặc từ khóa prompt ý tưởng..." style="box-shadow: none; font-size: 13px;">
-                <span class="badge px-3 py-2 d-flex align-items-center bg-success-subtle text-success border border-success-subtle ms-2 my-auto" style="border-radius: 20px; font-size: 11px;">
-                    {{ filteredSongs.length }} giai điệu
-                </span>
-            </div>
-        </div>
+            <!-- SUNO STYLE EXPLORE GRID -->
+            <div class="suno-grid mt-4">
+                <div v-for="song in filteredSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)" style="cursor: pointer;">
+                    <div class="suno-cover-wrapper">
+                        <!-- Artwork cover -->
+                        <img :src="getSongCover(song)" class="suno-cover-img" alt="Song Artwork" />
 
-        <!-- SUNO STYLE EXPLORE GRID -->
-        <div class="suno-grid mt-4">
-            <div v-for="song in filteredSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)">
-                <div class="suno-cover-wrapper">
-                    <!-- Artwork cover -->
-                    <img :src="getSongCover(song.id)" class="suno-cover-img" alt="Song Artwork" />
+                        <!-- Top left tiny play icon -->
+                        <div class="suno-top-play-btn" @click.stop="playTrack(song)">
+                            <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
+                        </div>
 
-                    <!-- Top left tiny play icon -->
-                    <div class="suno-top-play-btn" @click.stop="playTrack(song)">
-                        <i :class="['ti', (currentTrack.id === song.id && isPlaying) ? 'ti-player-pause' : 'ti-player-play']"></i>
-                    </div>
+                        <!-- Overlay pending loader if generating (Merged from main) -->
+                        <div v-if="song.status === 'PENDING'" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-black bg-opacity-75" style="z-index: 15;">
+                            <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
+                            <span class="text-white-50" style="font-size: 10px; font-weight: 500;">AI đang xử lý...</span>
+                        </div>
 
-                    <!-- Overlay pending loader if generating -->
-                    <div v-if="song.status === 'PENDING'" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-black bg-opacity-75" style="z-index: 15;">
-                        <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
-                        <span class="text-white-50" style="font-size: 10px; font-weight: 500;">AI đang xử lý...</span>
-                    </div>
+                        <!-- Play icon hover overlay -->
+                        <div v-else class="suno-play-overlay" @click.stop="playTrack(song)">
+                            <div class="suno-play-btn-circle">
+                                <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
+                            </div>
+                        </div>
 
-                    <!-- Play icon hover overlay -->
-                    <div v-else class="suno-play-overlay" @click.stop="playTrack(song)">
-                        <div class="suno-play-btn-circle">
-                            <i :class="['ti', (currentTrack.id === song.id && isPlaying) ? 'ti-player-pause' : 'ti-player-play']" :style="(currentTrack.id === song.id && isPlaying) ? '' : 'padding-left: 2px;'"></i>
+                        <!-- Stat badges overlay -->
+                        <div class="suno-stats-overlay">
+                            <span class="suno-stat-badge">
+                                <i class="ti ti-headset" style="font-size: 10px;"></i>
+                                {{ getListensCount(song.id) }}
+                            </span>
+                            <span class="suno-stat-badge">
+                                <i class="ti ti-heart-filled text-danger" style="font-size: 10px;"></i>
+                                {{ getLikesCount(song) }}
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Stat badges overlay (Listens & Likes) -->
-                    <div class="suno-stats-overlay">
-                        <span class="suno-stat-badge">
-                            <i class="ti ti-headset" style="font-size: 10px;"></i>
-                            {{ getListensCount(song.id) }}
-                        </span>
-                        <span class="suno-stat-badge">
-                            <i class="ti ti-heart-filled text-danger" style="font-size: 10px;"></i>
-                            {{ getLikesCount(song) }}
-                        </span>
+                    <!-- Text metadata -->
+                    <h6 class="suno-card-title">{{ song.title }}</h6>
+                    <div class="suno-card-author-row">
+                        <img :src="formatAvatarUrl(null, song.username)" class="suno-card-avatar" alt="User Avatar" />
+                        <span class="suno-card-author-name">{{ song.username || 'MusicAI Creator' }}</span>
                     </div>
                 </div>
-
-                <!-- Text metadata -->
-                <h6 class="suno-card-title">{{ song.title }}</h6>
-                <div class="suno-card-author-row">
-                    <img :src="formatAvatarUrl(null, song.username)" class="suno-card-avatar" alt="User Avatar" />
-                    <span class="suno-card-author-name">{{ song.username || 'MusicAI Creator' }}</span>
-                </div>
             </div>
-        </div>
 
-        <!-- Fallback if empty -->
-        <div v-if="filteredSongs.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
-            <i class="ti ti-music-off mb-2 text-muted" style="font-size: 32px; display: block;"></i>
-            <span style="font-size: 13px;">Không tìm thấy bài hát công khai nào phù hợp.</span>
+            <!-- Fallback if empty -->
+            <div v-if="filteredSongs.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+                <i class="ti ti-music-off mb-2 text-muted" style="font-size: 32px; display: block;"></i>
+                <span style="font-size: 13px;">Không tìm thấy bài hát công khai nào phù hợp.</span>
+            </div>
+            
         </div>
     </div>
 </body>
-
 </html>

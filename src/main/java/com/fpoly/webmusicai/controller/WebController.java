@@ -24,6 +24,11 @@ public class WebController {
 		return "index";
 	}
 
+	@GetMapping("/create")
+	public String create() {
+		return "create";
+	}
+
 	@GetMapping("/login")
 	public String login() {
 		return "login";

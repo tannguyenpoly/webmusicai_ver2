@@ -30,6 +30,19 @@ new Vue({
         registerForm: { username: '', fullname: '', email: '', password: '', confirmPassword: '' },
         forgotPasswordForm: { email: '', otp: '', newPassword: '', confirmPassword: '', step: 1, isSending: false },
         filters: { keyword: '' },
+        workspaceFilters: {
+            liked: false,
+            public: false,
+            private: false,
+            pending: false
+        },
+        workspaceSortOption: 'newest',
+        sortLabels: {
+            newest: 'Newest',
+            oldest: 'Oldest',
+            most_liked: 'Most Liked',
+            least_liked: 'Least Liked'
+        },
         pollingTimer: null,
         showQueue: false,
         uploadingSongId: null,
@@ -74,6 +87,60 @@ new Vue({
                     (s.prompt && s.prompt.toLowerCase().includes(kw))
                 );
             }
+            return result;
+        },
+        activeFiltersCount() {
+            let count = 0;
+            if (this.workspaceFilters.liked) count++;
+            if (this.workspaceFilters.public) count++;
+            if (this.workspaceFilters.private) count++;
+            if (this.workspaceFilters.pending) count++;
+            return count;
+        },
+        filteredProfileSongs() {
+            let result = [...this.profileGeneratedSongs];
+            if (this.filters.keyword && this.filters.keyword.trim() !== '') {
+                const kw = this.filters.keyword.toLowerCase();
+                result = result.filter(s =>
+                    (s.title && s.title.toLowerCase().includes(kw)) ||
+                    (s.prompt && s.prompt.toLowerCase().includes(kw))
+                );
+            }
+            
+            const activeOptions = [];
+            if (this.workspaceFilters.public) activeOptions.push('PUBLIC');
+            if (this.workspaceFilters.private) activeOptions.push('PRIVATE');
+            
+            if (activeOptions.length > 0) {
+                result = result.filter(s => activeOptions.includes(s.visibility));
+            }
+            
+            if (this.workspaceFilters.pending) {
+                result = result.filter(s => s.status === 'PENDING');
+            }
+            
+            if (this.workspaceFilters.liked) {
+                result = result.filter(s => this.profileFavoriteSongs.some(fav => (fav.song && fav.song.id === s.id) || fav.songId === s.id));
+            }
+            
+            if (this.workspaceSortOption === 'newest') {
+                result.sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0));
+            } else if (this.workspaceSortOption === 'oldest') {
+                result.sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0));
+            } else if (this.workspaceSortOption === 'most_liked') {
+                const getLikes = (song) => {
+                    const baseLikes = song.id > 10 ? 0 : ((song.id * 23 + 17) % 80 + 10) * 1000;
+                    return baseLikes + (song.total_likes || song.totalLikes || 0);
+                };
+                result.sort((a, b) => getLikes(b) - getLikes(a));
+            } else if (this.workspaceSortOption === 'least_liked') {
+                const getLikes = (song) => {
+                    const baseLikes = song.id > 10 ? 0 : ((song.id * 23 + 17) % 80 + 10) * 1000;
+                    return baseLikes + (song.total_likes || song.totalLikes || 0);
+                };
+                result.sort((a, b) => getLikes(a) - getLikes(b));
+            }
+            
             return result;
         }
     },
@@ -153,6 +220,13 @@ new Vue({
         if (window.location.pathname === '/') {
             this.loadPublicSongs();
         }
+        else if (window.location.pathname === '/create') {
+            if (this.currentUser) {
+                this.profileUsername = this.currentUser;
+                this.loadProfileGeneratedSongs();
+                this.loadProfileFavorites();
+            }
+        }
         else if (window.location.pathname.startsWith('/favorites')) {
             this.loadFavoriteSongs();
         }
@@ -161,6 +235,7 @@ new Vue({
             const songId = pathParts[pathParts.length - 1];
             if (songId) {
                 this.loadSingleSongAndComments(songId);
+                this.loadPublicSongs();
             }
         }
         else if (window.location.pathname === '/orders') {
@@ -192,6 +267,25 @@ new Vue({
             return this.currentTrack && this.currentTrack.id === songId && this.isPlaying;
         },
 
+        toggleFilterOption(option) {
+            if (option === 'public') {
+                this.workspaceFilters.public = !this.workspaceFilters.public;
+                if (this.workspaceFilters.public) this.workspaceFilters.private = false;
+            } else if (option === 'private') {
+                this.workspaceFilters.private = !this.workspaceFilters.private;
+                if (this.workspaceFilters.private) this.workspaceFilters.public = false;
+            } else {
+                this.workspaceFilters[option] = !this.workspaceFilters[option];
+            }
+        },
+
+        resetWorkspaceFilters() {
+            this.workspaceFilters.liked = false;
+            this.workspaceFilters.public = false;
+            this.workspaceFilters.private = false;
+            this.workspaceFilters.pending = false;
+        },
+
         formatAvatarUrl(url, name) {
             if (!url || url.trim() === '' || url.includes('/images/default-avatar.png')) {
                 const displayName = name || this.currentUser || '?';
@@ -210,21 +304,15 @@ new Vue({
             
             if (!customUrl && id && this.publicSongs) {
                 const found = this.publicSongs.find(s => s.id === id);
-                if (found && found.coverUrl) {
-                    customUrl = found.coverUrl;
-                }
+                if (found && found.coverUrl) customUrl = found.coverUrl;
             }
             if (!customUrl && id && this.favoriteSongs) {
                 const found = this.favoriteSongs.find(s => s.id === id);
-                if (found && found.coverUrl) {
-                    customUrl = found.coverUrl;
-                }
+                if (found && found.coverUrl) customUrl = found.coverUrl;
             }
             if (!customUrl && id && this.profileGeneratedSongs) {
                 const found = this.profileGeneratedSongs.find(s => s.id === id);
-                if (found && found.coverUrl) {
-                    customUrl = found.coverUrl;
-                }
+                if (found && found.coverUrl) customUrl = found.coverUrl;
             }
             
             if (customUrl && customUrl.trim() !== '') {
@@ -296,30 +384,19 @@ new Vue({
             .then(res => {
                 const coverUrl = res.data.coverUrl;
                 
-                // Cập nhật trong publicSongs
                 const song = this.publicSongs.find(s => s.id === songId);
-                if (song) {
-                    Vue.set(song, 'coverUrl', coverUrl);
-                }
+                if (song) Vue.set(song, 'coverUrl', coverUrl);
                 
-                // Cập nhật trong currentTrack
                 if (this.currentTrack.id === songId) {
                     Vue.set(this.currentTrack, 'coverUrl', coverUrl);
                 }
                 
-                // Cập nhật trong sessionPlaylist
                 const playlistSong = this.sessionPlaylist.find(s => s.id === songId);
-                if (playlistSong) {
-                    Vue.set(playlistSong, 'coverUrl', coverUrl);
-                }
+                if (playlistSong) Vue.set(playlistSong, 'coverUrl', coverUrl);
                 
-                // Cập nhật trong favoriteSongs
                 const favSong = this.favoriteSongs.find(s => s.id === songId);
-                if (favSong) {
-                    Vue.set(favSong, 'coverUrl', coverUrl);
-                }
+                if (favSong) Vue.set(favSong, 'coverUrl', coverUrl);
                 
-                // Cập nhật trong danh sách profile
                 if (this.profileGeneratedSongs) {
                     const profSong = this.profileGeneratedSongs.find(s => s.id === songId);
                     if (profSong) Vue.set(profSong, 'coverUrl', coverUrl);
@@ -363,9 +440,7 @@ new Vue({
                     const newTitle = result.value.trim();
                     axios.put(`/api/songs/${songId}/setting`, { title: newTitle })
                         .then(res => {
-                            if (this.currentTrack.id === songId) {
-                                this.currentTrack.title = newTitle;
-                            }
+                            if (this.currentTrack.id === songId) this.currentTrack.title = newTitle;
                             
                             const publicSong = this.publicSongs.find(s => s.id === songId);
                             if (publicSong) publicSong.title = newTitle;
@@ -546,10 +621,11 @@ new Vue({
 
         getLikesCount(song) {
             if (!song) return '0';
-            if (song.id > 10) {
+            const id = typeof song === 'object' ? song.id : song;
+            if (id > 10) {
                 return (song.total_likes || 0);
             }
-            const seedLikes = (song.id * 23 + 17) % 80 + 10;
+            const seedLikes = (id * 23 + 17) % 80 + 10;
             return (seedLikes + (song.total_likes || 0)) + 'K';
         },
 
@@ -782,6 +858,19 @@ new Vue({
                     this.Toast.fire({ icon: 'success', title: 'AI đang xử lý giai điệu ngầm...' });
                     this.userTokens = data.remaining_tokens;
                     this.currentTrack = { id: data.songId, title: "AI đang tiến hành xử lý bài hát...", prompt: this.generationForm.prompt, status: "PENDING", audioUrl: "", username: this.currentUser };
+                    
+                    if (window.location.pathname === '/' || window.location.pathname === '/profile') {
+                        this.profileGeneratedSongs.unshift({
+                            id: data.songId,
+                            title: "AI đang tiến hành xử lý bài hát...",
+                            prompt: this.generationForm.prompt,
+                            status: "PENDING",
+                            audioUrl: "",
+                            username: this.currentUser,
+                            created_at: new Date().toISOString()
+                        });
+                    }
+                    
                     this.generationForm.prompt = '';
                     this.isGenerating = false;
                     this.startPollingStatus(data.songId);
@@ -789,250 +878,6 @@ new Vue({
                 .catch(error => {
                     this.isGenerating = false;
                     Swal.fire({ icon: 'error', title: 'Thất bại', text: error.response && error.response.data ? error.response.data : 'Lỗi kết nối lõi AI.', confirmButtonColor: '#dc3545' });
-                });
-        },
-
-        playTrack(song) {
-            if (this.currentTrack.id === song.id && this.currentTrack.status === 'COMPLETED') {
-                const audio = document.getElementById('audio-element');
-                if (audio) {
-                    if (audio.paused) {
-                        audio.play().then(() => {
-                            this.isPlaying = true;
-                        }).catch(err => console.error(err));
-                    } else {
-                        audio.pause();
-                        this.isPlaying = false;
-                    }
-                    return;
-                }
-            }
-
-			if (this.pollingTimer && this.currentTrack.id === song.id && this.currentTrack.status === 'PENDING') return;
-			if (this.pollingTimer) clearInterval(this.pollingTimer);
-
-			this.currentTrack = {
-				id: song.id,
-				title: song.title,
-				prompt: song.prompt,
-				status: 'COMPLETED',
-				audioUrl: song.audioUrl,
-				coverUrl: song.coverUrl,
-				username: song.username
-			};
-            this.isPlaying = true;
-
-			this.$nextTick(() => {
-				const audio = document.getElementById('audio-element');
-				if (audio) { 
-                    audio.load(); 
-                    audio.play().then(() => {
-                        this.isPlaying = true;
-                    }).catch(err => console.error(err));
-                }
-			});
-		},
-
-		loadSessionPlaylist() {
-			const data = sessionStorage.getItem('music_session_playlist');
-			this.sessionPlaylist = data ? JSON.parse(data) : [];
-		},
-		addToPlaylist(song) {
-			const isExist = this.sessionPlaylist.some(item => item.id === song.id);
-			if (!isExist) {
-				this.sessionPlaylist.push(song);
-				sessionStorage.setItem('music_session_playlist', JSON.stringify(this.sessionPlaylist));
-				this.Toast.fire({ icon: 'success', title: 'Đã thêm vào danh sách phát tạm' });
-			} else {
-				this.Toast.fire({ icon: 'info', title: 'Bài hát đã tồn tại trong playlist' });
-			}
-		},
-		removeTrack(index) {
-			this.sessionPlaylist.splice(index, 1);
-			sessionStorage.setItem('music_session_playlist', JSON.stringify(this.sessionPlaylist));
-			this.Toast.fire({ icon: 'warning', title: 'Đã xóa bài hát khỏi playlist' });
-		},
-		clearPlaylist() {
-			this.sessionPlaylist = [];
-			sessionStorage.removeItem('music_session_playlist');
-			this.Toast.fire({ icon: 'error', title: 'Đã giải phóng danh sách phát' });
-		},
-
-		loadSingleSongAndComments(songId) {
-			axios.get(`/api/songs/${songId}/status`)
-				.then(response => {
-					this.currentTrack = response.data;
-					this.profileUsername = response.data.username;
-					this.loadFollowStatus();
-					this.loadComments(songId);
-				})
-				.catch(error => {
-					console.error("Không thể tải thông tin bài hát:", error);
-					Swal.fire('Lỗi', 'Không tìm thấy bài hát hoặc bạn không có quyền truy cập.', 'error');
-				});
-		},
-
-		toggleLike(song) {
-			if (!this.currentUser) {
-				Swal.fire({
-					icon: 'warning',
-					title: 'Yêu cầu đăng nhập',
-					text: 'Bạn cần đăng nhập để "thả tim" cho bài hát này.',
-					confirmButtonText: 'Đăng nhập ngay',
-					showCancelButton: true,
-					cancelButtonColor: '#6e7881',
-					confirmButtonColor: '#16a34a',
-					cancelButtonText: 'Hủy'
-				}).then((result) => {
-					if (result.isConfirmed) {
-						window.location.href = '/login';
-					}
-				});
-				return;
-			}
-
-			const originalLikedState = song.liked_by_me;
-			const originalLikeCount = song.total_likes;
-			song.liked_by_me = !song.liked_by_me;
-			song.total_likes += song.liked_by_me ? 1 : -1;
-
-			if (window.location.pathname.startsWith('/favorites') && !song.liked_by_me) {
-				const index = this.favoriteSongs.findIndex(s => s.id === song.id);
-				if (index > -1) {
-					this.favoriteSongs.splice(index, 1);
-				}
-			}
-
-			axios.post(`/api/songs/${song.id}/like`)
-				.then(response => {
-					song.liked_by_me = response.data.liked;
-					song.total_likes = response.data.total_likes;
-					this.Toast.fire({ icon: 'success', title: response.data.message });
-				})
-				.catch(error => {
-					song.liked_by_me = originalLikedState;
-					song.total_likes = originalLikeCount;
-					if (window.location.pathname.startsWith('/favorites') && song.liked_by_me) {
-						const isExist = this.favoriteSongs.some(s => s.id === song.id);
-						if (!isExist) this.favoriteSongs.push(song);
-					}
-					this.Toast.fire({ icon: 'error', title: error.response?.data?.message || 'Đã có lỗi xảy ra' });
-				});
-		},
-
-		handleLogin() {
-			if (!this.loginForm.username.trim()) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
-				return;
-			}
-			if (!this.loginForm.password.trim()) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
-				return;
-			}
-
-			const btn = document.getElementById('submit-btn');
-			if (btn) {
-				btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang kết nối...';
-				btn.disabled = true;
-			}
-
-			axios.post('/api/auth/login', this.loginForm)
-				.then(response => {
-					localStorage.setItem('music_username', response.data.username);
-					localStorage.setItem('jwt_token', response.data.token);
-					localStorage.setItem('music_is_admin', response.data.isAdmin);
-					document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
-
-					if (btn) {
-						btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!';
-						btn.style.background = '#15803d';
-					}
-
-					this.Toast.fire({
-						icon: 'success',
-						title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.`
-					});
-
-					setTimeout(() => {
-						if (response.data.isAdmin) {
-							window.location.href = '/admin';
-						} else {
-							window.location.href = '/';
-						}
-					}, 1000);
-				})
-				.catch(() => {
-					if (btn) {
-						btn.innerHTML = '<i class="ti ti-bolt"></i> Kích hoạt hệ thống';
-						btn.disabled = false;
-					}
-					Swal.fire({
-						icon: 'error',
-						title: 'Đăng nhập thất bại',
-						text: 'Tài khoản hoặc mật khẩu không chính xác.',
-						confirmButtonColor: '#16a34a'
-					});
-				});
-		},
-
-		handleRegister() {
-			if (!this.registerForm.username.trim()) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
-				return;
-			}
-			if (this.registerForm.username.trim().includes(' ')) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên đăng nhập không được chứa khoảng trắng!' });
-				return;
-			}
-			if (!this.registerForm.fullname.trim()) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập họ tên!' });
-				return;
-			}
-			if (!this.registerForm.email.trim()) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập email!' });
-				return;
-			}
-			if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.registerForm.email.trim())) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Email không đúng định dạng!' });
-				return;
-			}
-			if (!this.registerForm.password.trim()) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
-				return;
-			}
-			if (this.registerForm.password.trim().length < 6) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu phải có ít nhất 6 ký tự!' });
-				return;
-			}
-			if (this.registerForm.password !== this.registerForm.confirmPassword) {
-				Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu xác nhận không trùng khớp!' });
-				return;
-			}
-
-			const submitData = {
-				username: this.registerForm.username,
-				fullname: this.registerForm.fullname,
-				email: this.registerForm.email,
-				password: this.registerForm.password
-			};
-
-			axios.post('/api/auth/register', submitData)
-				.then(() => {
-					Swal.fire({
-						icon: 'success',
-						title: 'Thành công',
-						text: 'Tạo tài khoản thành công! Bạn nhận được 5 Token trải nghiệm.',
-						confirmButtonColor: '#16a34a'
-					}).then(() => {
-						window.location.href = '/login';
-					});
-				})
-				.catch(error => {
-					Swal.fire({
-						icon: 'error',
-						title: 'Lỗi',
-						text: error.response && error.response.data ? "Đăng ký thất bại: " + error.response.data : "Tài khoản hoặc Email đã tồn tại."
-                    });
                 });
         },
 
@@ -1048,7 +893,9 @@ new Vue({
                             this.currentTrack.title = statusData.title;
                             this.currentTrack.audioUrl = statusData.audio_url;
                             this.loadPublicSongs();
-                            if(window.location.pathname === '/profile' && this.profileTab === 'generated') this.loadProfileGeneratedSongs();
+                            if (window.location.pathname === '/' || (window.location.pathname === '/profile' && this.profileTab === 'generated')) {
+                                this.loadProfileGeneratedSongs();
+                            }
                             this.Toast.fire({ icon: 'success', title: `Sinh xong bài: ${statusData.title}!` });
                             this.$nextTick(() => { const audio = document.getElementById('audio-element'); if (audio) { audio.load(); audio.play(); } });
                         } else if (statusData.status === 'FAILED') {
@@ -1078,9 +925,27 @@ new Vue({
 
             if (this.pollingTimer && this.currentTrack.id === song.id && this.currentTrack.status === 'PENDING') return;
             if (this.pollingTimer) clearInterval(this.pollingTimer);
-            this.currentTrack = { id: song.id, title: song.title, prompt: song.prompt, status: 'COMPLETED', audioUrl: song.audioUrl, coverUrl: song.coverUrl, username: song.username };
+
+            this.currentTrack = {
+                id: song.id,
+                title: song.title,
+                prompt: song.prompt,
+                status: 'COMPLETED',
+                audioUrl: song.audioUrl,
+                coverUrl: song.coverUrl,
+                username: song.username
+            };
             this.isPlaying = true;
-            this.$nextTick(() => { const audio = document.getElementById('audio-element'); if (audio) { audio.load(); audio.play(); } });
+
+            this.$nextTick(() => {
+                const audio = document.getElementById('audio-element');
+                if (audio) { 
+                    audio.load(); 
+                    audio.play().then(() => {
+                        this.isPlaying = true;
+                    }).catch(err => console.error(err));
+                }
+            });
         },
 
         loadSessionPlaylist() {
@@ -1116,15 +981,31 @@ new Vue({
                     this.loadFollowStatus();
                     this.loadComments(songId);
                 })
-                .catch(error => { Swal.fire('Lỗi', 'Không tìm thấy bài hát hoặc bạn không có quyền truy cập.', 'error'); });
+                .catch(error => {
+                    console.error("Không thể tải thông tin bài hát:", error);
+                    Swal.fire('Lỗi', 'Không tìm thấy bài hát hoặc bạn không có quyền truy cập.', 'error');
+                });
         },
 
         toggleLike(song) {
             if (!this.currentUser) {
-                Swal.fire({ icon: 'warning', title: 'Yêu cầu đăng nhập', text: 'Bạn cần đăng nhập để "thả tim" cho bài hát này.', confirmButtonText: 'Đăng nhập ngay', showCancelButton: true, cancelButtonColor: '#6e7881', confirmButtonColor: '#16a34a', cancelButtonText: 'Hủy' })
-                    .then((result) => { if (result.isConfirmed) { window.location.href = '/login'; } });
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu cầu đăng nhập',
+                    text: 'Bạn cần đăng nhập để "thả tim" cho bài hát này.',
+                    confirmButtonText: 'Đăng nhập ngay',
+                    showCancelButton: true,
+                    cancelButtonColor: '#6e7881',
+                    confirmButtonColor: '#16a34a',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/login';
+                    }
+                });
                 return;
             }
+
             const originalLikedState = song.liked_by_me;
             const originalLikeCount = song.total_likes;
             song.liked_by_me = !song.liked_by_me;
@@ -1132,7 +1013,9 @@ new Vue({
 
             if (window.location.pathname.startsWith('/favorites') && !song.liked_by_me) {
                 const index = this.favoriteSongs.findIndex(s => s.id === song.id);
-                if (index > -1) { this.favoriteSongs.splice(index, 1); }
+                if (index > -1) {
+                    this.favoriteSongs.splice(index, 1);
+                }
             }
 
             axios.post(`/api/songs/${song.id}/like`)
@@ -1153,47 +1036,122 @@ new Vue({
         },
 
         handleLogin() {
+            if (this.loginForm && !this.loginForm.username.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
+                return;
+            }
+            if (this.loginForm && !this.loginForm.password.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
+                return;
+            }
+
             const btn = document.getElementById('submit-btn');
-            if (btn) { btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang kết nối...'; btn.disabled = true; }
+            if (btn) {
+                btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang kết nối...';
+                btn.disabled = true;
+            }
+
             axios.post('/api/auth/login', this.loginForm)
                 .then(response => {
                     localStorage.setItem('music_username', response.data.username);
                     localStorage.setItem('jwt_token', response.data.token);
                     localStorage.setItem('music_is_admin', response.data.isAdmin);
                     document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
-                    if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!'; btn.style.background = '#15803d'; }
-                    this.Toast.fire({ icon: 'success', title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.` });
+
+                    if (btn) {
+                        btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!';
+                        btn.style.background = '#15803d';
+                    }
+
+                    this.Toast.fire({
+                        icon: 'success',
+                        title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.`
+                    });
+
                     setTimeout(() => {
                         if (response.data.isAdmin) {
                             window.location.href = '/admin';
-                        } else { window.location.href = '/'; }
+                        } else {
+                            window.location.href = '/';
+                        }
                     }, 1000);
                 })
                 .catch(() => {
-                    if (btn) { btn.innerHTML = '<i class="ti ti-bolt"></i> Kích hoạt hệ thống'; btn.disabled = false; }
-                    Swal.fire({ icon: 'error', title: 'Đăng nhập thất bại', text: 'Tài khoản hoặc mật khẩu không chính xác.', confirmButtonColor: '#16a34a' });
+                    if (btn) {
+                        btn.innerHTML = '<i class="ti ti-bolt"></i> Kích hoạt hệ thống';
+                        btn.disabled = false;
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Đăng nhập thất bại',
+                        text: 'Tài khoản hoặc mật khẩu không chính xác.',
+                        confirmButtonColor: '#16a34a'
+                    });
                 });
         },
 
         handleRegister() {
+            if (!this.registerForm.username.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
+                return;
+            }
+            if (this.registerForm.username.trim().includes(' ')) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên đăng nhập không được chứa khoảng trắng!' });
+                return;
+            }
+            if (!this.registerForm.fullname.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập họ tên!' });
+                return;
+            }
+            if (!this.registerForm.email.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập email!' });
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.registerForm.email.trim())) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Email không đúng định dạng!' });
+                return;
+            }
+            if (!this.registerForm.password.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
+                return;
+            }
+            if (this.registerForm.password.trim().length < 6) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu phải có ít nhất 6 ký tự!' });
+                return;
+            }
             if (this.registerForm.password !== this.registerForm.confirmPassword) {
                 Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu xác nhận không trùng khớp!' });
                 return;
             }
+
             const btn = document.querySelector('button[type="submit"]');
             if (btn) { btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang khởi tạo...'; btn.disabled = true; }
 
-            const submitData = { username: this.registerForm.username, fullname: this.registerForm.fullname, email: this.registerForm.email, password: this.registerForm.password };
+            const submitData = {
+                username: this.registerForm.username,
+                fullname: this.registerForm.fullname,
+                email: this.registerForm.email,
+                password: this.registerForm.password
+            };
+
             axios.post('/api/auth/register', submitData)
                 .then(() => {
-                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tạo tài khoản thành công! Bạn nhận được 5 Token trải nghiệm.', confirmButtonColor: '#16a34a' })
-                        .then(() => { window.location.href = '/login'; });
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: 'Tạo tài khoản thành công! Bạn nhận được 5 Token trải nghiệm.',
+                        confirmButtonColor: '#16a34a'
+                    }).then(() => {
+                        window.location.href = '/login';
+                    });
                 })
                 .catch(error => {
                     if (btn) { btn.innerHTML = '<i class="ti ti-user-plus"></i> Khởi tạo tài khoản'; btn.disabled = false; }
-                    let errorMsg = "Tài khoản hoặc Email đã tồn tại.";
-                    if (error.response && error.response.data) { errorMsg = error.response.data.message || error.response.data || errorMsg; }
-                    Swal.fire({ icon: 'error', title: 'Đăng ký thất bại', text: errorMsg, confirmButtonColor: '#dc3545' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: error.response && error.response.data ? "Đăng ký thất bại: " + (error.response.data.message || error.response.data) : "Tài khoản hoặc Email đã tồn tại."
+                    });
                 });
         },
 
@@ -1278,6 +1236,7 @@ new Vue({
                 localStorage.removeItem('music_username');
                 localStorage.removeItem('jwt_token');
                 localStorage.removeItem('music_is_admin');
+                document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
                 this.currentUser = null;
                 this.isAdmin = false;
                 this.userTokens = 0;
