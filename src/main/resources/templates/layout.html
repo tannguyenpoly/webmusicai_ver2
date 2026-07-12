@@ -700,6 +700,7 @@
             border-color: rgba(22, 163, 74, 0.4) !important;
             box-shadow: 0 20px 40px rgba(22, 163, 74, 0.08);
         }
+
         /* Suno Sidebar Layout Styles */
         .suno-wrapper {
             display: flex;
@@ -777,17 +778,13 @@
 
 <body>
     <div id="app">
-        <!-- TOP HEADER: Visible only when NOT logged in -->
         <div style="display: none;" v-show="currentUser === null">
             <div th:replace="~{fragments/header :: header}"></div>
         </div>
 
-        <!-- MAIN LAYOUT WRAPPER -->
         <div class="suno-wrapper">
             
-            <!-- LEFT SIDEBAR: Only visible on desktop when logged in -->
             <div class="suno-sidebar d-none" :class="{ 'd-lg-flex': currentUser !== null }" v-cloak>
-                <!-- Logo -->
                 <div class="d-flex align-items-center justify-content-between mb-4">
                     <a href="/" class="d-flex align-items-center text-decoration-none fw-bold" style="color: var(--text-color) !important; font-size: 20px;">
                         <i class="ti ti-wand text-success me-2" style="filter: drop-shadow(0 0 5px #16a34a);"></i>
@@ -795,7 +792,6 @@
                     </a>
                 </div>
 
-                <!-- User Account Info / Token balance -->
                 <div v-if="currentUser !== null" class="p-3 rounded-4 mb-3 d-flex align-items-center justify-content-between" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color);">
                     <div class="d-flex align-items-center gap-2.5 min-w-0" @click="showProfileModal = true; profileModalTab = 'info';" style="cursor: pointer;">
                         <img :src="formatAvatarUrl(userPhoto, currentUser)" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--brand-green);" alt="Avatar">
@@ -819,12 +815,10 @@
                     </div>
                 </div>
 
-                <!-- Upgrade button -->
                 <a href="/orders" class="btn w-100 py-2 mb-4 fw-bold text-white d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px; background: linear-gradient(135deg, #15803d, #22c55e); border: 0; font-size: 13px;">
                     <i class="ti ti-sparkles"></i> Upgrade to Pro
                 </a>
 
-                <!-- Nav Menu Items -->
                 <div class="nav flex-column gap-1.5">
                     <a href="/" class="suno-nav-link" :class="{ active: currentPage === '/' }">
                         <i class="ti ti-home fs-5"></i> <span>Home</span>
@@ -846,7 +840,6 @@
                     </a>
                 </div>
 
-                <!-- Bottom ToggleTheme -->
                 <div class="mt-auto pt-3 border-top" style="border-color: var(--border-color) !important;">
                     <button @click="toggleTheme" class="btn btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-2" style="background: rgba(120, 120, 120, 0.04); border: 1px solid var(--border-color); color: var(--text-color); font-size: 11px;">
                         <i :class="isDarkMode ? 'ti ti-moon' : 'ti ti-sun'"></i>
@@ -855,7 +848,6 @@
                 </div>
             </div>
 
-            <!-- CONTENT WRAPPER -->
             <div class="suno-content-wrapper" :class="{ 'suno-margin-left-sync': currentUser !== null }">
                 <main class="container py-4">
                     <div th:replace="${view}"></div>
@@ -865,11 +857,9 @@
             
         </div>
 
-        <!-- GIAO DIỆN MODAL HỒ SƠ CÁ NHÂN -->
         <div v-if="showProfileModal" v-cloak
             style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display: flex; align-items: center; justify-content: center;">
 
-            <!-- Khung Modal (Ăn theo biến Dark/Light mode) -->
             <div class="card shadow-lg border-0"
                 style="width: 420px; max-width: 90%; border-radius: 20px; overflow: hidden; animation: fadeIn 0.3s ease;">
 
@@ -890,13 +880,11 @@
                 </div>
 
                 <div class="card-body px-4 pb-4 pt-2">
-                    <!-- Alert Thông báo lỗi -->
                     <div v-if="profileModalError" class="alert alert-danger d-flex align-items-center gap-2 py-2 px-3 mb-3 border-0 rounded-3" style="background: rgba(220, 38, 38, 0.12); color: #dc2626; font-size: 13px; border-left: 4px solid #dc2626 !important;">
                         <i class="ti ti-alert-circle fs-5"></i>
                         <span>{{ profileModalError }}</span>
                     </div>
 
-                    <!-- Tab Navigation -->
                     <ul class="nav nav-pills nav-fill mb-4"
                         style="background: rgba(0,0,0,0.05); border-radius: 12px; padding: 4px;">
                         <li class="nav-item">
@@ -911,7 +899,6 @@
                         </li>
                     </ul>
 
-                    <!-- Tab Content: Profile Info -->
                     <div v-if="profileModalTab === 'info'">
                         <div class="mb-3">
                             <label class="form-label small fw-medium text-muted-sync">Họ và tên</label>
@@ -937,7 +924,6 @@
                         </div>
                     </div>
 
-                    <!-- Tab Content: Change Password -->
                     <div v-if="profileModalTab === 'password'">
                         <div class="mb-3">
                             <label class="form-label small fw-medium text-muted-sync">Mật khẩu cũ</label>
@@ -974,7 +960,6 @@
         <input type="file" ref="avatarFileInput" id="avatarFileInputHidden" class="d-none" accept="image/*" @change="uploadAvatarFile">
         <input type="file" id="songCoverFileInputHidden" class="d-none" accept="image/*" @change="uploadSongCoverFile">
 
-        <!-- MODAL CHỈNH SỬA BÀI VIẾT (SONG EDIT MODAL) -->
         <div class="modal fade" id="songEditModal" tabindex="-1" aria-hidden="true" v-cloak>
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content custom-theme-modal border border-secondary shadow-lg" style="background: rgba(18, 22, 19, 0.98); backdrop-filter: blur(20px); border-radius: 16px;">
@@ -1019,15 +1004,12 @@
             </div>
         </div>
 
-        <!-- STICKY BOTTOM PLAYER BAR -->
         <div v-if="currentTrack.id && !isOnSongDetailPage" class="suno-sticky-player" v-cloak>
-            <!-- Left Info -->
             <div class="suno-player-left">
                 <img :src="getSongCover(currentTrack)" class="suno-player-cover" alt="Song Cover" />
                 <div class="overflow-hidden flex-grow-1">
                     <div class="d-flex align-items-center gap-2">
                         <h6 class="suno-player-title mb-0 text-truncate" :title="currentTrack.title" style="max-width: 185px;">{{ currentTrack.title }}</h6>
-                        <!-- Edit Button only for owner or admin -->
                         <button v-if="currentTrack.username === currentUser || isAdmin" @click="openSongEditModal(currentTrack)" class="btn p-0 border-0 text-success" title="Chỉnh sửa bài viết" style="background: transparent;">
                             <i class="ti ti-edit" style="font-size: 13px;"></i>
                         </button>
@@ -1036,43 +1018,34 @@
                 </div>
             </div>
             
-            <!-- Center Controls -->
             <div class="suno-player-center">
                 <div class="suno-audio-wrapper">
-                    <!-- Notification if pending -->
                     <div v-if="currentTrack.status === 'PENDING'" class="text-warning small text-center mb-1">
                         <span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px;"></span> AI đang tạo nhạc...
                     </div>
-                    <!-- Audio Tag -->
                     <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay @play="isPlaying = true" @pause="isPlaying = false" class="custom-audio-player w-100" v-if="currentTrack.audioUrl"></audio>
                 </div>
             </div>
             
-            <!-- Right Actions -->
             <div class="suno-player-right">
-                <!-- Upload Cover button (only for song owner or admin) -->
                 <button v-if="currentTrack.username === currentUser || isAdmin" @click="triggerSongCoverUpload(currentTrack.id)" class="suno-player-btn-circle" title="Tải ảnh bìa mới">
                     <i class="ti ti-camera"></i>
                 </button>
 
-                <!-- Like button -->
                 <button @click="toggleLike(currentTrack)" class="suno-player-btn-circle" :class="{'active-like': currentTrack.liked_by_me}" :title="currentTrack.liked_by_me ? 'Bỏ thích' : 'Thích bài hát này'">
                     <i :class="['ti', currentTrack.liked_by_me ? 'ti-heart-filled' : 'ti-heart']"></i>
                 </button>
                 
-                <!-- Download button -->
                 <a :href="'/api/songs/' + currentTrack.id + '/download'" class="suno-player-btn-circle text-decoration-none" title="Tải bài hát">
                     <i class="ti ti-download"></i>
                 </a>
                 
-                <!-- Queue toggle -->
                 <button @click="showQueue = !showQueue" class="suno-player-btn-circle" :class="{'active-queue': showQueue}" title="Danh sách phát tạm">
                     <i class="ti ti-playlist"></i>
                 </button>
             </div>
         </div>
 
-        <!-- PLAYLIST QUEUE DRAWER -->
         <div v-if="showQueue && currentTrack.id" class="suno-queue-drawer" v-cloak>
             <div class="suno-queue-header">
                 <h6 class="mb-0 text-white fw-bold d-flex align-items-center">
