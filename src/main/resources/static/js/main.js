@@ -89,6 +89,27 @@ new Vue({
             }
             return result;
         },
+        forYouSongs() {
+            if (this.currentUser && this.profileGeneratedSongs.length > 0) {
+                return this.profileGeneratedSongs.slice(0, 5);
+            }
+            return this.publicSongs.slice(0, 5);
+        },
+        studioSongs() {
+            const studio = this.publicSongs.filter(s => s.username);
+            return studio.length > 0 ? studio.slice(0, 5) : this.publicSongs.slice(0, 5);
+        },
+        bestSongs() {
+            return [...this.publicSongs].sort((a, b) => {
+                const getLikes = (song) => {
+                    const id = song.id;
+                    if (id > 10) return (song.total_likes || 0);
+                    const seedLikes = (id * 23 + 17) % 80 + 10;
+                    return (seedLikes + (song.total_likes || 0)) * 1000;
+                };
+                return getLikes(b) - getLikes(a);
+            }).slice(0, 5);
+        },
         activeFiltersCount() {
             let count = 0;
             if (this.workspaceFilters.liked) count++;
@@ -217,7 +238,10 @@ new Vue({
         }
 
         // PHÂN LUỒNG TRANG
-        if (window.location.pathname === '/') {
+        if (window.location.pathname === '/' || window.location.pathname === '/home') {
+            this.loadPublicSongs();
+        }
+        else if (window.location.pathname === '/explore') {
             this.loadPublicSongs();
         }
         else if (window.location.pathname === '/create') {
@@ -225,6 +249,18 @@ new Vue({
                 this.profileUsername = this.currentUser;
                 this.loadProfileGeneratedSongs();
                 this.loadProfileFavorites();
+                
+                // Prefill and auto-create from Home prompt box
+                const promptParam = urlParams.get('prompt');
+                if (promptParam) {
+                    this.generationForm.prompt = promptParam;
+                    const autoParam = urlParams.get('auto');
+                    if (autoParam === 'true') {
+                        setTimeout(() => {
+                            this.generateMusic();
+                        }, 600);
+                    }
+                }
             }
         }
         else if (window.location.pathname.startsWith('/favorites')) {
@@ -263,8 +299,57 @@ new Vue({
         this.loadSessionPlaylist();
     },
     methods: {
+        randomizePrompt() {
+            const prompts = [
+                "Một bản pop ballad buồn bằng tiếng piano du dương, kể về câu chuyện tình cũ dưới mưa...",
+                "Nhạc lofi hip hop thư giãn, nhịp điệu chậm rãi kết hợp tiếng mưa rơi ngoài cửa sổ...",
+                "Nhạc pop sôi động kết hợp âm hưởng EDM hiện đại, mang năng lượng tích cực ngày mới...",
+                "Nhạc cụ truyền thống sáo trúc hòa quyện nhạc điện tử EDM chillout huyền ảo...",
+                "Nhạc rap nhẹ nhàng tâm trạng suy tư về cuộc sống và tương lai thành phố đêm đông...",
+                "Nhạc Acoustic mộc mạc, guitar nhẹ nhàng sâu lắng viết cho buổi hoàng hôn bãi biển..."
+            ];
+            const randomIndex = Math.floor(Math.random() * prompts.length);
+            this.generationForm.prompt = prompts[randomIndex];
+            this.Toast.fire({ icon: 'info', title: 'Đã gợi ý ý tưởng ngẫu nhiên!' });
+        },
+
+        createFromHome() {
+            if (!this.currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu cầu đăng nhập',
+                    text: 'Vui lòng đăng nhập để bắt đầu sáng tạo nhạc với AI.',
+                    confirmButtonText: 'Đăng nhập ngay',
+                    showCancelButton: true,
+                    confirmButtonColor: '#16a34a',
+                    cancelButtonColor: '#6e7881'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/login';
+                    }
+                });
+                return;
+            }
+            if (!this.generationForm.prompt.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập mô tả ý tưởng để AI tạo giai điệu!', confirmButtonColor: '#16a34a' });
+                return;
+            }
+            window.location.href = '/create?prompt=' + encodeURIComponent(this.generationForm.prompt) + '&auto=true';
+        },
+
         isTrackPlaying(songId) {
             return this.currentTrack && this.currentTrack.id === songId && this.isPlaying;
+        },
+
+        scrollRow(rowRef, direction) {
+            const row = this.$refs[rowRef];
+            if (row) {
+                const scrollAmount = 600;
+                row.scrollBy({
+                    left: direction === 'left' ? -scrollAmount : scrollAmount,
+                    behavior: 'smooth'
+                });
+            }
         },
 
         toggleFilterOption(option) {
@@ -304,15 +389,21 @@ new Vue({
             
             if (!customUrl && id && this.publicSongs) {
                 const found = this.publicSongs.find(s => s.id === id);
-                if (found && found.coverUrl) customUrl = found.coverUrl;
+                if (found && found.coverUrl) {
+                    customUrl = found.coverUrl;
+                }
             }
             if (!customUrl && id && this.favoriteSongs) {
                 const found = this.favoriteSongs.find(s => s.id === id);
-                if (found && found.coverUrl) customUrl = found.coverUrl;
+                if (found && found.coverUrl) {
+                    customUrl = found.coverUrl;
+                }
             }
             if (!customUrl && id && this.profileGeneratedSongs) {
                 const found = this.profileGeneratedSongs.find(s => s.id === id);
-                if (found && found.coverUrl) customUrl = found.coverUrl;
+                if (found && found.coverUrl) {
+                    customUrl = found.coverUrl;
+                }
             }
             
             if (customUrl && customUrl.trim() !== '') {
@@ -384,19 +475,30 @@ new Vue({
             .then(res => {
                 const coverUrl = res.data.coverUrl;
                 
+                // Cập nhật trong publicSongs
                 const song = this.publicSongs.find(s => s.id === songId);
-                if (song) Vue.set(song, 'coverUrl', coverUrl);
+                if (song) {
+                    Vue.set(song, 'coverUrl', coverUrl);
+                }
                 
+                // Cập nhật trong currentTrack
                 if (this.currentTrack.id === songId) {
                     Vue.set(this.currentTrack, 'coverUrl', coverUrl);
                 }
                 
+                // Cập nhật trong sessionPlaylist
                 const playlistSong = this.sessionPlaylist.find(s => s.id === songId);
-                if (playlistSong) Vue.set(playlistSong, 'coverUrl', coverUrl);
+                if (playlistSong) {
+                    Vue.set(playlistSong, 'coverUrl', coverUrl);
+                }
                 
+                // Cập nhật trong favoriteSongs
                 const favSong = this.favoriteSongs.find(s => s.id === songId);
-                if (favSong) Vue.set(favSong, 'coverUrl', coverUrl);
+                if (favSong) {
+                    Vue.set(favSong, 'coverUrl', coverUrl);
+                }
                 
+                // Cập nhật trong danh sách profile
                 if (this.profileGeneratedSongs) {
                     const profSong = this.profileGeneratedSongs.find(s => s.id === songId);
                     if (profSong) Vue.set(profSong, 'coverUrl', coverUrl);
@@ -440,7 +542,9 @@ new Vue({
                     const newTitle = result.value.trim();
                     axios.put(`/api/songs/${songId}/setting`, { title: newTitle })
                         .then(res => {
-                            if (this.currentTrack.id === songId) this.currentTrack.title = newTitle;
+                            if (this.currentTrack.id === songId) {
+                                this.currentTrack.title = newTitle;
+                            }
                             
                             const publicSong = this.publicSongs.find(s => s.id === songId);
                             if (publicSong) publicSong.title = newTitle;
