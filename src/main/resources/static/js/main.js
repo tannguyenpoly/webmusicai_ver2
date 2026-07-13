@@ -1180,15 +1180,21 @@ new Vue({
                         }
                     }, 1000);
                 })
-                .catch(() => {
+                .catch(err => {
                     if (btn) {
                         btn.innerHTML = '<i class="ti ti-bolt"></i> Kích hoạt hệ thống';
                         btn.disabled = false;
                     }
+                    let msg = 'Tài khoản hoặc mật khẩu không chính xác.';
+                    if (err.response && err.response.status === 403) {
+                        msg = err.response.data || 'Tài khoản đã bị khóa!';
+                    } else if (err.response && err.response.data) {
+                        msg = err.response.data.message || err.response.data || msg;
+                    }
                     Swal.fire({
                         icon: 'error',
                         title: 'Đăng nhập thất bại',
-                        text: 'Tài khoản hoặc mật khẩu không chính xác.',
+                        text: msg,
                         confirmButtonColor: '#16a34a'
                     });
                 });

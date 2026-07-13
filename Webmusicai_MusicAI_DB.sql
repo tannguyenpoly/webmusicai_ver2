@@ -93,6 +93,7 @@
         model_ver VARCHAR(20) NULL,
         is_remix BIT DEFAULT 0,
         parent_id INT NULL,
+        cover_url   VARCHAR(500) NULL,
         created_at DATETIME DEFAULT GETDATE(),
         username VARCHAR(50) NOT NULL,
         FOREIGN KEY (username) REFERENCES Users(username),
@@ -446,4 +447,10 @@ GO
 
 INSERT INTO Song_Comments (song_id, username, content, parent_id) 
 VALUES (1, 'minh_travel', N'Cảm ơn bạn, cứ tự nhiên nhé!', 1);
+GO
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Songs' AND COLUMN_NAME = 'cover_url')
+BEGIN
+    ALTER TABLE Songs ADD cover_url VARCHAR(500) NULL;
+END
 GO
