@@ -40,36 +40,32 @@
             }
         </style>
 
-        <!-- ================= HERO BANNER (Shown for Guests, or Welcome for Users) ================= -->
         <div class="mb-5">
-            <!-- HERO BANNER SECTION (Suno Style) -->
             <div class="suno-hero-section">
                 <h1 class="suno-hero-title">Mind blowing<br>song quality</h1>
                 <p class="suno-hero-subtitle">
                     Whether you have a melody in your head, lyrics you've written, or just a feeling you want to hear—MusicAI makes high-quality music creation accessible to all.
                 </p>
 
-                <!-- PROMPT MAKER BOX -->
-                <div class="suno-prompt-box" v-if="currentUser === null">
-                    <div class="text-center py-3">
+                <div class="suno-prompt-box">
+                    <div v-if="currentUser === null" class="text-center py-3">
                         <i class="ti ti-lock text-muted-sync mb-2" style="font-size: 26px; display: block;"></i>
                         <span class="text-muted-sync" style="font-size: 13px;">
                             Vui lòng <a href="/login" class="text-success fw-bold text-decoration-none">Đăng nhập</a> tài khoản để bắt đầu sáng tạo nhạc với AI.
                         </span>
                     </div>
-                </div>
-                
-                <div class="text-center mt-4" v-else>
-                    <a href="/create" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill shadow-lg" style="background: var(--brand-green); border: 0; font-size: 14px;">
-                        <i class="ti ti-music me-1"></i> Bắt đầu sáng tạo nhạc ngay
-                    </a>
+                    
+                    <div v-else class="text-center mt-4">
+                        <a href="/create" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill shadow-lg" style="background: var(--brand-green); border: 0; font-size: 14px;">
+                            <i class="ti ti-music me-1"></i> Bắt đầu sáng tạo nhạc ngay
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= COMMUNITY EXPLORE FEED (Always Shown on Home) ================= -->
         <div id="explore-section" class="pt-4 border-top" style="border-color: var(--border-color) !important;">
-            <!-- EXPLORE SECTION HEADING & SEARCH -->
+            
             <div class="d-flex flex-column align-items-center mb-4">
                 <h3 class="fw-bold mb-3" style="font-size: 22px; letter-spacing: -0.5px; color: var(--text-color) !important;">Khám Phá Giai Điệu Cộng Đồng</h3>
                 <div class="input-group" style="max-width: 500px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden; padding: 2px 12px;">
@@ -81,26 +77,26 @@
                 </div>
             </div>
 
-            <!-- EXPLORE GRID -->
             <div class="suno-grid mt-4">
                 <div v-for="song in filteredSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)" style="cursor: pointer;">
                     <div class="suno-cover-wrapper">
-                        <!-- Artwork cover -->
                         <img :src="getSongCover(song)" class="suno-cover-img" alt="Song Artwork" />
 
-                        <!-- Top left tiny play icon -->
                         <div class="suno-top-play-btn" @click.stop="playTrack(song)">
                             <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
                         </div>
 
-                        <!-- Play icon hover overlay -->
-                        <div class="suno-play-overlay" @click.stop="playTrack(song)">
+                        <div v-if="song.status === 'PENDING'" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-black bg-opacity-75" style="z-index: 15;">
+                            <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
+                            <span class="text-white-50" style="font-size: 10px; font-weight: 500;">AI đang xử lý...</span>
+                        </div>
+
+                        <div v-else class="suno-play-overlay" @click.stop="playTrack(song)">
                             <div class="suno-play-btn-circle">
                                 <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
                             </div>
                         </div>
 
-                        <!-- Stat badges overlay -->
                         <div class="suno-stats-overlay">
                             <span class="suno-stat-badge">
                                 <i class="ti ti-headset" style="font-size: 10px;"></i>
@@ -113,7 +109,6 @@
                         </div>
                     </div>
 
-                    <!-- Text metadata -->
                     <h6 class="suno-card-title">{{ song.title }}</h6>
                     <div class="suno-card-author-row">
                         <img :src="formatAvatarUrl(null, song.username)" class="suno-card-avatar" alt="User Avatar" />
@@ -122,13 +117,12 @@
                 </div>
             </div>
 
-            <!-- Fallback if empty -->
             <div v-if="filteredSongs.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
                 <i class="ti ti-music-off mb-2 text-muted" style="font-size: 32px; display: block;"></i>
                 <span style="font-size: 13px;">Không tìm thấy bài hát công khai nào phù hợp.</span>
             </div>
+            
         </div>
-
     </div>
 </body>
 </html>
