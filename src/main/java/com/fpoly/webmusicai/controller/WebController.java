@@ -24,6 +24,15 @@ public class WebController {
 		return "index";
 	}
 
+	@GetMapping("/explore")
+	public String explore(Model model) {
+		List<Song> publicSongs = songRepo.findByIsPublicTrueOrderByCreatedAtDesc();
+
+		model.addAttribute("publicSongs", publicSongs);
+
+		return "explore";
+	}
+
 	@GetMapping("/create")
 	public String create() {
 		return "create";
