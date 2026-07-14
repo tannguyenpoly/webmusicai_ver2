@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -92,6 +93,8 @@ public class AuthController {
 
 			return ResponseEntity.ok(response);
 
+		} catch (DisabledException e) {
+			return ResponseEntity.status(403).body("Tài khoản đã bị khóa!");
 		} catch (AuthenticationException e) {
 			return ResponseEntity.status(401).body("Sai tài khoản hoặc mật khẩu");
 		}

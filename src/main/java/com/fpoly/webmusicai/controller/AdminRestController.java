@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.fpoly.webmusicai.entity.Authority;
 import com.fpoly.webmusicai.entity.Order;
 import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.entity.User;
@@ -53,7 +54,30 @@ public class AdminRestController {
             users = userRepo.findAll(pageable);
         }
 
-        return ResponseEntity.ok(users);
+        List<Map<String, Object>> userMaps = users.getContent().stream().map(u -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("username", u.getUsername());
+            m.put("fullname", u.getFullname());
+            m.put("email", u.getEmail());
+            m.put("photo", u.getPhoto());
+            m.put("tokenBalance", u.getTokenBalance());
+            m.put("enabled", u.getEnabled());
+            m.put("accountTier", u.getAccountTier());
+            m.put("proExpiredAt", u.getProExpiredAt());
+            boolean isAdmin = u.getAuthorities() != null &&
+                u.getAuthorities().stream().anyMatch(a -> a.getRole().getId().equals("ADMIN"));
+            m.put("admin", isAdmin);
+            return m;
+        }).toList();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", userMaps);
+        result.put("totalPages", users.getTotalPages());
+        result.put("totalElements", users.getTotalElements());
+        result.put("number", users.getNumber());
+        result.put("size", users.getSize());
+
+        return ResponseEntity.ok(result);
     }
 
     @PutMapping("/users/{username}/toggle-status")

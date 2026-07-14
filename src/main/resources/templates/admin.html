@@ -550,10 +550,11 @@
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        <button @click="toggleUserStatus(u)" class="btn btn-admin-sm" :class="u.enabled ? 'btn-admin-danger' : 'btn-admin-primary'">
+                                        <button v-if="!u.admin" @click="toggleUserStatus(u)" class="btn btn-admin-sm" :class="u.enabled ? 'btn-admin-danger' : 'btn-admin-primary'">
                                             <i :class="u.enabled ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
                                             {{ u.enabled ? 'Khóa' : 'Mở' }}
                                         </button>
+                                        <span v-else class="text-muted-sync" style="font-size: 13px;">Admin</span>
                                     </td>
                                 </tr>
                                 <tr v-if="!usersPage.content || usersPage.content.length === 0">

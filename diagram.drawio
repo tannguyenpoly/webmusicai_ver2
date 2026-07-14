@@ -1,0 +1,216 @@
+<mxfile host="app.diagrams.net" pages="2">
+  <diagram name="Entities" id="page-entity">
+    <mxGraphModel dx="1037" dy="563" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t-e" parent="1" style="text;html=1;fontSize=20;fontColor=#1A237E;align=center;verticalAlign=middle;resizable=0;autosize=1;" value="&lt;b&gt;Class Diagram: Entity&amp;nbsp;&lt;/b&gt;&lt;i&gt;(UML)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="40" width="290" x="525" y="5" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-user" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;User&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- username: String (PK)&lt;/i&gt;&lt;br&gt;- password: String&lt;br&gt;- fullname: String&lt;br&gt;- email: String&lt;br&gt;- tokenBalance: Integer&lt;br&gt;- enabled: Boolean&lt;br&gt;- accountTier: String&lt;br&gt;- proExpiredAt: Date&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ getAuthorities(): List&lt;br&gt;+ isAccountNonExpired(): boolean&lt;br&gt;+ getUsername(): String&lt;/font&gt;" vertex="1">
+          <mxGeometry height="220" width="240" x="570" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-role" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Role&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: String (PK)&lt;/i&gt;&lt;br&gt;- name: String&lt;/font&gt;" vertex="1">
+          <mxGeometry height="80" width="200" x="100" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-auth" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Authority&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;- id: Integer (PK)&lt;br&gt;&lt;i&gt;+ user: User (FK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;+ role: Role (FK)&lt;/i&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="100" width="200" x="350" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-song" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Song&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: Integer (PK)&lt;/i&gt;&lt;br&gt;- title: String&lt;br&gt;- prompt: String&lt;br&gt;- audioUrl: String&lt;br&gt;- status: String&lt;br&gt;- isPublic: Boolean&lt;br&gt;- createdAt: Date&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ toMap(): Map&lt;/font&gt;" vertex="1">
+          <mxGeometry height="210" width="240" x="570" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-genre" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Genre&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: Integer (PK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;- name: String (unique)&lt;/i&gt;&lt;br&gt;- description: String&lt;br&gt;- createdAt: Date&lt;/font&gt;" vertex="1">
+          <mxGeometry height="110" width="200" x="860" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-fav" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Favorite&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;- id: Integer (PK)&lt;br&gt;&lt;i&gt;+ user: User (FK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;+ song: Song (FK)&lt;/i&gt;&lt;br&gt;- createdAt: Date&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="200" x="100" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-cmt" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;SongComment&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;- id: Integer (PK)&lt;br&gt;- content: String&lt;br&gt;- parentId: Integer&lt;br&gt;- createdAt: Date&lt;br&gt;&lt;i&gt;+ song: Song (FK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;+ user: User (FK)&lt;/i&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ toMap(): Map&lt;/font&gt;" vertex="1">
+          <mxGeometry height="180" width="200" x="340" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-order" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Order&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: Integer (PK)&lt;/i&gt;&lt;br&gt;- orderCode: String&lt;br&gt;- totalPrice: Integer&lt;br&gt;- status: String&lt;br&gt;- createdAt: Date&lt;br&gt;&lt;i&gt;+ user: User (FK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;+ pkg: Package (FK)&lt;/i&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="170" width="220" x="100" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-pkg" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Package&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: Integer (PK)&lt;/i&gt;&lt;br&gt;- name: String&lt;br&gt;- tokens: Integer&lt;br&gt;- price: Integer&lt;br&gt;- description: String&lt;br&gt;- oldPrice: Integer&lt;br&gt;- badge: String&lt;/font&gt;" vertex="1">
+          <mxGeometry height="170" width="220" x="380" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-album" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Album&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: Integer (PK)&lt;/i&gt;&lt;br&gt;- title: String&lt;br&gt;- description: String&lt;br&gt;- coverUrl: String&lt;br&gt;- releaseDate: Date&lt;br&gt;- createdAt: Date&lt;br&gt;&lt;i&gt;+ user: User (FK)&lt;/i&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="170" width="220" x="650" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-pl" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Playlist&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: Integer (PK)&lt;/i&gt;&lt;br&gt;- name: String&lt;br&gt;- isPublic: Boolean&lt;br&gt;- createdAt: Date&lt;br&gt;&lt;i&gt;+ user: User (FK)&lt;/i&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="140" width="220" x="920" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-txn" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Transaction&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;&lt;i&gt;- id: Integer (PK)&lt;/i&gt;&lt;br&gt;- amount: Integer&lt;br&gt;- description: String&lt;br&gt;- createdAt: Date&lt;br&gt;&lt;i&gt;+ user: User (FK)&lt;/i&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="140" width="220" x="100" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-follow" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;Follow&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;- id: Integer (PK)&lt;br&gt;&lt;i&gt;+ follower: User (FK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;+ following: User (FK)&lt;/i&gt;&lt;br&gt;- createdAt: Date&lt;/font&gt;" vertex="1">
+          <mxGeometry height="120" width="220" x="380" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-as" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;AlbumSong&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;- id: Integer (PK)&lt;br&gt;&lt;i&gt;+ album: Album (FK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;+ song: Song (FK)&lt;/i&gt;&lt;br&gt;- trackNumber: Integer&lt;/font&gt;" vertex="1">
+          <mxGeometry height="110" width="200" x="920" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="entity-ps" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" value="&lt;b&gt;&amp;lt;&amp;lt;Entity&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;PlaylistSong&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;- id: Integer (PK)&lt;br&gt;&lt;i&gt;+ playlist: Playlist (FK)&lt;/i&gt;&lt;br&gt;&lt;i&gt;+ song: Song (FK)&lt;/i&gt;&lt;br&gt;- sortOrder: Integer&lt;/font&gt;" vertex="1">
+          <mxGeometry height="110" width="200" x="650" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-auth-1" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-auth" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-auth-m" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-auth" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-auth-role-m" edge="1" parent="1" source="entity-auth" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=none;endArrow=none;rounded=0;" target="entity-role" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-auth-role-1" edge="1" parent="1" source="entity-auth" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=none;endArrow=none;rounded=0;" target="entity-role" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-song-1" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-song" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-song-m" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-song" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-song-genre" edge="1" parent="1" source="entity-song" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=none;endArrow=none;rounded=0;" target="entity-genre" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-song-genre-m" edge="1" parent="1" source="entity-song" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=none;endArrow=none;rounded=0;" target="entity-genre" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-song-fav-1" edge="1" parent="1" source="entity-song" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-fav" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-song-fav-m" edge="1" parent="1" source="entity-song" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-fav" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-song-cmt-1" edge="1" parent="1" source="entity-song" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-cmt" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-song-cmt-m" edge="1" parent="1" source="entity-song" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-cmt" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-order-1" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-order" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-order-m" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-order" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-order-pkg-1" edge="1" parent="1" source="entity-order" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=none;endArrow=none;rounded=0;" target="entity-pkg" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-order-pkg-m" edge="1" parent="1" source="entity-order" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=none;endArrow=none;rounded=0;" target="entity-pkg" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-album-m" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-album" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-pl-m" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-pl" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-album-as-1" edge="1" parent="1" source="entity-album" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-as" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-as-song-m" edge="1" parent="1" source="entity-as" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-song" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-pl-ps-1" edge="1" parent="1" source="entity-pl" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-ps" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-ps-song-m" edge="1" parent="1" source="entity-ps" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-song" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-txn-1" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-txn" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-txn-m" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=1;endArrow=open;endFill=0;rounded=0;" target="entity-txn" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-follow-1" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-follow" value="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r-user-follow-m" edge="1" parent="1" source="entity-user" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#333333;strokeColor=#666666;fontSize=11;startArrow=diamondThin;startFill=0;endArrow=open;endFill=0;rounded=0;" target="entity-follow" value="*">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Controllers + Services + Config" id="page-ctrl">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t-c" value="&lt;b&gt;Class Diagram: Controller / Service / Config&amp;nbsp;&lt;/b&gt;&lt;i&gt;(UML)&lt;/i&gt;" style="text;html=1;fontSize=20;fontColor=#1A237E;fontStyle=1;align=center;verticalAlign=middle;resizable=0;autosize=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="560" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="grp-ctrl" value="&lt;b&gt;Controllers&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6C8EBF;fontColor=#1A237E;fontSize=14;fontStyle=1;dashed=1;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="860" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-auth" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;AuthController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ login(request): ResponseEntity&lt;br&gt;+ register(request): ResponseEntity&lt;br&gt;+ forgotPassword(request): ResponseEntity&lt;br&gt;+ resetPassword(request): ResponseEntity&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="260" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-admin" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;AdminRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ getUsers(page, keyword): Page&lt;br&gt;+ toggleUserStatus(username): void&lt;br&gt;+ getAllSongs(page, status): Page&lt;br&gt;+ deleteSong(id): void&lt;br&gt;+ adminTogglePublic(id): void&lt;br&gt;+ getAllOrders(status, from, to): List&lt;br&gt;+ getRevenue(from, to): Map&lt;br&gt;+ getStatistics(): Map&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="340" y="100" width="270" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-song" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;SongRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ getPublicSongs(): List&lt;br&gt;+ generateMusic(request): ResponseEntity&lt;br&gt;+ getSongStatus(id): ResponseEntity&lt;br&gt;+ toggleVisibility(id): void&lt;br&gt;+ deleteSong(id): void&lt;br&gt;+ toggleLike(id): ResponseEntity&lt;br&gt;+ createComment(id, body): Comment&lt;br&gt;+ remixSong(id, body): Song&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="270" width="270" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-user" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;UserRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ getAuthSession(): User&lt;br&gt;+ getProfile(username): User&lt;br&gt;+ updateProfile(username, req): User&lt;br&gt;+ changePassword(username, req): void&lt;br&gt;+ followUser(username): void&lt;br&gt;+ depositToken(username, req): void&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="640" y="100" width="240" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-order" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;OrderRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ createOrder(body, req): String&lt;br&gt;+ vnpayReturn(request, response): void&lt;br&gt;+ getMyOrders(): List&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="640" y="320" width="240" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-album" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;AlbumRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ createAlbum(body): Album&lt;br&gt;+ getAllAlbums(): List&lt;br&gt;+ getAlbumById(id): Album&lt;br&gt;+ updateAlbum(id, body): Album&lt;br&gt;+ deleteAlbum(id): void&lt;br&gt;+ addSongToAlbum(albumId, songId): void&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="520" width="260" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-pl" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;PlaylistRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ createPlaylist(body): Playlist&lt;br&gt;+ getPublicPlaylists(): List&lt;br&gt;+ getPlaylistById(id): Playlist&lt;br&gt;+ updatePlaylist(id, body): Playlist&lt;br&gt;+ deletePlaylist(id): void&lt;br&gt;+ addSongToPlaylist(plId, songId): void&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="340" y="520" width="260" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-genre" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;GenreRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ CRUD /api/genres&lt;br&gt;+ createGenre(body): Genre&lt;br&gt;+ getAllGenres(): List&lt;br&gt;+ updateGenre(id, body): Genre&lt;br&gt;+ deleteGenre(id): void&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="640" y="520" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-pkg" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;PackageRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ CRUD /api/packages&lt;br&gt;+ getAllPackages(): List&lt;br&gt;+ createPackage(body): Package&lt;br&gt;+ updatePackage(id, body): Package&lt;br&gt;+ deletePackage(id): void&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="720" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-report" value="&lt;b&gt;&amp;lt;&amp;lt;RestController&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;ReportRestController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ getOverview(): Map&lt;br&gt;+ getRevenue(): Map&lt;br&gt;+ getTopLiked(limit): List&lt;br&gt;+ getTopUsers(limit): List&lt;br&gt;+ getUserGrowth(): Map&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="340" y="720" width="260" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-web" value="&lt;b&gt;&amp;lt;&amp;lt;Controller&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;WebController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ index(): String &amp;gt; &amp;quot;index&amp;quot;&lt;br&gt;+ login(): String &amp;gt; &amp;quot;login&amp;quot;&lt;br&gt;+ register(): String &amp;gt; &amp;quot;register&amp;quot;&lt;br&gt;+ favorites(): String &amp;gt; &amp;quot;favorites&amp;quot;&lt;br&gt;+ profile(): String &amp;gt; &amp;quot;profile&amp;quot;&lt;br&gt;+ admin(): String &amp;gt; &amp;quot;admin&amp;quot;&lt;br&gt;+ orders(): String &amp;gt; &amp;quot;orders&amp;quot;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="640" y="720" width="250" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="grp-svc" value="&lt;b&gt;Services / Components&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82B366;fontColor=#1A237E;fontSize=14;fontStyle=1;dashed=1;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="920" y="70" width="440" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-music" value="&lt;b&gt;&amp;lt;&amp;lt;Service&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;MusicGeneratorService&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ generateMusic(prompt): Map&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="940" y="100" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-mail" value="&lt;b&gt;&amp;lt;&amp;lt;Service&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;MailService&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ sendWelcomeEmail(to, name, user): void&lt;br&gt;+ sendInvoiceEmail(user, order): void&lt;br&gt;+ sendResetPasswordOtp(email, otp): void&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="940" y="220" width="260" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-clean" value="&lt;b&gt;&amp;lt;&amp;lt;Component&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;DatabaseCleanupTask&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ cleanupDatabase(): void&lt;br&gt;&lt;i&gt;  @Scheduled(cron = &amp;quot;0 0 0 * * *&amp;quot;)&lt;/i&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="940" y="370" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="grp-cfg" value="&lt;b&gt;Configuration / Security&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673A6;fontColor=#1A237E;fontSize=14;fontStyle=1;dashed=1;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="900" width="1330" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-sec" value="&lt;b&gt;&amp;lt;&amp;lt;Configuration&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;SecurityConfig&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ filterChain(http): SecurityFilterChain&lt;br&gt;+ authorizationManager(): AuthorizationManager&lt;br&gt;+ authenticationManager(): AuthenticationManager&lt;br&gt;+ passwordEncoder(): PasswordEncoder&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="930" width="270" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-jwt-f" value="&lt;b&gt;&amp;lt;&amp;lt;Component&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;JwtFilter&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ doFilterInternal(request, response, chain): void&lt;br&gt;&lt;i&gt;  extends OncePerRequestFilter&lt;/i&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="370" y="930" width="270" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-jwt-s" value="&lt;b&gt;&amp;lt;&amp;lt;Service&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;JwtService&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ generateToken(username): String&lt;br&gt;+ extractUsername(token): String&lt;br&gt;+ isTokenValid(token): boolean&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="690" y="930" width="270" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg-oauth" value="&lt;b&gt;&amp;lt;&amp;lt;Component&amp;gt;&amp;gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#1A237E&quot;&gt;OAuthController&lt;/font&gt;&lt;hr&gt;&lt;font style=&quot;font-size:10px;color:#333333&quot;&gt;+ onAuthenticationSuccess(req, res, auth): void&lt;br&gt;&lt;i&gt;  implements AuthenticationSuccessHandler&lt;/i&gt;&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=11;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="930" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-jwt" value="&lt;i&gt;uses&lt;/i&gt;" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#9673A6;strokeColor=#9673A6;fontSize=10;dashed=1;rounded=0;" edge="1" parent="1" source="cfg-jwt-f" target="cfg-jwt-s">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-sec-jwt" value="&lt;i&gt;@Autowired&lt;/i&gt;" style="edgeStyle=orthogonalEdgeStyle;html=1;fontColor=#9673A6;strokeColor=#9673A6;fontSize=10;dashed=1;rounded=0;" edge="1" parent="1" source="cfg-sec" target="cfg-jwt-f">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
