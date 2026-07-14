@@ -714,13 +714,15 @@ new Vue({
             });
         },
 
-        getListensCount(songId) {
-            if (!songId) return '0';
-            if (songId > 10) {
-                return ((songId * 3 + 5) % 100) + ' lượt nghe';
+        getListensCount(song) {
+            if (!song) return '0 lượt nghe';
+            const id = typeof song === 'object' ? song.id : song;
+            const realListens = typeof song === 'object' ? (song.listenCount || 0) : 0;
+            if (id <= 8) {
+                const seedPlays = (id * 73 + 124) % 800 + 50;
+                return (seedPlays + realListens) + 'K';
             }
-            const seedPlays = (songId * 73 + 124) % 800 + 50;
-            return seedPlays + 'K';
+            return realListens + ' lượt nghe';
         },
 
         getLikesCount(song) {
@@ -1037,9 +1039,11 @@ new Vue({
                 status: 'COMPLETED',
                 audioUrl: song.audioUrl,
                 coverUrl: song.coverUrl,
-                username: song.username
+                username: song.username,
+                listenCount: song.listenCount || 0
             };
             this.isPlaying = true;
+            this.incrementListenCount(song);
 
             this.$nextTick(() => {
                 const audio = document.getElementById('audio-element');
@@ -1050,6 +1054,20 @@ new Vue({
                     }).catch(err => console.error(err));
                 }
             });
+        },
+
+        incrementListenCount(song) {
+            if (!song || !song.id) return;
+            axios.post(`/api/songs/${song.id}/play`)
+                .then(response => {
+                    if (response.data && response.data.success) {
+                        song.listenCount = response.data.listenCount;
+                        if (this.currentTrack.id === song.id) {
+                            this.currentTrack.listenCount = response.data.listenCount;
+                        }
+                    }
+                })
+                .catch(err => console.error("Lỗi tăng lượt nghe:", err));
         },
 
         loadSessionPlaylist() {

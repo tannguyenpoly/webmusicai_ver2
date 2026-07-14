@@ -88,6 +88,9 @@ public class SecurityConfig {
         if (path.startsWith("/api/auth/") || path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
             return true;
         }
+        if ("POST".equals(method) && path.matches("/api/songs/\\d+/play")) {
+            return true;
+        }
         if ("GET".equals(method)) {
             if (path.equals("/api/songs/public")
                     || path.matches("/api/songs/\\d+/status")
