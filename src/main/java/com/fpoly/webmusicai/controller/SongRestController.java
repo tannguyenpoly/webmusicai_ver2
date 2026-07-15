@@ -256,6 +256,7 @@ public class SongRestController {
             result.put("username", song.getUser().getUsername());
             result.put("fullname", song.getUser().getFullname());
             result.put("coverUrl", song.getCoverUrl());
+            result.put("listenCount", song.getListenCount() != null ? song.getListenCount() : 0);
 
             switch (song.getStatus()) {
                 case "COMPLETED" -> {
@@ -269,6 +270,20 @@ public class SongRestController {
             }
 
             return ResponseEntity.ok(result);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/play")
+    public ResponseEntity<?> incrementListenCount(@PathVariable Integer id) {
+        return songRepo.findById(id).map(song -> {
+            int currentCount = song.getListenCount() != null ? song.getListenCount() : 0;
+            song.setListenCount(currentCount + 1);
+            songRepo.save(song);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("listenCount", song.getListenCount());
+            return ResponseEntity.ok(response);
         }).orElse(ResponseEntity.notFound().build());
     }
 
