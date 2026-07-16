@@ -216,11 +216,21 @@
                     <img :src="formatAvatarUrl(comment.user.photo, comment.user.fullname || comment.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
                     <div class="comment-content-wrapper">
                         <div class="comment-header">
-                            <span class="comment-author">{{ comment.user.fullname }}</span>
+                            <span class="comment-author">{{ comment.user.fullname || comment.user.username }}</span>
                             <span class="comment-time">{{ formatRelativeTime(comment.createdAt) }}</span>
                         </div>
-                        <p class="comment-body mb-0">{{ comment.content }}</p>
-                        <div class="comment-actions">
+                        
+                        <!-- Hiển thị nội dung bình luận hoặc form sửa -->
+                        <div v-if="editingComment && editingComment.id === comment.id" class="edit-form my-2">
+                            <textarea v-model="editingComment.content" class="form-control custom-theme-input" rows="2"></textarea>
+                            <div class="text-end mt-2">
+                                <button @click="cancelEditComment" class="btn btn-sm btn-register-sync me-2">Hủy</button>
+                                <button @click="saveComment(comment)" class="btn btn-sm btn-main-sync">Lưu</button>
+                            </div>
+                        </div>
+                        <p v-else class="comment-body mb-0">{{ comment.content }}</p>
+
+                        <div class="comment-actions" v-if="!editingComment || editingComment.id !== comment.id">
                             <button v-if="currentUser" @click="toggleReplyForm(comment.id)" class="comment-action-btn">
                                 <i class="ti ti-arrow-back-up me-1"></i> Trả lời
                             </button>
@@ -234,8 +244,8 @@
 
                         <!-- FORM TRẢ LỜI (HIỂN THỊ KHI CẦN) -->
                         <div v-if="replyingToCommentId === comment.id" class="reply-form">
-                            <textarea v-model="newComment.content" class="form-control custom-theme-input" rows="2"
-                                :placeholder="'Trả lời ' + comment.user.fullname + '...'"></textarea>
+                            <textarea v-model="newReply.content" class="form-control custom-theme-input" rows="2"
+                                :placeholder="'Trả lời ' + (comment.user.fullname || comment.user.username) + '...'"></textarea>
                             <div class="text-end mt-2">
                                 <button @click="toggleReplyForm(null)" class="btn btn-sm btn-register-sync me-2">Hủy</button>
                                 <button @click="postComment(currentTrack.id, comment.id)" class="btn btn-sm btn-main-sync">Gửi trả lời</button>
@@ -244,15 +254,25 @@
 
                         <!-- DANH SÁCH CÁC BÌNH LUẬN TRẢ LỜI (REPLIES) -->
                         <div v-if="comment.replies && comment.replies.length > 0" class="comment-thread mt-4">
-                            <div v-for="(reply, replyIndex) in comment.replies" class="comment-box">
+                            <div v-for="(reply, replyIndex) in comment.replies" class="comment-box" :key="reply.id">
                                 <img :src="formatAvatarUrl(reply.user.photo, reply.user.fullname || reply.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
                                 <div class="comment-content-wrapper">
                                     <div class="comment-header">
-                                        <span class="comment-author">{{ reply.user.fullname }}</span>
+                                        <span class="comment-author">{{ reply.user.fullname || reply.user.username }}</span>
                                         <span class="comment-time">{{ formatRelativeTime(reply.createdAt) }}</span>
                                     </div>
-                                    <p class="comment-body mb-0">{{ reply.content }}</p>
-                                    <div class="comment-actions">
+                                    
+                                    <!-- Hiển thị nội dung reply hoặc form sửa -->
+                                    <div v-if="editingComment && editingComment.id === reply.id" class="edit-form my-2">
+                                        <textarea v-model="editingComment.content" class="form-control custom-theme-input" rows="2"></textarea>
+                                        <div class="text-end mt-2">
+                                            <button @click="cancelEditComment" class="btn btn-sm btn-register-sync me-2">Hủy</button>
+                                            <button @click="saveComment(reply)" class="btn btn-sm btn-main-sync">Lưu</button>
+                                        </div>
+                                    </div>
+                                    <p v-else class="comment-body mb-0">{{ reply.content }}</p>
+
+                                    <div class="comment-actions" v-if="!editingComment || editingComment.id !== reply.id">
                                         <!-- Không cho phép trả lời của trả lời để giữ giao diện đơn giản -->
                                         <button v-if="currentUser === reply.user.username" @click="editComment(reply)" class="comment-action-btn">
                                             <i class="ti ti-pencil me-1"></i> Sửa

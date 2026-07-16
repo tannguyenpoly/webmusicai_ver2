@@ -186,9 +186,11 @@
         song_id INT NOT NULL,
         username VARCHAR(50) NOT NULL,
         content NVARCHAR(500) NOT NULL,
+        parent_id INT NULL,
         created_at DATETIME DEFAULT GETDATE(),
         FOREIGN KEY (song_id) REFERENCES Songs(id),
-        FOREIGN KEY (username) REFERENCES Users(username)
+        FOREIGN KEY (username) REFERENCES Users(username),
+        FOREIGN KEY (parent_id) REFERENCES Song_Comments(id)
     );
     GO
 
