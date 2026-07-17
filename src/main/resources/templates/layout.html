@@ -14,6 +14,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
     <style>
         [v-cloak] {
@@ -32,6 +34,18 @@
             --btn-outline-guest: rgba(255, 255, 255, 0.4);
             --btn-outline-guest-hover: rgba(255, 255, 255, 0.1);
             --brand-green: #22c55e;
+
+            /* BOXCHAT VARIABLES - DARK MODE */
+            --chat-window-bg: rgba(17, 22, 18, 0.95);
+            --chat-body-bg: rgba(10, 15, 13, 0.5);
+            --chat-msg-received-bg: rgba(255, 255, 255, 0.08);
+            --chat-msg-received-text: #ffffff;
+            --chat-footer-bg: rgba(17, 22, 18, 0.4);
+            --chat-input-bg: rgba(255, 255, 255, 0.06);
+            --chat-header-bg: rgba(22, 163, 74, 0.12);
+            --chat-contact-hover-bg: rgba(255, 255, 255, 0.04);
+            --chat-border-color: rgba(255, 255, 255, 0.08);
+            --chat-user-status-color: #22c55e;
         }
 
         [data-theme="light"] {
@@ -45,6 +59,18 @@
             --btn-outline-guest: rgba(0, 0, 0, 0.4);
             --btn-outline-guest-hover: rgba(0, 0, 0, 0.05);
             --brand-green: #16a34a;
+
+            /* BOXCHAT VARIABLES - LIGHT MODE */
+            --chat-window-bg: rgba(255, 255, 255, 0.96);
+            --chat-body-bg: rgba(240, 243, 241, 0.8);
+            --chat-msg-received-bg: rgba(0, 0, 0, 0.06);
+            --chat-msg-received-text: #1a1a1a;
+            --chat-footer-bg: rgba(245, 247, 245, 0.95);
+            --chat-input-bg: rgba(0, 0, 0, 0.04);
+            --chat-header-bg: rgba(22, 163, 74, 0.06);
+            --chat-contact-hover-bg: rgba(0, 0, 0, 0.04);
+            --chat-border-color: rgba(0, 0, 0, 0.08);
+            --chat-user-status-color: #16a34a;
         }
 
         body {
@@ -1022,6 +1048,396 @@
             background-color: var(--brand-green);
             box-shadow: 0 0 10px var(--brand-green);
         }
+
+        /* ========================================================= */
+        /* FLOATING BOXCHAT STYLES                                   */
+        /* ========================================================= */
+        .chat-widget-container {
+            position: fixed;
+            right: 20px;
+            z-index: 9998;
+            transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: inherit;
+        }
+        .chat-widget-fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0084ff 0%, #00c6ff 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(0, 132, 255, 0.35);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            border: none;
+            outline: none;
+        }
+        .chat-widget-fab:hover {
+            transform: scale(1.08) translateY(-2px);
+            box-shadow: 0 12px 28px rgba(0, 132, 255, 0.45);
+        }
+        .chat-widget-fab:active {
+            transform: scale(0.95);
+        }
+        .chat-widget-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+            border: 2px solid var(--card-bg, #0a0f0d);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            animation: chatPulse 2s infinite;
+        }
+        @keyframes chatPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .chat-widget-window {
+            width: 360px;
+            height: 480px;
+            background: var(--chat-window-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--chat-border-color);
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin-bottom: 15px;
+            animation: chatFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: bottom right;
+        }
+        @keyframes chatFadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .chat-header {
+            padding: 15px 20px;
+            background: var(--chat-header-bg);
+            border-bottom: 1px solid var(--chat-border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .chat-header-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow: hidden;
+        }
+        .chat-header-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #0084ff;
+            flex-shrink: 0;
+        }
+        .chat-header-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-header-name {
+            font-weight: 600;
+            font-size: 13.5px;
+            color: var(--text-color, #ffffff);
+            margin: 0;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-header-status {
+            font-size: 10.5px;
+            color: var(--chat-user-status-color);
+            margin: 0;
+        }
+        .chat-header-title {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text-color, #ffffff);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chat-header-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .chat-btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-muted, rgba(255,255,255,0.4));
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .chat-btn-icon:hover {
+            color: var(--text-color, #ffffff);
+            background: var(--chat-input-bg);
+        }
+        .chat-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px 15px;
+            display: flex;
+            flex-direction: column;
+            background: var(--chat-body-bg);
+        }
+        .chat-search-wrapper {
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .chat-search-input {
+            width: 100%;
+            background: var(--chat-input-bg);
+            border: 1px solid var(--chat-border-color);
+            border-radius: 30px;
+            padding: 8px 16px 8px 36px;
+            color: var(--text-color, #ffffff);
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .chat-search-input:focus {
+            border-color: #0084ff;
+            background: var(--chat-input-bg);
+        }
+        .chat-search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted, rgba(255,255,255,0.4));
+            font-size: 14px;
+        }
+        .chat-search-clear {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted, rgba(255,255,255,0.4));
+            font-size: 14px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        .chat-contact-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .chat-contact-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .chat-contact-item:hover {
+            background: var(--chat-contact-hover-bg);
+            border-color: var(--chat-border-color);
+        }
+        .chat-contact-avatar-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
+        .chat-contact-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .chat-contact-info {
+            flex-grow: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .chat-contact-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        .chat-contact-name {
+            font-weight: 600;
+            font-size: 13.5px;
+            color: var(--text-color, #ffffff);
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+        .chat-contact-time {
+            font-size: 10px;
+            color: var(--text-muted, rgba(255,255,255,0.4));
+            flex-shrink: 0;
+        }
+        .chat-contact-msg-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-contact-last-msg {
+            font-size: 12px;
+            color: var(--text-muted, rgba(255,255,255,0.4));
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 185px;
+        }
+        .chat-contact-item.unread .chat-contact-last-msg {
+            color: var(--text-color, #ffffff);
+            font-weight: 600;
+        }
+        .chat-contact-unread-badge {
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            flex-shrink: 0;
+        }
+        .chat-messages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-msg-row {
+            display: flex;
+            width: 100%;
+        }
+        .chat-msg-row.sent {
+            justify-content: flex-end;
+        }
+        .chat-msg-row.received {
+            justify-content: flex-start;
+        }
+        .chat-msg-bubble {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .chat-msg-row.sent .chat-msg-bubble {
+            background: linear-gradient(135deg, #0084ff 0%, #0062e3 100%);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-msg-row.received .chat-msg-bubble {
+            background: var(--chat-msg-received-bg);
+            color: var(--chat-msg-received-text);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--chat-border-color);
+        }
+        .chat-msg-time {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 4px;
+            text-align: right;
+            display: block;
+        }
+        .chat-msg-row.received .chat-msg-time {
+            color: var(--text-muted, rgba(255,255,255,0.4));
+        }
+        .chat-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--chat-border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--chat-footer-bg);
+        }
+        .chat-input-wrapper {
+            flex-grow: 1;
+            position: relative;
+        }
+        .chat-input-field {
+            width: 100%;
+            background: var(--chat-input-bg);
+            border: 1px solid var(--chat-border-color);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: var(--text-color, #ffffff);
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .chat-input-field:focus {
+            border-color: #0084ff;
+            background: var(--chat-input-bg);
+        }
+        .chat-send-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #0084ff;
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 132, 255, 0.25);
+        }
+        .chat-send-btn:hover {
+            background: #0062e3;
+            transform: scale(1.05);
+        }
+        .chat-send-btn:disabled {
+            background: rgba(120, 120, 120, 0.08);
+            color: var(--text-muted, rgba(255,255,255,0.4));
+            cursor: not-allowed;
+            box-shadow: none;
+        }
     </style>
 
     <script>
@@ -1324,6 +1740,127 @@
                     </li>
                 </ul>
             </div>
+        </div>
+
+
+
+        <!-- ========================================================= -->
+        <!-- FLOATING BOXCHAT COMPONENT                                 -->
+        <!-- ========================================================= -->
+        <div v-if="currentUser" class="chat-widget-container" :style="{ bottom: (currentTrack.id && !isOnSongDetailPage) ? '110px' : '20px' }" v-cloak>
+            <!-- Chat Window -->
+            <div v-if="chatOpen" class="chat-widget-window">
+                <!-- Header -->
+                <div class="chat-header">
+                    <!-- If viewing contact list -->
+                    <div v-if="!activeChatUser" class="chat-header-title">
+                        <i class="ti ti-brand-messenger text-success"></i> Nhắn tin
+                    </div>
+                    <!-- If viewing a chat room -->
+                    <div v-else class="chat-header-user">
+                        <button @click="backToContacts" class="chat-btn-icon me-1" title="Quay lại">
+                            <i class="ti ti-arrow-left"></i>
+                        </button>
+                        <img :src="activeChatUser.photo" class="chat-header-avatar" alt="Avatar">
+                        <div class="chat-header-info">
+                            <span class="chat-header-name">{{ activeChatUser.fullname || activeChatUser.username }}</span>
+                            <span class="chat-header-status">Trực tuyến</span>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-header-actions">
+                        <button @click="chatOpen = false" class="chat-btn-icon" title="Đóng">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="chat-body chat-scrollbar" id="chat-body-scroll">
+                    <!-- Case 1: Contact List View -->
+                    <div v-if="!activeChatUser">
+                        <!-- Search Bar -->
+                        <div class="chat-search-wrapper">
+                            <i class="ti ti-search chat-search-icon"></i>
+                            <input type="text" class="chat-search-input" v-model="chatSearchQuery" @input="searchChatUsers" placeholder="Tìm thành viên...">
+                            <button v-if="chatSearchQuery" @click="clearChatSearch" class="chat-search-clear">
+                                <i class="ti ti-circle-x-filled"></i>
+                            </button>
+                        </div>
+
+                        <!-- Search Results -->
+                        <div v-if="chatSearchQuery && chatSearchResults.length > 0" class="chat-contact-list mb-3">
+                            <div class="small text-success px-2 mb-2 fw-semibold">Kết quả tìm kiếm</div>
+                            <div v-for="user in chatSearchResults" :key="user.username" @click="startChatWithUser(user)" class="chat-contact-item">
+                                <img :src="user.photo" class="chat-contact-avatar" alt="Avatar">
+                                <div class="chat-contact-info">
+                                    <h6 class="chat-contact-name">{{ user.fullname || user.username }}</h6>
+                                    <p class="chat-contact-last-msg">@{{ user.username }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else-if="chatSearchQuery && chatSearchResults.length === 0" class="text-center py-4 text-muted small">
+                            Không tìm thấy thành viên.
+                        </div>
+
+                        <!-- Recent Conversations -->
+                        <div v-if="!chatSearchQuery" class="chat-contact-list">
+                            <div class="small text-muted px-2 mb-2 fw-semibold">Gần đây</div>
+                            <div v-for="contact in chatContacts" :key="contact.username" @click="openChatRoom(contact)" class="chat-contact-item" :class="{ 'unread': contact.unreadCount > 0 }">
+                                <div class="chat-contact-avatar-wrapper">
+                                    <img :src="contact.photo" class="chat-contact-avatar" alt="Avatar">
+                                </div>
+                                <div class="chat-contact-info">
+                                    <div class="chat-contact-name-row">
+                                        <h6 class="chat-contact-name">{{ contact.fullname || contact.username }}</h6>
+                                        <span class="chat-contact-time">{{ formatChatTime(contact.timestamp) }}</span>
+                                    </div>
+                                    <div class="chat-contact-msg-row">
+                                        <p class="chat-contact-last-msg">
+                                            <span v-if="contact.lastMessageSender === currentUser" class="text-white-50">Bạn: </span>
+                                            {{ contact.lastMessage }}
+                                        </p>
+                                        <span v-if="contact.unreadCount > 0" class="chat-contact-unread-badge">{{ contact.unreadCount }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="chatContacts.length === 0" class="text-center py-5 text-muted small">
+                                <i class="ti ti-messages d-block mb-2" style="font-size: 28px; opacity: 0.5;"></i>
+                                Chưa có cuộc trò chuyện nào.<br>Tìm kiếm thành viên để bắt đầu chat!
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Case 2: Chat Room Messages -->
+                    <div v-else class="chat-messages-container">
+                        <div v-for="(msg, index) in chatMessages" :key="msg.id || index" class="chat-msg-row" :class="msg.sender === currentUser ? 'sent' : 'received'">
+                            <div class="chat-msg-bubble">
+                                {{ msg.content }}
+                                <span class="chat-msg-time">{{ formatChatTime(msg.timestamp) }}</span>
+                            </div>
+                        </div>
+                        <div v-if="chatMessages.length === 0" class="text-center py-5 text-muted small">
+                            Chưa có tin nhắn.<br>Hãy gửi tin nhắn đầu tiên để kết nối!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div v-if="activeChatUser" class="chat-footer">
+                    <div class="chat-input-wrapper">
+                        <input type="text" class="chat-input-field" v-model="chatInput" @keyup.enter="sendChatMessage" placeholder="Nhập tin nhắn..." maxlength="500">
+                    </div>
+                    <button class="chat-send-btn" @click="sendChatMessage" :disabled="!chatInput || !chatInput.trim()">
+                        <i class="ti ti-send"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Floating Button FAB -->
+            <button @click="toggleChat" class="chat-widget-fab" title="Nhắn tin">
+                <i :class="['ti', chatOpen ? 'ti-chevron-down' : 'ti-brand-messenger']"></i>
+                <span v-if="totalUnreadCount > 0" class="chat-widget-badge">{{ totalUnreadCount }}</span>
+            </button>
         </div>
     </div>
 

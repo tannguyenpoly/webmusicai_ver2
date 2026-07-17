@@ -275,6 +275,10 @@
                                 <i :class="['ti', isFollowing ? 'ti-user-check' : 'ti-user-plus', 'me-1']"></i>
                                 {{ isFollowing ? 'Đang theo dõi' : 'Theo dõi' }}
                             </button>
+                            <button class="btn btn-outline-success rounded-pill px-4 fw-medium shadow-sm"
+                                @click="startChatWith(profileUsername)">
+                                <i class="ti ti-brand-messenger me-1"></i> Nhắn tin
+                            </button>
                         </template>
                     </div>
                 </div>

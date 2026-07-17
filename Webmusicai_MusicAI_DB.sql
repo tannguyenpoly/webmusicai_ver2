@@ -462,3 +462,22 @@ BEGIN
     ALTER TABLE Songs ADD listen_count INT NOT NULL DEFAULT 0;
 END
 GO  
+
+-- =========================================================
+-- 15. TẠO BẢNG CHAT MESSAGES CHO BOXCHAT REAL-TIME
+-- =========================================================
+USE MusicAI_DB;
+GO
+
+IF OBJECT_ID('dbo.Chat_Messages', 'U') IS NULL
+BEGIN
+    CREATE TABLE Chat_Messages (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        sender VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES Users(username),
+        recipient VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES Users(username),
+        content NVARCHAR(MAX) NOT NULL,
+        timestamp DATETIME NOT NULL DEFAULT GETDATE(),
+        is_read BIT NOT NULL DEFAULT 0
+    );
+END
+GO

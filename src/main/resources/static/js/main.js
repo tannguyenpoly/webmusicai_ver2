@@ -76,7 +76,19 @@ new Vue({
         profileFavoriteSongs: [], // Danh sách nhạc yêu thích ở profile
         isLoadingProfileSongs: false,
         isLoadingProfileFav: false,
-        profileSongPagination: { page: 0, size: 10, hasMore: false }
+        profileSongPagination: { page: 0, size: 10, hasMore: false },
+
+        // ================= DATA CHO BOXCHAT =================
+        chatOpen: false,
+        chatContacts: [],
+        activeChatUser: null,
+        chatMessages: [],
+        chatInput: '',
+        chatSearchQuery: '',
+        chatSearchResults: [],
+        stompClient: null,
+        totalUnreadCount: 0,
+        chatSearchTimeout: null
     },
     computed: {
         filteredSongs() {
@@ -250,6 +262,14 @@ new Vue({
             this.isAdmin = localStorage.getItem('music_is_admin') === 'true';
             this.generationForm.username = savedUser;
             this.loadUserTokenBalance(savedUser);
+
+            // Đồng bộ JWT cookie cho WebSocket handshake
+            document.cookie = "jwt_token=" + savedToken + ";path=/;max-age=86400;SameSite=Lax";
+            setTimeout(() => {
+                this.connectWebSocket();
+                this.loadRecentChats();
+                this.loadTotalUnreadCount();
+            }, 600);
         } else {
             this.currentUser = null;
             this.isAdmin = false;
@@ -1382,6 +1402,9 @@ new Vue({
 
         handleLogout(showConfirm = true) {
             const executeLogout = () => {
+                if (this.stompClient) {
+                    try { this.stompClient.disconnect(); } catch(e) {}
+                }
                 localStorage.removeItem('music_username');
                 localStorage.removeItem('jwt_token');
                 localStorage.removeItem('music_is_admin');
@@ -1678,6 +1701,184 @@ new Vue({
             Swal.fire({ title: 'Huỷ đơn hàng?', text: 'Bạn có chắc muốn huỷ đơn này không?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Huỷ đơn', cancelButtonText: 'Giữ lại', confirmButtonColor: '#dc3545' })
                 .then(result => { if (result.isConfirmed) window.location.href = '/orders'; });
         },
-        goToOrders() { window.location.href = '/orders'; }
+        goToOrders() { window.location.href = '/orders'; },
+
+        // ================= METHODS CHO BOXCHAT =================
+        connectWebSocket() {
+            if (this.stompClient && this.stompClient.connected) return;
+            const socket = new SockJS('/ws');
+            this.stompClient = Stomp.over(socket);
+            this.stompClient.debug = null;
+            this.stompClient.connect({}, (frame) => {
+                this.stompClient.subscribe('/user/queue/messages', (messageOutput) => {
+                    const message = JSON.parse(messageOutput.body);
+                    this.handleIncomingChatMessage(message);
+                });
+            }, (error) => {
+                setTimeout(() => {
+                    if (this.currentUser) this.connectWebSocket();
+                }, 5000);
+            });
+        },
+
+        handleIncomingChatMessage(message) {
+            const sender = message.sender.username;
+            const recipient = message.recipient.username;
+            
+            if (this.activeChatUser && 
+                ((sender === this.activeChatUser.username && recipient === this.currentUser) ||
+                 (sender === this.currentUser && recipient === this.activeChatUser.username))) {
+                
+                this.chatMessages.push(message);
+                this.scrollToBottom();
+                
+                if (recipient === this.currentUser) {
+                    axios.put(`/api/chat/messages/read-all?partner=${sender}`)
+                        .then(() => { this.loadRecentChats(); });
+                } else {
+                    this.loadRecentChats();
+                }
+            } else {
+                this.loadRecentChats();
+                this.loadTotalUnreadCount();
+                
+                if (sender !== this.currentUser) {
+                    this.Toast.fire({
+                        icon: 'info',
+                        title: `Tin nhắn mới từ ${message.sender.fullname || sender}`,
+                        text: message.content.substring(0, 30) + (message.content.length > 30 ? '...' : '')
+                    });
+                }
+            }
+        },
+
+        loadRecentChats() {
+            axios.get('/api/chat/recent-chats')
+                .then(response => { this.chatContacts = response.data; })
+                .catch(err => console.error("Lỗi tải tin nhắn gần đây:", err));
+        },
+
+        loadTotalUnreadCount() {
+            axios.get('/api/chat/unread-count')
+                .then(response => { this.totalUnreadCount = response.data.unreadCount; })
+                .catch(err => console.error("Lỗi tải số tin nhắn chưa đọc:", err));
+        },
+
+        toggleChat() {
+            this.chatOpen = !this.chatOpen;
+            if (this.chatOpen) {
+                this.loadRecentChats();
+                this.loadTotalUnreadCount();
+                if (this.activeChatUser) this.scrollToBottom();
+            }
+        },
+
+        openChatRoom(contact) {
+            this.activeChatUser = {
+                username: contact.username,
+                fullname: contact.fullname,
+                photo: contact.photo
+            };
+            this.chatMessages = [];
+            this.chatInput = '';
+            
+            axios.get(`/api/chat/history?partner=${contact.username}`)
+                .then(response => {
+                    this.chatMessages = response.data;
+                    this.scrollToBottom();
+                    return axios.put(`/api/chat/messages/read-all?partner=${contact.username}`);
+                })
+                .then(() => {
+                    this.loadRecentChats();
+                    this.loadTotalUnreadCount();
+                })
+                .catch(err => console.error("Lỗi tải lịch sử chat:", err));
+        },
+
+        backToContacts() {
+            this.activeChatUser = null;
+            this.chatMessages = [];
+            this.chatInput = '';
+            this.loadRecentChats();
+            this.loadTotalUnreadCount();
+        },
+
+        searchChatUsers() {
+            if (this.chatSearchTimeout) clearTimeout(this.chatSearchTimeout);
+            if (!this.chatSearchQuery || !this.chatSearchQuery.trim()) {
+                this.chatSearchResults = [];
+                return;
+            }
+            this.chatSearchTimeout = setTimeout(() => {
+                axios.get(`/api/chat/search-users?query=${this.chatSearchQuery}`)
+                    .then(response => { this.chatSearchResults = response.data; })
+                    .catch(err => console.error("Lỗi tìm kiếm user:", err));
+            }, 300);
+        },
+
+        clearChatSearch() {
+            this.chatSearchQuery = '';
+            this.chatSearchResults = [];
+        },
+
+        startChatWith(username) {
+            if (!this.currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu cầu đăng nhập',
+                    text: 'Vui lòng đăng nhập để thực hiện nhắn tin với thành viên khác!',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+            axios.get(`/api/users/${username}/profile`)
+                .then(response => {
+                    const u = response.data;
+                    const contact = {
+                        username: u.username,
+                        fullname: u.fullname,
+                        photo: u.photo
+                    };
+                    this.chatOpen = true;
+                    this.openChatRoom(contact);
+                })
+                .catch(err => {
+                    Swal.fire('Lỗi', 'Không thể bắt đầu chat với người dùng này.', 'error');
+                });
+        },
+
+        startChatWithUser(user) {
+            this.clearChatSearch();
+            this.openChatRoom(user);
+        },
+
+        sendChatMessage() {
+            if (!this.chatInput || !this.chatInput.trim() || !this.activeChatUser || !this.stompClient || !this.stompClient.connected) return;
+            const chatMessage = {
+                recipient: { username: this.activeChatUser.username },
+                content: this.chatInput.trim()
+            };
+            this.stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+            this.chatInput = '';
+        },
+
+        formatChatTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            const pad = (n) => n < 10 ? '0' + n : n;
+            const timeStr = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+            if (isToday) return timeStr;
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)} ${timeStr}`;
+        },
+
+        scrollToBottom() {
+            setTimeout(() => {
+                const container = document.getElementById('chat-body-scroll');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 100);
+        }
     }
 });
