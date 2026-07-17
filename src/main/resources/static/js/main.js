@@ -64,6 +64,7 @@ new Vue({
         commentPagination: { content: [], number: 0, totalPages: 1, totalElements: 0 },
         isLoadingComments: false,
         newComment: { content: '' },
+        newReply: { content: '' },
         replyingToCommentId: null,
         editingComment: null,
 
@@ -173,6 +174,26 @@ new Vue({
             }
             return config;
         }, error => {
+            return Promise.reject(error);
+        });
+
+        axios.interceptors.response.use(response => {
+            const contentType = response.headers['content-type'];
+            if (contentType && contentType.includes('text/html') && response.config.url.includes('/api/')) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('music_username');
+                localStorage.removeItem('music_is_admin');
+                window.location.href = '/login?error=expired';
+                return Promise.reject(new Error('Session expired'));
+            }
+            return response;
+        }, error => {
+            if (error.response && error.response.status === 401) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('music_username');
+                localStorage.removeItem('music_is_admin');
+                window.location.href = '/login?error=expired';
+            }
             return Promise.reject(error);
         });
     },
@@ -1558,18 +1579,25 @@ new Vue({
         },
 
         postComment(songId, parentId = null) {
-            if (!this.newComment.content.trim()) { this.Toast.fire({ icon: 'warning', title: 'Vui lòng nhập nội dung.' }); return; }
-            const payload = { content: this.newComment.content, parent_id: parentId };
+            const isReply = parentId !== null;
+            const content = isReply ? this.newReply.content.trim() : this.newComment.content.trim();
+            if (!content) { this.Toast.fire({ icon: 'warning', title: 'Vui lòng nhập nội dung.' }); return; }
+            const payload = { content: content, parent_id: parentId };
             axios.post(`/api/songs/${songId}/comments`, payload)
                 .then(response => {
                     if (parentId) {
                         const parentComment = this.commentPagination.content.find(c => c.id === parentId);
-                        if (parentComment) { parentComment.replies.push(response.data); }
+                        if (parentComment) { 
+                            if (!parentComment.replies) { parentComment.replies = []; }
+                            parentComment.replies.push(response.data); 
+                        }
+                        this.newReply.content = '';
                     } else {
+                        if (!response.data.replies) { response.data.replies = []; }
                         this.commentPagination.content.unshift(response.data);
                         this.commentPagination.totalElements++;
+                        this.newComment.content = '';
                     }
-                    this.newComment.content = '';
                     this.replyingToCommentId = null;
                     this.Toast.fire({ icon: 'success', title: 'Đã gửi bình luận!' });
                 })
@@ -1578,7 +1606,31 @@ new Vue({
 
         toggleReplyForm(commentId) {
             this.replyingToCommentId = (this.replyingToCommentId === commentId) ? null : commentId;
-            this.newComment.content = '';
+            this.newReply.content = '';
+        },
+
+        editComment(comment) {
+            this.editingComment = { id: comment.id, content: comment.content };
+        },
+
+        cancelEditComment() {
+            this.editingComment = null;
+        },
+
+        saveComment(originalComment) {
+            if (!this.editingComment.content.trim()) {
+                this.Toast.fire({ icon: 'warning', title: 'Nội dung không được để trống.' });
+                return;
+            }
+            axios.put(`/api/songs/comments/${this.editingComment.id}`, { content: this.editingComment.content })
+                .then(response => {
+                    originalComment.content = response.data.content;
+                    this.editingComment = null;
+                    this.Toast.fire({ icon: 'success', title: 'Đã cập nhật bình luận!' });
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật bình luận.' });
+                });
         },
 
         deleteComment(commentId, index, parentIndex) {

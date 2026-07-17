@@ -46,6 +46,12 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .successHandler(oAuthController)
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .defaultAuthenticationEntryPointFor(
+                                (request, response, authException) -> response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"),
+                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**")
+                        )
+                )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
