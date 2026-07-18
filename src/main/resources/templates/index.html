@@ -110,10 +110,10 @@
                     </div>
 
                     <h6 class="suno-card-title">{{ song.title }}</h6>
-                    <div class="suno-card-author-row">
+                    <a :href="'/profile?u=' + song.username" class="suno-card-author-row text-decoration-none" @click.stop>
                         <img :src="formatAvatarUrl(null, song.username)" class="suno-card-avatar" alt="User Avatar" />
                         <span class="suno-card-author-name">{{ song.username || 'MusicAI Creator' }}</span>
-                    </div>
+                    </a>
                 </div>
             </div>
 

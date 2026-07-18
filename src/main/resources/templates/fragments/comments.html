@@ -213,10 +213,14 @@
             <!-- Dùng template để tránh tạo thẻ div thừa -->
             <template v-for="(comment, index) in commentPagination.content">
                 <div class="comment-box">
-                    <img :src="formatAvatarUrl(comment.user.photo, comment.user.fullname || comment.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                    <a :href="'/profile?u=' + comment.user.username">
+                        <img :src="formatAvatarUrl(comment.user.photo, comment.user.fullname || comment.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                    </a>
                     <div class="comment-content-wrapper">
                         <div class="comment-header">
-                            <span class="comment-author">{{ comment.user.fullname || comment.user.username }}</span>
+                            <a :href="'/profile?u=' + comment.user.username" class="comment-author text-decoration-none song-link-hover">
+                                <span>{{ comment.user.fullname || comment.user.username }}</span>
+                            </a>
                             <span class="comment-time">{{ formatRelativeTime(comment.createdAt) }}</span>
                         </div>
                         
@@ -255,10 +259,14 @@
                         <!-- DANH SÁCH CÁC BÌNH LUẬN TRẢ LỜI (REPLIES) -->
                         <div v-if="comment.replies && comment.replies.length > 0" class="comment-thread mt-4">
                             <div v-for="(reply, replyIndex) in comment.replies" class="comment-box" :key="reply.id">
-                                <img :src="formatAvatarUrl(reply.user.photo, reply.user.fullname || reply.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                                <a :href="'/profile?u=' + reply.user.username">
+                                    <img :src="formatAvatarUrl(reply.user.photo, reply.user.fullname || reply.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                                </a>
                                 <div class="comment-content-wrapper">
                                     <div class="comment-header">
-                                        <span class="comment-author">{{ reply.user.fullname || reply.user.username }}</span>
+                                        <a :href="'/profile?u=' + reply.user.username" class="comment-author text-decoration-none song-link-hover">
+                                            <span>{{ reply.user.fullname || reply.user.username }}</span>
+                                        </a>
                                         <span class="comment-time">{{ formatRelativeTime(reply.createdAt) }}</span>
                                     </div>
                                     
