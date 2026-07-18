@@ -424,3 +424,16 @@ SELECT 'Playlists' AS TableName, COUNT(*) AS TotalRows FROM Playlists;
 SELECT 'Genres' AS TableName, COUNT(*) AS TotalRows FROM Genres;
 SELECT 'Albums' AS TableName, COUNT(*) AS TotalRows FROM Albums;
 GO
+
+-- [19] Chat_Messages (Bảng lưu tin nhắn chat giữa các người dùng)
+CREATE TABLE Chat_Messages (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    sender VARCHAR(50) NOT NULL,
+    recipient VARCHAR(50) NOT NULL,
+    content NVARCHAR(MAX) NULL,
+    timestamp DATETIME DEFAULT GETDATE(),
+    is_read BIT DEFAULT 0,
+    FOREIGN KEY (sender) REFERENCES Users(username),
+    FOREIGN KEY (recipient) REFERENCES Users(username)
+);
+GO
