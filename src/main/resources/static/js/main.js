@@ -88,7 +88,30 @@ new Vue({
         chatSearchResults: [],
         stompClient: null,
         totalUnreadCount: 0,
-        chatSearchTimeout: null
+        chatSearchTimeout: null,
+
+        // ================= TÌM KIẾM CREATOR (EXPLORE) =================
+        matchingCreators: [],
+        creatorSearchTimeout: null
+    },
+    watch: {
+        'filters.keyword': function (newVal) {
+            if (this.creatorSearchTimeout) clearTimeout(this.creatorSearchTimeout);
+            if (!newVal || !newVal.trim()) {
+                this.matchingCreators = [];
+                return;
+            }
+            this.creatorSearchTimeout = setTimeout(() => {
+                axios.get('/api/users/search?query=' + encodeURIComponent(newVal.trim()))
+                    .then(response => {
+                        this.matchingCreators = response.data || [];
+                    })
+                    .catch(err => {
+                        console.error('Lỗi tìm kiếm creator:', err);
+                        this.matchingCreators = [];
+                    });
+            }, 300);
+        }
     },
     computed: {
         filteredSongs() {
@@ -1721,19 +1744,39 @@ new Vue({
             });
         },
 
-        handleIncomingChatMessage(message) {
-            const sender = message.sender.username;
-            const recipient = message.recipient.username;
-            
+        isMyMessage(msg) {
+            if (!msg || !msg.sender || !this.currentUser) return false;
+            const senderName = typeof msg.sender === 'object' ? msg.sender.username : msg.sender;
+            return senderName === this.currentUser;
+        },
+
+        handleIncomingChatMessage(rawMessage) {
+            if (!rawMessage) return;
+            const senderUsername = (typeof rawMessage.sender === 'object' && rawMessage.sender !== null) 
+                ? rawMessage.sender.username 
+                : rawMessage.sender;
+            const recipientUsername = (typeof rawMessage.recipient === 'object' && rawMessage.recipient !== null) 
+                ? rawMessage.recipient.username 
+                : rawMessage.recipient;
+
+            const normalizedMessage = {
+                id: rawMessage.id,
+                sender: senderUsername,
+                recipient: recipientUsername,
+                content: rawMessage.content,
+                timestamp: rawMessage.timestamp,
+                isRead: rawMessage.isRead
+            };
+
             if (this.activeChatUser && 
-                ((sender === this.activeChatUser.username && recipient === this.currentUser) ||
-                 (sender === this.currentUser && recipient === this.activeChatUser.username))) {
+                ((senderUsername === this.activeChatUser.username && recipientUsername === this.currentUser) ||
+                 (senderUsername === this.currentUser && recipientUsername === this.activeChatUser.username))) {
                 
-                this.chatMessages.push(message);
+                this.chatMessages.push(normalizedMessage);
                 this.scrollToBottom();
                 
-                if (recipient === this.currentUser) {
-                    axios.put(`/api/chat/messages/read-all?partner=${sender}`)
+                if (recipientUsername === this.currentUser) {
+                    axios.put(`/api/chat/messages/read-all?partner=${senderUsername}`)
                         .then(() => { this.loadRecentChats(); });
                 } else {
                     this.loadRecentChats();
@@ -1742,11 +1785,14 @@ new Vue({
                 this.loadRecentChats();
                 this.loadTotalUnreadCount();
                 
-                if (sender !== this.currentUser) {
+                if (senderUsername !== this.currentUser) {
+                    const senderDisplayName = (typeof rawMessage.sender === 'object' && rawMessage.sender !== null && rawMessage.sender.fullname) 
+                        ? rawMessage.sender.fullname 
+                        : senderUsername;
                     this.Toast.fire({
                         icon: 'info',
-                        title: `Tin nhắn mới từ ${message.sender.fullname || sender}`,
-                        text: message.content.substring(0, 30) + (message.content.length > 30 ? '...' : '')
+                        title: `Tin nhắn mới từ ${senderDisplayName}`,
+                        text: (rawMessage.content || '').substring(0, 30) + ((rawMessage.content || '').length > 30 ? '...' : '')
                     });
                 }
             }
