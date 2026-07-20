@@ -98,6 +98,10 @@
                             <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
                         </div>
 
+                        <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
+                            <i class="ti ti-share"></i>
+                        </div>
+
                         <div class="suno-play-overlay" @click.stop="playTrack(song)">
                             <div class="suno-play-btn-circle">
                                 <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
@@ -158,6 +162,10 @@
                                 <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
                             </div>
 
+                            <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
+                                <i class="ti ti-share"></i>
+                            </div>
+
                             <div class="explore-play-overlay" @click.stop="playTrack(song)">
                                 <div class="explore-play-btn-circle">
                                     <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
@@ -212,6 +220,10 @@
                                 <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
                             </div>
 
+                            <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
+                                <i class="ti ti-share"></i>
+                            </div>
+
                             <div class="explore-play-overlay" @click.stop="playTrack(song)">
                                 <div class="explore-play-btn-circle">
                                     <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
@@ -264,6 +276,10 @@
                             
                             <div class="explore-top-play-btn" @click.stop="playTrack(song)">
                                 <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
+                            </div>
+
+                            <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
+                                <i class="ti ti-share"></i>
                             </div>
 
                             <div class="explore-play-overlay" @click.stop="playTrack(song)">

@@ -437,6 +437,30 @@
             background: #16a34a;
         }
 
+        .suno-top-share-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            color: #ffffff !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            z-index: 10;
+            transition: background 0.2s, transform 0.2s;
+        }
+        
+        .suno-top-share-btn:hover {
+            background: #16a34a;
+            transform: scale(1.1);
+        }
+
         .suno-stats-overlay {
             position: absolute;
             bottom: 12px;
@@ -1684,6 +1708,85 @@
             </div>
         </div>
 
+        <!-- ================= MODAL CHIA SẺ BÀI HÁT NỘI BỘ (LỊCH SỬ CHAT) ================= -->
+        <div v-if="shareModalData.show" class="modal fade show d-block" tabindex="-1" style="background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); z-index: 1065;" v-cloak @click.self="closeShareModal">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+                <div class="modal-content custom-theme-modal border border-secondary shadow-lg overflow-hidden" style="background: rgba(18, 22, 19, 0.98); backdrop-filter: blur(20px); border-radius: 20px;">
+                    <!-- Modal Header -->
+                    <div class="modal-header border-bottom border-secondary-subtle py-3 px-4" style="border-color: var(--border-color) !important;">
+                        <h5 class="modal-title fw-bold text-white fs-6 d-flex align-items-center">
+                            <i class="ti ti-share text-success me-2 fs-5"></i> Chia sẻ tới bạn bè trong Lịch sử Chat
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @click="closeShareModal" aria-label="Close"></button>
+                    </div>
+                    
+                    <!-- Modal Body -->
+                    <div class="modal-body p-4">
+                        <!-- Preview Song Header -->
+                        <div v-if="shareModalData.song" class="d-flex align-items-center gap-3 p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);">
+                            <img :src="getSongCover(shareModalData.song)" class="rounded-3 shadow-sm flex-shrink-0" style="width: 52px; height: 52px; object-fit: cover;" alt="Cover">
+                            <div class="overflow-hidden flex-grow-1">
+                                <h6 class="fw-bold text-white mb-0.5 text-truncate" style="font-size: 14px;">{{ shareModalData.song.title }}</h6>
+                                <p class="small text-muted-sync mb-0 text-truncate" style="font-size: 12px;">
+                                    <i class="ti ti-user me-1"></i>{{ shareModalData.song.fullname || shareModalData.song.username }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Direct Link Copy Bar -->
+                        <div class="mb-3.5">
+                            <label class="form-label small fw-semibold text-white-50 mb-1">Liên kết nội bộ bài hát</label>
+                            <div class="input-group" style="background: rgba(0, 0, 0, 0.3); border-radius: 12px; border: 1px solid var(--border-color); padding: 3px;">
+                                <input type="text" readonly :value="shareModalData.url" class="form-control border-0 bg-transparent text-white small px-3" style="box-shadow: none; font-size: 12px;">
+                                <button @click="copyShareLink" class="btn btn-success px-3 rounded-3 fw-semibold small d-flex align-items-center gap-1.5" style="font-size: 12px;">
+                                    <i :class="['ti', shareModalData.copied ? 'ti-check' : 'ti-copy']"></i>
+                                    <span>{{ shareModalData.copied ? 'Đã chép!' : 'Sao chép link' }}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Message Note Box -->
+                        <div class="mb-3.5">
+                            <label class="form-label small fw-semibold text-white-50 mb-1">Lời nhắn đính kèm</label>
+                            <input type="text" v-model="shareModalData.noteMessage" class="form-control custom-theme-input py-2 px-3 text-white rounded-3" placeholder="Nhập lời nhắn chia sẻ (tùy chọn)..." style="font-size: 13px; background: rgba(0,0,0,0.3) !important;">
+                        </div>
+
+                        <!-- Chat History List Section -->
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold text-white-50 mb-2 d-flex justify-content-between align-items-center">
+                                <span><i class="ti ti-history me-1 text-success"></i> Người dùng trong Lịch sử Chat</span>
+                                <span v-if="shareModalData.isLoadingContacts" class="spinner-border spinner-border-sm text-success" style="width: 12px; height: 12px;"></span>
+                            </label>
+
+                            <!-- List of Chat Contacts -->
+                            <div class="custom-scrollbar overflow-y-auto pe-1" style="max-height: 220px;">
+                                <div v-for="contact in shareModalData.chatHistoryContacts" :key="contact.username" class="d-flex align-items-center justify-content-between p-2 mb-2 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
+                                    <div class="d-flex align-items-center gap-2.5 overflow-hidden me-2">
+                                        <img :src="formatAvatarUrl(contact.photo, contact.username)" class="rounded-circle flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover; border: 1.5px solid var(--brand-green);" alt="Avatar">
+                                        <div class="overflow-hidden">
+                                            <h6 class="fw-bold text-white mb-0 text-truncate" style="font-size: 13px;">{{ contact.fullname || contact.username }}</h6>
+                                            <span class="small text-muted-sync text-truncate d-block" style="font-size: 11px;">@{{ contact.username }}</span>
+                                        </div>
+                                    </div>
+                                    <button @click="sendSongToUser(contact)" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-semibold flex-shrink-0 d-flex align-items-center gap-1" style="font-size: 11.5px; background: var(--brand-green); border: 0;" :disabled="shareModalData.sendingUsername === contact.username">
+                                        <span v-if="shareModalData.sendingUsername === contact.username" class="spinner-border spinner-border-sm" style="width: 12px; height: 12px;"></span>
+                                        <i v-else class="ti ti-send" style="font-size: 12px;"></i>
+                                        <span>{{ shareModalData.sendingUsername === contact.username ? 'Đang gửi...' : 'Gửi' }}</span>
+                                    </button>
+                                </div>
+
+                                <div v-if="shareModalData.chatHistoryContacts.length === 0 && !shareModalData.isLoadingContacts" class="text-center text-muted-sync py-4 small bg-transparent">
+                                    <i class="ti ti-messages-off mb-1 text-muted" style="font-size: 28px; display: block; opacity: 0.6;"></i>
+                                    <span style="font-size: 12px;">Bạn chưa có cuộc trò chuyện nào trong lịch sử chat.<br>Hãy nhắn tin với ai đó để bắt đầu chia sẻ nhạc!</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="currentTrack.id && !isOnSongDetailPage" class="suno-sticky-player" v-cloak>
             <div class="suno-player-left">
                 <img :src="getSongCover(currentTrack)" class="suno-player-cover" alt="Song Cover" />
@@ -1719,6 +1822,10 @@
                 <a :href="'/api/songs/' + currentTrack.id + '/download'" class="suno-player-btn-circle text-decoration-none" title="Tải bài hát">
                     <i class="ti ti-download"></i>
                 </a>
+
+                <button @click="openShareModal(currentTrack)" class="suno-player-btn-circle" title="Chia sẻ bài hát">
+                    <i class="ti ti-share"></i>
+                </button>
                 
                 <button @click="showQueue = !showQueue" class="suno-player-btn-circle" :class="{'active-queue': showQueue}" title="Danh sách phát tạm">
                     <i class="ti ti-playlist"></i>
@@ -1846,7 +1953,13 @@
                         <div v-for="(msg, index) in chatMessages" :key="msg.id || index" class="chat-msg-row" :class="isMyMessage(msg) ? 'sent' : 'received'">
                             <img v-if="!isMyMessage(msg)" :src="activeChatUser ? activeChatUser.photo : ''" class="chat-msg-avatar" alt="Avatar">
                             <div class="chat-msg-bubble">
-                                {{ msg.content }}
+                                <div style="white-space: pre-wrap; word-break: break-word;">{{ msg.content }}</div>
+                                <div v-if="getSongIdFromMessage(msg.content)" class="mt-2 pt-2 border-top" style="border-color: rgba(255,255,255,0.15) !important;">
+                                    <a :href="'/song/' + getSongIdFromMessage(msg.content)" @click.prevent="navigateToSharedSong(getSongIdFromMessage(msg.content))" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold text-white d-inline-flex align-items-center gap-1.5 shadow-sm text-decoration-none" style="font-size: 11.5px; background: #22c55e; border: 0;">
+                                        <i class="ti ti-player-play-filled" style="font-size: 13px;"></i>
+                                        <span>Nghe ngay bài hát này</span>
+                                    </a>
+                                </div>
                                 <span class="chat-msg-time">{{ formatChatTime(msg.timestamp) }}</span>
                             </div>
                         </div>
