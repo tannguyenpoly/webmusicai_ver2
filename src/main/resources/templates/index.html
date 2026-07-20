@@ -86,6 +86,10 @@
                             <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
                         </div>
 
+                        <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
+                            <i class="ti ti-share"></i>
+                        </div>
+
                         <div v-if="song.status === 'PENDING'" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-black bg-opacity-75" style="z-index: 15;">
                             <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
                             <span class="text-white-50" style="font-size: 10px; font-weight: 500;">AI đang xử lý...</span>

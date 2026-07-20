@@ -356,6 +356,10 @@
                                     <i :class="['ti', (currentTrack.id === song.id && isPlaying) ? 'ti-player-pause' : 'ti-player-play']"></i>
                                 </div>
 
+                                <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
+                                    <i class="ti ti-share"></i>
+                                </div>
+
                                 <!-- Lock icon overlay if private -->
                                 <div v-if="!song.isPublic && song.status === 'COMPLETED'" class="position-absolute" style="top: 12px; left: 45px; z-index: 10;">
                                     <span class="badge bg-black bg-opacity-75 text-warning px-2 py-1 border border-warning-subtle" style="font-size: 10px; border-radius: 20px;">
@@ -462,6 +466,10 @@
                                 <!-- Top left tiny play/pause icon -->
                                 <div class="suno-top-play-btn" @click.stop="playTrack(song)">
                                     <i :class="['ti', (currentTrack.id === song.id && isPlaying) ? 'ti-player-pause' : 'ti-player-play']"></i>
+                                </div>
+
+                                <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
+                                    <i class="ti ti-share"></i>
                                 </div>
 
                                 <!-- Play icon hover overlay -->
