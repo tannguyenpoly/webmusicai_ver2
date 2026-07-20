@@ -93,9 +93,45 @@ new Vue({
 
         // ================= TÌM KIẾM CREATOR (EXPLORE) =================
         matchingCreators: [],
-        creatorSearchTimeout: null
+        creatorSearchTimeout: null,
+
+        // ================= TÍNH NĂNG CHIA SẺ NHẠC NỘI BỘ =================
+        shareModalData: {
+            show: false,
+            song: null,
+            url: '',
+            copied: false,
+            userSearchQuery: '',
+            userSearchResults: [],
+            noteMessage: '',
+            isSearchingUsers: false,
+            sendingUsername: null
+        }
     },
     watch: {
+        'shareModalData.userSearchQuery': function (newVal) {
+            if (this.shareModalSearchTimeout) clearTimeout(this.shareModalSearchTimeout);
+            if (!newVal || !newVal.trim()) {
+                // If empty search, reset to empty or recent contacts
+                this.shareModalData.userSearchResults = [];
+                return;
+            }
+            this.shareModalData.isSearchingUsers = true;
+            this.shareModalSearchTimeout = setTimeout(() => {
+                axios.get('/api/users/search?query=' + encodeURIComponent(newVal.trim()))
+                    .then(res => {
+                        const list = res.data || [];
+                        this.shareModalData.userSearchResults = list.filter(u => u.username !== this.currentUser);
+                    })
+                    .catch(err => {
+                        console.error('Lỗi tìm kiếm người dùng:', err);
+                        this.shareModalData.userSearchResults = [];
+                    })
+                    .finally(() => {
+                        this.shareModalData.isSearchingUsers = false;
+                    });
+            }, 300);
+        },
         'filters.keyword': function (newVal) {
             if (this.creatorSearchTimeout) clearTimeout(this.creatorSearchTimeout);
             if (!newVal || !newVal.trim()) {
@@ -1936,6 +1972,148 @@ new Vue({
                 const container = document.getElementById('chat-body-scroll');
                 if (container) container.scrollTop = container.scrollHeight;
             }, 100);
+        },
+
+        // ================= XỬ LÝ CHIA SẺ NHẠC NỘI BỘ (LỊCH SỬ CHAT) =================
+        getSongIdFromMessage(content) {
+            if (!content) return null;
+            const match = content.match(/\/song\/(\d+)/);
+            return match ? match[1] : null;
+        },
+
+        navigateToSharedSong(songId) {
+            if (songId) {
+                window.location.href = `/song/${songId}`;
+            }
+        },
+
+        openShareModal(song) {
+            if (!song || !song.id) return;
+            const absoluteUrl = window.location.origin + '/song/' + song.id;
+            this.shareModalData = {
+                show: true,
+                song: song,
+                url: absoluteUrl,
+                copied: false,
+                chatHistoryContacts: [],
+                isLoadingContacts: true,
+                noteMessage: `Đã chia sẻ bài hát "${song.title}"`,
+                sendingUsername: null
+            };
+
+            // Nạp danh sách những người dùng có trong Lịch sử Chat gần đây
+            if (this.currentUser) {
+                axios.get('/api/chat/recent-chats')
+                    .then(res => {
+                        const list = res.data || [];
+                        this.shareModalData.chatHistoryContacts = list.filter(c => c.username !== this.currentUser);
+                    })
+                    .catch(err => {
+                        console.error('Lỗi khi tải lịch sử chat:', err);
+                        this.shareModalData.chatHistoryContacts = [];
+                    })
+                    .finally(() => {
+                        this.shareModalData.isLoadingContacts = false;
+                    });
+            } else {
+                this.shareModalData.isLoadingContacts = false;
+            }
+        },
+
+        closeShareModal() {
+            this.shareModalData.show = false;
+        },
+
+        copyShareLink() {
+            if (!this.shareModalData.url) return;
+            navigator.clipboard.writeText(this.shareModalData.url).then(() => {
+                this.shareModalData.copied = true;
+                if (this.Toast) {
+                    this.Toast.fire({ icon: 'success', title: 'Đã sao chép liên kết bài hát!' });
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Đã sao chép liên kết bài hát!',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+                setTimeout(() => {
+                    this.shareModalData.copied = false;
+                }, 3000);
+            }).catch(err => {
+                console.error('Lỗi khi sao chép link:', err);
+                window.prompt('Sao chép liên kết bài hát:', this.shareModalData.url);
+            });
+        },
+
+        sendSongToUser(targetUser) {
+            if (!this.currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu cầu đăng nhập',
+                    text: 'Vui lòng đăng nhập để chia sẻ bài hát tới thành viên khác!',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+
+            if (!targetUser || !targetUser.username) return;
+
+            const song = this.shareModalData.song;
+            if (!song) return;
+
+            this.shareModalData.sendingUsername = targetUser.username;
+
+            const messageContent = `🎵 [CHIA SẺ BÀI HÁT] ${song.title}\n🔗 Link: ${this.shareModalData.url}\n💬 ${this.shareModalData.noteMessage || 'Nghe thử giai điệu này nhé!'}`;
+
+            const chatMessage = {
+                recipient: { username: targetUser.username },
+                content: messageContent
+            };
+
+            if (this.stompClient && this.stompClient.connected) {
+                this.stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+                this.onSendSongSuccess(targetUser);
+            } else {
+                axios.post('/api/chat/send', {
+                    recipientUsername: targetUser.username,
+                    content: messageContent
+                }).then(() => {
+                    this.onSendSongSuccess(targetUser);
+                }).catch(err => {
+                    if (this.stompClient) {
+                        try {
+                            this.stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+                            this.onSendSongSuccess(targetUser);
+                            return;
+                        } catch (e) {}
+                    }
+                    Swal.fire('Lỗi', 'Không thể gửi tin nhắn chia sẻ bài hát.', 'error');
+                    this.shareModalData.sendingUsername = null;
+                });
+            }
+        },
+
+        onSendSongSuccess(targetUser) {
+            this.shareModalData.sendingUsername = null;
+            if (this.Toast) {
+                this.Toast.fire({
+                    icon: 'success',
+                    title: `Đã chia sẻ bài hát tới @${targetUser.username}!`
+                });
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `Đã chia sẻ bài hát tới @${targetUser.username}!`,
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+            }
         }
     }
 });
