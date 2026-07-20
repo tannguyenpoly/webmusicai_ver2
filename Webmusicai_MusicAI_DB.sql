@@ -437,3 +437,20 @@ CREATE TABLE Chat_Messages (
     FOREIGN KEY (recipient) REFERENCES Users(username)
 );
 GO
+
+-- Sepay update database 20/7/2026
+-- Cập nhật bảng Orders để hỗ trợ đa phương thức
+ALTER TABLE Orders ADD payment_method VARCHAR(20) DEFAULT 'VNPAY'; -- Giá trị: 'VNPAY', 'SEPAY'
+ALTER TABLE Orders ADD payment_status VARCHAR(20) DEFAULT 'PENDING'; -- Trạng thái: 'PENDING', 'SUCCESS', 'FAILED', 'CANCELLED'
+GO
+
+CREATE TABLE Payment_Logs (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    order_code VARCHAR(50),           -- Mã đơn hàng (để tìm kiếm nhanh)
+    gateway_name VARCHAR(20),         -- 'VNPAY' hoặc 'SEPAY'
+    transaction_id VARCHAR(100),      -- ID giao dịch phía cổng thanh toán
+    amount INT,                       -- Số tiền thực nhận
+    content NVARCHAR(MAX),            -- Nội dung chuyển khoản hoặc JSON trả về từ Gateway
+    created_at DATETIME DEFAULT GETDATE()
+);
+GO
