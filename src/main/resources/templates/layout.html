@@ -1348,6 +1348,7 @@
         }
         .chat-msg-row {
             display: flex;
+            align-items: flex-end;
             width: 100%;
         }
         .chat-msg-row.sent {
@@ -1356,10 +1357,19 @@
         .chat-msg-row.received {
             justify-content: flex-start;
         }
+        .chat-msg-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 8px;
+            flex-shrink: 0;
+            border: 1px solid var(--chat-border-color);
+        }
         .chat-msg-bubble {
             max-width: 75%;
             padding: 10px 14px;
-            border-radius: 16px;
+            border-radius: 18px;
             font-size: 13px;
             line-height: 1.4;
             word-break: break-word;
@@ -1833,7 +1843,8 @@
 
                     <!-- Case 2: Chat Room Messages -->
                     <div v-else class="chat-messages-container">
-                        <div v-for="(msg, index) in chatMessages" :key="msg.id || index" class="chat-msg-row" :class="msg.sender === currentUser ? 'sent' : 'received'">
+                        <div v-for="(msg, index) in chatMessages" :key="msg.id || index" class="chat-msg-row" :class="isMyMessage(msg) ? 'sent' : 'received'">
+                            <img v-if="!isMyMessage(msg)" :src="activeChatUser ? activeChatUser.photo : ''" class="chat-msg-avatar" alt="Avatar">
                             <div class="chat-msg-bubble">
                                 {{ msg.content }}
                                 <span class="chat-msg-time">{{ formatChatTime(msg.timestamp) }}</span>

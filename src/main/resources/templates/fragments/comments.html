@@ -193,8 +193,9 @@
             <textarea v-model="newComment.content" class="form-control custom-theme-input" rows="3"
                 placeholder="Viết bình luận của bạn..."></textarea>
             <div class="text-end mt-2">
-                <button @click="postComment(currentTrack.id)" class="btn btn-main-sync px-4 py-2">
-                    <i class="ti ti-send me-1"></i> Gửi bình luận
+                <button @click="postComment(currentTrack.id)" :disabled="isSubmittingComment" class="btn btn-main-sync px-4 py-2">
+                    <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    <i v-else class="ti ti-send me-1"></i> Gửi bình luận
                 </button>
             </div>
         </div>
@@ -229,7 +230,10 @@
                             <textarea v-model="editingComment.content" class="form-control custom-theme-input" rows="2"></textarea>
                             <div class="text-end mt-2">
                                 <button @click="cancelEditComment" class="btn btn-sm btn-register-sync me-2">Hủy</button>
-                                <button @click="saveComment(comment)" class="btn btn-sm btn-main-sync">Lưu</button>
+                                <button @click="saveComment(comment)" :disabled="isSubmittingComment" class="btn btn-sm btn-main-sync">
+                                    <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span v-else>Lưu</span>
+                                </button>
                             </div>
                         </div>
                         <p v-else class="comment-body mb-0">{{ comment.content }}</p>
@@ -252,7 +256,10 @@
                                 :placeholder="'Trả lời ' + (comment.user.fullname || comment.user.username) + '...'"></textarea>
                             <div class="text-end mt-2">
                                 <button @click="toggleReplyForm(null)" class="btn btn-sm btn-register-sync me-2">Hủy</button>
-                                <button @click="postComment(currentTrack.id, comment.id)" class="btn btn-sm btn-main-sync">Gửi trả lời</button>
+                                <button @click="postComment(currentTrack.id, comment.id)" :disabled="isSubmittingComment" class="btn btn-sm btn-main-sync">
+                                    <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span v-else>Gửi trả lời</span>
+                                </button>
                             </div>
                         </div>
 
@@ -275,7 +282,10 @@
                                         <textarea v-model="editingComment.content" class="form-control custom-theme-input" rows="2"></textarea>
                                         <div class="text-end mt-2">
                                             <button @click="cancelEditComment" class="btn btn-sm btn-register-sync me-2">Hủy</button>
-                                            <button @click="saveComment(reply)" class="btn btn-sm btn-main-sync">Lưu</button>
+                                            <button @click="saveComment(reply)" :disabled="isSubmittingComment" class="btn btn-sm btn-main-sync">
+                                                <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                <span v-else>Lưu</span>
+                                            </button>
                                         </div>
                                     </div>
                                     <p v-else class="comment-body mb-0">{{ reply.content }}</p>

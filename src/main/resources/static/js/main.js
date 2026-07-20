@@ -63,6 +63,7 @@ new Vue({
 
         commentPagination: { content: [], number: 0, totalPages: 1, totalElements: 0 },
         isLoadingComments: false,
+        isSubmittingComment: false,
         newComment: { content: '' },
         newReply: { content: '' },
         replyingToCommentId: null,
@@ -88,7 +89,30 @@ new Vue({
         chatSearchResults: [],
         stompClient: null,
         totalUnreadCount: 0,
-        chatSearchTimeout: null
+        chatSearchTimeout: null,
+
+        // ================= TÌM KIẾM CREATOR (EXPLORE) =================
+        matchingCreators: [],
+        creatorSearchTimeout: null
+    },
+    watch: {
+        'filters.keyword': function (newVal) {
+            if (this.creatorSearchTimeout) clearTimeout(this.creatorSearchTimeout);
+            if (!newVal || !newVal.trim()) {
+                this.matchingCreators = [];
+                return;
+            }
+            this.creatorSearchTimeout = setTimeout(() => {
+                axios.get('/api/users/search?query=' + encodeURIComponent(newVal.trim()))
+                    .then(response => {
+                        this.matchingCreators = response.data || [];
+                    })
+                    .catch(err => {
+                        console.error('Lỗi tìm kiếm creator:', err);
+                        this.matchingCreators = [];
+                    });
+            }, 300);
+        }
     },
     computed: {
         filteredSongs() {
@@ -1602,9 +1626,12 @@ new Vue({
         },
 
         postComment(songId, parentId = null) {
+            if (this.isSubmittingComment) return;
             const isReply = parentId !== null;
             const content = isReply ? this.newReply.content.trim() : this.newComment.content.trim();
             if (!content) { this.Toast.fire({ icon: 'warning', title: 'Vui lòng nhập nội dung.' }); return; }
+            
+            this.isSubmittingComment = true;
             const payload = { content: content, parent_id: parentId };
             axios.post(`/api/songs/${songId}/comments`, payload)
                 .then(response => {
@@ -1624,7 +1651,11 @@ new Vue({
                     this.replyingToCommentId = null;
                     this.Toast.fire({ icon: 'success', title: 'Đã gửi bình luận!' });
                 })
-                .catch(error => { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể gửi bình luận.' }); });
+                .catch(error => { 
+                    const msg = (error.response && error.response.data && error.response.data.message) ? error.response.data.message : 'Không thể gửi bình luận.';
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg }); 
+                })
+                .finally(() => { this.isSubmittingComment = false; });
         },
 
         toggleReplyForm(commentId) {
@@ -1641,10 +1672,12 @@ new Vue({
         },
 
         saveComment(originalComment) {
-            if (!this.editingComment.content.trim()) {
+            if (this.isSubmittingComment) return;
+            if (!this.editingComment || !this.editingComment.content.trim()) {
                 this.Toast.fire({ icon: 'warning', title: 'Nội dung không được để trống.' });
                 return;
             }
+            this.isSubmittingComment = true;
             axios.put(`/api/songs/comments/${this.editingComment.id}`, { content: this.editingComment.content })
                 .then(response => {
                     originalComment.content = response.data.content;
@@ -1653,7 +1686,8 @@ new Vue({
                 })
                 .catch(error => {
                     Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật bình luận.' });
-                });
+                })
+                .finally(() => { this.isSubmittingComment = false; });
         },
 
         deleteComment(commentId, index, parentIndex) {
@@ -1721,19 +1755,39 @@ new Vue({
             });
         },
 
-        handleIncomingChatMessage(message) {
-            const sender = message.sender.username;
-            const recipient = message.recipient.username;
-            
+        isMyMessage(msg) {
+            if (!msg || !msg.sender || !this.currentUser) return false;
+            const senderName = typeof msg.sender === 'object' ? msg.sender.username : msg.sender;
+            return senderName === this.currentUser;
+        },
+
+        handleIncomingChatMessage(rawMessage) {
+            if (!rawMessage) return;
+            const senderUsername = (typeof rawMessage.sender === 'object' && rawMessage.sender !== null) 
+                ? rawMessage.sender.username 
+                : rawMessage.sender;
+            const recipientUsername = (typeof rawMessage.recipient === 'object' && rawMessage.recipient !== null) 
+                ? rawMessage.recipient.username 
+                : rawMessage.recipient;
+
+            const normalizedMessage = {
+                id: rawMessage.id,
+                sender: senderUsername,
+                recipient: recipientUsername,
+                content: rawMessage.content,
+                timestamp: rawMessage.timestamp,
+                isRead: rawMessage.isRead
+            };
+
             if (this.activeChatUser && 
-                ((sender === this.activeChatUser.username && recipient === this.currentUser) ||
-                 (sender === this.currentUser && recipient === this.activeChatUser.username))) {
+                ((senderUsername === this.activeChatUser.username && recipientUsername === this.currentUser) ||
+                 (senderUsername === this.currentUser && recipientUsername === this.activeChatUser.username))) {
                 
-                this.chatMessages.push(message);
+                this.chatMessages.push(normalizedMessage);
                 this.scrollToBottom();
                 
-                if (recipient === this.currentUser) {
-                    axios.put(`/api/chat/messages/read-all?partner=${sender}`)
+                if (recipientUsername === this.currentUser) {
+                    axios.put(`/api/chat/messages/read-all?partner=${senderUsername}`)
                         .then(() => { this.loadRecentChats(); });
                 } else {
                     this.loadRecentChats();
@@ -1742,11 +1796,14 @@ new Vue({
                 this.loadRecentChats();
                 this.loadTotalUnreadCount();
                 
-                if (sender !== this.currentUser) {
+                if (senderUsername !== this.currentUser) {
+                    const senderDisplayName = (typeof rawMessage.sender === 'object' && rawMessage.sender !== null && rawMessage.sender.fullname) 
+                        ? rawMessage.sender.fullname 
+                        : senderUsername;
                     this.Toast.fire({
                         icon: 'info',
-                        title: `Tin nhắn mới từ ${message.sender.fullname || sender}`,
-                        text: message.content.substring(0, 30) + (message.content.length > 30 ? '...' : '')
+                        title: `Tin nhắn mới từ ${senderDisplayName}`,
+                        text: (rawMessage.content || '').substring(0, 30) + ((rawMessage.content || '').length > 30 ? '...' : '')
                     });
                 }
             }

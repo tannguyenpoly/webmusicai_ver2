@@ -45,14 +45,51 @@
 
         <!-- ================= CASE A: ACTIVE SEARCH RESULTS ================= -->
         <div v-if="filters.keyword.trim() !== ''" style="position: relative; z-index: 2;">
+            
+            <!-- CREATOR SEARCH RESULTS SECTION -->
+            <div v-if="matchingCreators.length > 0" class="mb-5">
+                <div class="section-heading-row mb-3">
+                    <div class="section-title-wrapper">
+                        <i class="ti ti-users text-success me-2 fs-4"></i>
+                        <span class="section-title">Tác giả & Creator ({{ matchingCreators.length }})</span>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div v-for="creator in matchingCreators" :key="creator.username" class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="card h-100 border-0 shadow-sm p-3 text-center d-flex flex-column align-items-center justify-content-between"
+                             style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color) !important; border-radius: 18px; backdrop-filter: blur(10px); transition: transform 0.2s, border-color 0.2s;"
+                             onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(22, 163, 74, 0.5)';"
+                             onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='var(--border-color)';">
+                            <div class="mb-2 position-relative">
+                                <img :src="creator.photo" class="rounded-circle shadow" style="width: 64px; height: 64px; object-fit: cover; border: 2.5px solid #16a34a;" alt="Avatar">
+                            </div>
+                            <h6 class="fw-bold mb-0 text-truncate w-100" style="color: var(--text-color); font-size: 14px;">{{ creator.fullname || creator.username }}</h6>
+                            <small class="text-muted-sync mb-2" style="font-size: 11px;">@{{ creator.username }}</small>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 mb-3" style="font-size: 11px;">
+                                <i class="ti ti-music me-1"></i>{{ creator.total_songs }} bài hát
+                            </span>
+                            <div class="d-flex gap-2 w-100">
+                                <a :href="'/profile?username=' + creator.username" class="btn btn-sm btn-outline-secondary rounded-pill flex-grow-1 py-1" style="font-size: 12px; color: var(--text-color); border-color: var(--border-color);">
+                                    <i class="ti ti-user me-1"></i>Hồ sơ
+                                </a>
+                                <button @click="startChatWith(creator.username)" class="btn btn-sm btn-success rounded-pill flex-grow-1 py-1" style="font-size: 12px; background: #16a34a; border: 0;">
+                                    <i class="ti ti-brand-messenger me-1"></i>Chat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SONGS SEARCH RESULTS SECTION -->
             <div class="section-heading-row mb-4">
                 <div class="section-title-wrapper">
                     <div class="title-glow-dot"></div>
-                    <span class="section-title">Kết quả tìm kiếm cho "{{ filters.keyword }}"</span>
+                    <span class="section-title">Bài hát tìm thấy ({{ filteredSongs.length }})</span>
                 </div>
             </div>
             
-            <div class="suno-grid">
+            <div v-if="filteredSongs.length > 0" class="suno-grid">
                 <div v-for="song in filteredSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)">
                     <div class="suno-cover-wrapper">
                         <img :src="getSongCover(song)" class="suno-cover-img" alt="Song Artwork" />
@@ -88,9 +125,9 @@
             </div>
 
             <!-- Empty Search State -->
-            <div v-if="filteredSongs.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+            <div v-if="filteredSongs.length === 0 && matchingCreators.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
                 <i class="ti ti-search-off mb-2 text-muted" style="font-size: 32px; display: block;"></i>
-                <span style="font-size: 13px;">Không tìm thấy bài hát nào phù hợp với từ khóa của bạn.</span>
+                <span style="font-size: 13px;">Không tìm thấy bài hát hoặc tác giả nào phù hợp với từ khóa của bạn.</span>
             </div>
         </div>
 

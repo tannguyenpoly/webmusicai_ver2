@@ -503,6 +503,19 @@ public class SongRestController {
         }
 
         return songRepo.findById(id).map(song -> {
+            // Kiểm tra chống gửi lặp lại bình luận cùng nội dung trong thời gian ngắn (3 giây)
+            Page<SongComment> recentComments = commentRepo.findBySongIdAndParentIdIsNullOrderByCreatedAtDesc(id, PageRequest.of(0, 1));
+            if (!recentComments.isEmpty()) {
+                SongComment latest = recentComments.getContent().get(0);
+                if (latest.getUser() != null 
+                        && username.equals(latest.getUser().getUsername())
+                        && content.trim().equalsIgnoreCase(latest.getContent().trim())
+                        && latest.getCreatedAt() != null
+                        && (System.currentTimeMillis() - latest.getCreatedAt().getTime()) < 3000) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Vui lòng không gửi lại bình luận trùng lặp!"));
+                }
+            }
+
             User user = userRepo.findById(username).orElseThrow();
             SongComment comment = new SongComment();
             comment.setSong(song);
