@@ -63,6 +63,7 @@ new Vue({
 
         commentPagination: { content: [], number: 0, totalPages: 1, totalElements: 0 },
         isLoadingComments: false,
+        isSubmittingComment: false,
         newComment: { content: '' },
         newReply: { content: '' },
         replyingToCommentId: null,
@@ -1625,9 +1626,12 @@ new Vue({
         },
 
         postComment(songId, parentId = null) {
+            if (this.isSubmittingComment) return;
             const isReply = parentId !== null;
             const content = isReply ? this.newReply.content.trim() : this.newComment.content.trim();
             if (!content) { this.Toast.fire({ icon: 'warning', title: 'Vui lòng nhập nội dung.' }); return; }
+            
+            this.isSubmittingComment = true;
             const payload = { content: content, parent_id: parentId };
             axios.post(`/api/songs/${songId}/comments`, payload)
                 .then(response => {
@@ -1647,7 +1651,11 @@ new Vue({
                     this.replyingToCommentId = null;
                     this.Toast.fire({ icon: 'success', title: 'Đã gửi bình luận!' });
                 })
-                .catch(error => { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể gửi bình luận.' }); });
+                .catch(error => { 
+                    const msg = (error.response && error.response.data && error.response.data.message) ? error.response.data.message : 'Không thể gửi bình luận.';
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg }); 
+                })
+                .finally(() => { this.isSubmittingComment = false; });
         },
 
         toggleReplyForm(commentId) {
@@ -1664,10 +1672,12 @@ new Vue({
         },
 
         saveComment(originalComment) {
-            if (!this.editingComment.content.trim()) {
+            if (this.isSubmittingComment) return;
+            if (!this.editingComment || !this.editingComment.content.trim()) {
                 this.Toast.fire({ icon: 'warning', title: 'Nội dung không được để trống.' });
                 return;
             }
+            this.isSubmittingComment = true;
             axios.put(`/api/songs/comments/${this.editingComment.id}`, { content: this.editingComment.content })
                 .then(response => {
                     originalComment.content = response.data.content;
@@ -1676,7 +1686,8 @@ new Vue({
                 })
                 .catch(error => {
                     Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật bình luận.' });
-                });
+                })
+                .finally(() => { this.isSubmittingComment = false; });
         },
 
         deleteComment(commentId, index, parentIndex) {
