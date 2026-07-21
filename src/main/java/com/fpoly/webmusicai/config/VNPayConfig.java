@@ -13,7 +13,6 @@ import jakarta.servlet.http.HttpServletRequest; // Dùng javax.servlet... nếu 
 
 public class VNPayConfig {
 
-    // ĐIỀN THÔNG TIN TÀI KHOẢN SANDBOX VNPAY CỦA BẠN VÀO ĐÂY
     public static String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
     public static String vnp_ReturnUrl = "http://localhost:8080/api/orders/vnpay-return"; // API hứng kết quả trả về
     public static String vnp_TmnCode = "8AHDDYUX"; // Mã website
