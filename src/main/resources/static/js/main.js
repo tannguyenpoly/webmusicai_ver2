@@ -12,6 +12,8 @@ new Vue({
         favoriteSongs: [],
         isLoadingFavorites: false,
         packages: [],
+        genres: [],
+        isLoadingPublicSongs: true,
         myOrders: [],
         isLoadingPackages: false,
         isLoadingOrders: false,
@@ -87,6 +89,7 @@ new Vue({
         totalUnreadCount: 0,
         chatSearchTimeout: null,
 
+        isLoadingCreators: false,
         matchingCreators: [],
         creatorSearchTimeout: null,
 
@@ -131,6 +134,7 @@ new Vue({
                 this.matchingCreators = [];
                 return;
             }
+            this.isLoadingCreators = true;
             this.creatorSearchTimeout = setTimeout(() => {
                 axios.get('/api/users/search?query=' + encodeURIComponent(newVal.trim()))
                     .then(response => {
@@ -139,6 +143,9 @@ new Vue({
                     .catch(err => {
                         console.error('Lỗi tìm kiếm creator:', err);
                         this.matchingCreators = [];
+                    })
+                    .finally(() => {
+                        this.isLoadingCreators = false;
                     });
             }, 300);
         }
@@ -333,6 +340,7 @@ new Vue({
         }
         else if (window.location.pathname === '/explore') {
             this.loadPublicSongs();
+            this.loadGenres();
         }
         else if (window.location.pathname === '/create') {
             if (this.currentUser) {
@@ -822,9 +830,14 @@ new Vue({
         },
 
         loadPublicSongs() {
+            this.isLoadingPublicSongs = true;
             axios.get('/api/songs/public')
-                .then(response => { this.publicSongs = Array.isArray(response.data) ? response.data : []; })
-                .catch(error => { console.error(error); });
+                .then(response => { 
+                    this.publicSongs = Array.isArray(response.data) ? response.data : []; 
+                })
+                .catch(error => { console.error(error); }).finally(() => {
+                    this.isLoadingPublicSongs = false;
+                });
         },
 
         loadFavoriteSongs() {
@@ -1894,6 +1907,36 @@ new Vue({
                     showConfirmButton: false,
                     timer: 2500
                 });
+            }
+        },
+
+        loadGenres() {
+            axios.get('/api/genres')
+                .then(res => { this.genres = res.data || []; })
+                .catch(err => { console.error("Không thể tải danh sách thể loại.", err); });
+        },
+
+        getGenreIcon(genreName) {
+            const name = (genreName || '').toLowerCase();
+            const iconMap = {
+                'lofi': 'ti ti-coffee',
+                'pop': 'ti ti-headphones',
+                'edm': 'ti ti-flame',
+                'acoustic': 'ti ti-guitar',
+                'ballad': 'ti ti-heart',
+                'rap': 'ti ti-microphone',
+                'cinematic': 'ti ti-movie',
+                'jazz': 'ti ti-saxophone',
+                'rock': 'ti ti-brand-deezer',
+                'folk': 'ti ti-leaf'
+            };
+            return iconMap[name] || 'ti ti-music';
+        },
+        toggleGenreFilter(genreName) {
+            if (this.filters.keyword === genreName) {
+                this.filters.keyword = '';
+            } else {
+                this.filters.keyword = genreName;
             }
         }
     }

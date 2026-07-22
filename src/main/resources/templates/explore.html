@@ -4,42 +4,125 @@
 <body>
     <div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;" v-cloak>
 
+        <style v-pre>
+            .section-heading-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .section-title-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .section-title {
+                font-size: 20px;
+                font-weight: 700;
+                color: var(--text-color);
+            }
+            .see-all-btn {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-muted);
+                text-decoration: none;
+                background: rgba(120, 120, 120, 0.05);
+                border: 1px solid var(--border-color);
+                padding: 6px 14px;
+                border-radius: 20px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                transition: all 0.2s;
+            }
+            .see-all-btn:hover {
+                color: var(--brand-green);
+                background: rgba(22, 163, 74, 0.1);
+                border-color: rgba(22, 163, 74, 0.3);
+            }
+            .creator-search-card {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid var(--border-color);
+                border-radius: 18px;
+                padding: 20px;
+                text-align: center;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .creator-search-card:hover {
+                transform: translateY(-5px);
+                border-color: rgba(22, 163, 74, 0.4);
+                box-shadow: 0 10px 25px rgba(22, 163, 74, 0.15);
+            }
+            .creator-search-avatar {
+                width: 72px;
+                height: 72px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 3px solid var(--brand-green);
+                margin-bottom: 12px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+            .creator-search-btn {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 16px;
+                border-radius: 20px;
+            }
+           /* Biến khung cover bài hát thành flexbox để căn giữa mũi tên */
+            .see-all-cover {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.02);
+                border: 2px dashed rgba(255, 255, 255, 0.15) !important;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .see-all-cover i {
+                font-size: 70px !important; /* Kích thước mũi tên to ra */
+                color: #6c757d !important; /* Khử màu xanh mặc định của thẻ link */
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            /* Hiệu ứng khi rê chuột vào thẻ */
+            .explore-card:hover .see-all-cover {
+                border-style: solid !important;
+                border-color: var(--brand-green, #16a34a) !important;
+                background: rgba(22, 163, 74, 0.05);
+            }
+
+            .explore-card:hover .see-all-cover i {
+                color: var(--brand-green, #16a34a) !important;
+                transform: scale(1.2); /* Mũi tên to lên nhẹ khi hover */
+            }
+        </style>
+
         <!-- ================= EXPLORE HERO TITLE & SEARCH ================= -->
-        <div class="mb-4 pt-4 text-center" style="position: relative; z-index: 2;">
-            <h2 class="fw-extrabold" style="font-size: 34px; letter-spacing: -1.2px; font-weight: 800; background: linear-gradient(135deg, #ffffff 40%, var(--brand-green) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px;">Khám Phá Giai Điệu Mới</h2>
-            <p class="text-muted-sync small mb-4">Tìm kiếm và cảm nhận các tác phẩm ấn tượng từ cộng đồng trí tuệ nhân tạo MusicAI</p>
+        <div class="suno-hero-section">
+            <h1 class="suno-hero-title">Khám Phá Giai Điệu Mới</h1>
+            <p class="suno-hero-subtitle">Tìm kiếm và cảm nhận các tác phẩm ấn tượng từ cộng đồng trí tuệ nhân tạo MusicAI</p>
             
-            <div class="d-flex flex-column align-items-center">
-                <div class="input-group search-box-container" style="max-width: 600px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden; padding: 4px 16px;">
-                    <span class="input-group-text border-0 bg-transparent text-muted-sync"><i class="ti ti-search" style="font-size: 20px;"></i></span>
-                    <input type="text" v-model="filters.keyword" class="form-control border-0 bg-transparent py-2" placeholder="Tìm tên bài hát, tác giả hoặc ý tưởng prompt..." style="box-shadow: none; font-size: 14px; color: var(--text-color) !important;">
-                    <span v-if="filters.keyword" @click="filters.keyword = ''" class="input-group-text border-0 bg-transparent text-muted-sync" style="cursor: pointer;"><i class="ti ti-x" style="font-size: 18px;"></i></span>
-                    <span class="badge px-3 py-2 d-flex align-items-center bg-success-subtle text-success border border-success-subtle ms-2 my-auto" style="border-radius: 20px; font-size: 11px;">
-                        {{ filteredSongs.length }} giai điệu
-                    </span>
-                </div>
+            <div class="input-group mx-auto" style="max-width: 600px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden; padding: 4px 16px;">
+                <span class="input-group-text border-0 bg-transparent text-muted-sync"><i class="ti ti-search" style="font-size: 20px;"></i></span>
+                <input type="text" v-model="filters.keyword" class="form-control border-0 bg-transparent py-2" placeholder="Tìm tên bài hát, tác giả hoặc ý tưởng prompt..." style="box-shadow: none; font-size: 14px; color: var(--text-color) !important;">
+                <span v-if="filters.keyword" @click="filters.keyword = ''" class="input-group-text border-0 bg-transparent text-muted-sync" style="cursor: pointer;"><i class="ti ti-x" style="font-size: 18px;"></i></span>
+                <span class="badge px-3 py-2 d-flex align-items-center bg-success-subtle text-success border border-success-subtle ms-2 my-auto" style="border-radius: 20px; font-size: 11px;">
+                    {{ filters.keyword.trim() ? filteredSongs.length + ' kết quả' : publicSongs.length + ' giai điệu' }}
+                </span>
             </div>
         </div>
 
         <!-- ================= DYNAMIC GENRE TAGS ================= -->
         <div class="d-flex flex-wrap gap-2.5 justify-content-center mb-5 mt-2" style="position: relative; z-index: 2;">
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Lofi'}" @click="filters.keyword = filters.keyword === 'Lofi' ? '' : 'Lofi'">
-                <i class="ti ti-coffee me-1.5 fs-6"></i> Lofi
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Pop'}" @click="filters.keyword = filters.keyword === 'Pop' ? '' : 'Pop'">
-                <i class="ti ti-headphones me-1.5 fs-6"></i> Pop
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'EDM'}" @click="filters.keyword = filters.keyword === 'EDM' ? '' : 'EDM'">
-                <i class="ti ti-flame me-1.5 fs-6"></i> EDM
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Acoustic'}" @click="filters.keyword = filters.keyword === 'Acoustic' ? '' : 'Acoustic'">
-                <i class="ti ti-guitar me-1.5 fs-6"></i> Acoustic
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Ballad'}" @click="filters.keyword = filters.keyword === 'Ballad' ? '' : 'Ballad'">
-                <i class="ti ti-heart me-1.5 fs-6"></i> Ballad
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Rap'}" @click="filters.keyword = filters.keyword === 'Rap' ? '' : 'Rap'">
-                <i class="ti ti-microphone me-1.5 fs-6"></i> Rap
+            <div v-for="genre in genres.slice(0, 8)" :key="genre.id" 
+                 class="genre-tag" 
+                 :class="{'genre-tag-active': filters.keyword === genre.name}" 
+                 @click="toggleGenreFilter(genre.name)">
+                <i :class="['me-1.5 fs-6', getGenreIcon(genre.name)]"></i> {{ genre.name }}
             </div>
         </div>
 
@@ -47,7 +130,11 @@
         <div v-if="filters.keyword.trim() !== ''" style="position: relative; z-index: 2;">
             
             <!-- CREATOR SEARCH RESULTS SECTION -->
-            <div v-if="matchingCreators.length > 0" class="mb-5">
+            <div v-if="isLoadingCreators" class="text-center mb-5">
+                <div class="spinner-border text-success" role="status"></div>
+                <p class="text-muted-sync mt-2 small">Đang tìm kiếm tác giả...</p>
+            </div>
+            <div v-else-if="matchingCreators.length > 0" class="mb-5">
                 <div class="section-heading-row mb-3">
                     <div class="section-title-wrapper">
                         <i class="ti ti-users text-success me-2 fs-4"></i>
@@ -56,27 +143,23 @@
                 </div>
                 <div class="row g-3">
                     <div v-for="creator in matchingCreators" :key="creator.username" class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <div class="card h-100 border-0 shadow-sm p-3 text-center d-flex flex-column align-items-center justify-content-between"
-                             style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color) !important; border-radius: 18px; backdrop-filter: blur(10px); transition: transform 0.2s, border-color 0.2s;"
-                             onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(22, 163, 74, 0.5)';"
-                             onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='var(--border-color)';">
-                            <div class="mb-2 position-relative">
-                                <img :src="creator.photo" class="rounded-circle shadow" style="width: 64px; height: 64px; object-fit: cover; border: 2.5px solid #16a34a;" alt="Avatar">
-                            </div>
-                            <h6 class="fw-bold mb-0 text-truncate w-100" style="color: var(--text-color); font-size: 14px;">{{ creator.fullname || creator.username }}</h6>
-                            <small class="text-muted-sync mb-2" style="font-size: 11px;">@{{ creator.username }}</small>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 mb-3" style="font-size: 11px;">
-                                <i class="ti ti-music me-1"></i>{{ creator.total_songs }} bài hát
-                            </span>
-                            <div class="d-flex gap-2 w-100">
-                                <a :href="'/profile?username=' + creator.username" class="btn btn-sm btn-outline-secondary rounded-pill flex-grow-1 py-1" style="font-size: 12px; color: var(--text-color); border-color: var(--border-color);">
-                                    <i class="ti ti-user me-1"></i>Hồ sơ
+                        <div class="creator-search-card">
+                            <img :src="formatAvatarUrl(creator.photo, creator.fullname || creator.username)" class="creator-search-avatar" alt="Avatar">
+                            <h6 class="fw-bold mb-0 text-truncate w-100" style="font-size: 15px;">{{ creator.fullname || creator.username }}</h6>
+                            <p class="text-muted-sync small mb-3">@{{ creator.username }}</p>
+                            <p class="small text-muted-sync mb-3">
+                                <i class="ti ti-music text-success"></i> {{ creator.total_songs }} bài hát
+                            </p>
+                            <div class="d-flex gap-2 mt-auto w-100">
+                                <a :href="'/profile?u=' + creator.username" class="btn btn-sm btn-outline-success rounded-pill flex-grow-1 creator-search-btn">
+                                    Hồ sơ
                                 </a>
-                                <button @click="startChatWith(creator.username)" class="btn btn-sm btn-success rounded-pill flex-grow-1 py-1" style="font-size: 12px; background: #16a34a; border: 0;">
-                                    <i class="ti ti-brand-messenger me-1"></i>Chat
+                                <button @click="startChatWith(creator.username)" class="btn btn-sm btn-success rounded-pill flex-grow-1 creator-search-btn" style="background: var(--brand-green); border: 0;">
+                                    Nhắn tin
                                 </button>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -145,7 +228,6 @@
                         <div class="title-glow-dot"></div>
                         <span class="section-title">Sáng tác từ Studio (Made with Studio)</span>
                     </div>
-                    <a href="#" @click.prevent="filters.keyword = 'Studio'" class="see-all-btn">Xem tất cả <i class="ti ti-chevron-right"></i></a>
                 </div>
                 
                 <!-- Scroll Buttons -->
@@ -153,8 +235,16 @@
                     <i class="ti ti-chevron-left fs-5"></i>
                 </button>
                 
-                <div class="suno-explore-row" ref="studioRow">
-                    <div v-for="song in publicSongs.slice(0, 12)" :key="'studio-' + song.id" class="explore-card" @click="goToSongDetail(song.id)">
+                <div v-if="isLoadingPublicSongs" class="suno-explore-row">
+                    <div v-for="i in 6" :key="'skel-studio-' + i" class="skeleton-card">
+                        <div class="skeleton-cover"></div>
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-author"></div>
+                    </div>
+                </div>
+
+                <div v-else class="suno-explore-row" ref="studioRow">
+                    <div v-for="song in publicSongs.slice(0, 11)" :key="'studio-' + song.id" class="explore-card" @click="goToSongDetail(song.id)" v-if="publicSongs.length > 0">
                         <div class="explore-cover-wrapper">
                             <img :src="getSongCover(song)" class="explore-cover-img" alt="Artwork" />
                             
@@ -189,7 +279,15 @@
                             <span class="explore-card-author-name">{{ song.username || 'MusicAI Creator' }}</span>
                         </div>
                     </div>
-                </div>
+<a href="#" @click.prevent="filters.keyword = 'hit'" class="explore-card text-decoration-none">
+    <!-- Giữ lại explore-cover-wrapper để lấy kích thước/bo góc y hệt bìa bài hát -->
+    <div class="explore-cover-wrapper see-all-cover">
+        <i class="ti ti-chevron-right"></i>
+    </div>
+    
+    <!-- Tiêu đề nằm dưới khung giống như tên bài hát -->
+    <h6 class="explore-card-title text-center mt-2">Xem tất cả</h6>
+</a>
                 
                 <button class="scroll-btn right" @click="scrollRow('studioRow', 'right')">
                     <i class="ti ti-chevron-right fs-5"></i>
@@ -203,7 +301,6 @@
                         <div class="title-glow-dot"></div>
                         <span class="section-title">Đang Thịnh Hành (Trending Hits)</span>
                     </div>
-                    <a href="#" @click.prevent="filters.keyword = 'hit'" class="see-all-btn">Xem tất cả <i class="ti ti-chevron-right"></i></a>
                 </div>
                 
                 <!-- Scroll Buttons -->
@@ -211,8 +308,16 @@
                     <i class="ti ti-chevron-left fs-5"></i>
                 </button>
                 
-                <div class="suno-explore-row" ref="trendingRow">
-                    <div v-for="song in [...publicSongs].sort((a,b) => (b.total_likes || 0) - (a.total_likes || 0)).slice(0, 12)" :key="'trending-' + song.id" class="explore-card" @click="goToSongDetail(song.id)">
+                <div v-if="isLoadingPublicSongs" class="suno-explore-row">
+                    <div v-for="i in 6" :key="'skel-trend-' + i" class="skeleton-card">
+                        <div class="skeleton-cover"></div>
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-author"></div>
+                    </div>
+                </div>
+
+                <div v-else class="suno-explore-row" ref="trendingRow">
+                    <div v-for="song in [...publicSongs].sort((a,b) => (b.total_likes || 0) - (a.total_likes || 0)).slice(0, 11)" :key="'trending-' + song.id" class="explore-card" @click="goToSongDetail(song.id)" v-if="publicSongs.length > 0">
                         <div class="explore-cover-wrapper">
                             <img :src="getSongCover(song)" class="explore-cover-img" alt="Artwork" />
                             
@@ -247,7 +352,15 @@
                             <span class="explore-card-author-name">{{ song.username || 'MusicAI Creator' }}</span>
                         </div>
                     </div>
-                </div>
+<a href="#" @click.prevent="filters.keyword = 'hit'" class="explore-card text-decoration-none">
+    <!-- Giữ lại explore-cover-wrapper để lấy kích thước/bo góc y hệt bìa bài hát -->
+    <div class="explore-cover-wrapper see-all-cover">
+        <i class="ti ti-chevron-right"></i>
+    </div>
+    
+    <!-- Tiêu đề nằm dưới khung giống như tên bài hát -->
+    <h6 class="explore-card-title text-center mt-2">Xem tất cả</h6>
+</a>
                 
                 <button class="scroll-btn right" @click="scrollRow('trendingRow', 'right')">
                     <i class="ti ti-chevron-right fs-5"></i>
@@ -261,7 +374,6 @@
                         <div class="title-glow-dot"></div>
                         <span class="section-title">Mới Phát Hành (New Releases)</span>
                     </div>
-                    <a href="#" @click.prevent="filters.keyword = ''" class="see-all-btn">Xem tất cả <i class="ti ti-chevron-right"></i></a>
                 </div>
                 
                 <!-- Scroll Buttons -->
@@ -269,8 +381,16 @@
                     <i class="ti ti-chevron-left fs-5"></i>
                 </button>
                 
-                <div class="suno-explore-row" ref="newRow">
-                    <div v-for="song in publicSongs.slice(0, 12)" :key="'new-' + song.id" class="explore-card" @click="goToSongDetail(song.id)">
+                <div v-if="isLoadingPublicSongs" class="suno-explore-row">
+                    <div v-for="i in 6" :key="'skel-new-' + i" class="skeleton-card">
+                        <div class="skeleton-cover"></div>
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-author"></div>
+                    </div>
+                </div>
+
+                <div v-else class="suno-explore-row" ref="newRow">
+                    <div v-for="song in publicSongs.slice(0, 11)" :key="'new-' + song.id" class="explore-card" @click="goToSongDetail(song.id)" v-if="publicSongs.length > 0">
                         <div class="explore-cover-wrapper">
                             <img :src="getSongCover(song)" class="explore-cover-img" alt="Artwork" />
                             
@@ -305,7 +425,15 @@
                             <span class="explore-card-author-name">{{ song.username || 'MusicAI Creator' }}</span>
                         </div>
                     </div>
-                </div>
+ <a href="#" @click.prevent="filters.keyword = 'hit'" class="explore-card text-decoration-none">
+    <!-- Giữ lại explore-cover-wrapper để lấy kích thước/bo góc y hệt bìa bài hát -->
+    <div class="explore-cover-wrapper see-all-cover">
+        <i class="ti ti-chevron-right"></i>
+    </div>
+    
+    <!-- Tiêu đề nằm dưới khung giống như tên bài hát -->
+    <h6 class="explore-card-title text-center mt-2">Xem tất cả</h6>
+</a>
                 
                 <button class="scroll-btn right" @click="scrollRow('newRow', 'right')">
                     <i class="ti ti-chevron-right fs-5"></i>
