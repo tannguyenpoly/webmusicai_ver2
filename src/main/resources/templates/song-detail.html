@@ -26,7 +26,7 @@
                     <div class="d-flex flex-column flex-md-row gap-4 align-items-md-center">
                         <!-- Cover Art Preview -->
                         <div class="position-relative flex-shrink-0 mx-auto mx-md-0" style="width: 150px; height: 150px; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
-                            <img :src="getSongCover(currentTrack)" class="w-100 h-100 object-fit-cover" alt="Song Artwork">
+                            <img :src="getSongCover(currentTrack)" class="w-100 h-100 object-fit-cover" alt="Ảnh bìa bài hát">
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(0, 0, 0, 0.3) !important;">
                                 <button @click.stop="playTrack(currentTrack)" class="btn btn-success rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 48px; height: 48px;">
                                     <i :class="['ti', isTrackPlaying(currentTrack.id) ? 'ti-player-pause' : 'ti-player-play']" :style="{ fontSize: '20px', paddingLeft: isTrackPlaying(currentTrack.id) ? '0px' : '2px' }"></i>
@@ -126,7 +126,7 @@
                 <!-- PLAYLIST QUEUE -->
                 <div class="card p-3 mb-4 border border-secondary" style="background: rgba(18, 22, 19, 0.85); backdrop-filter: blur(15px); border-radius: 16px;">
                     <h5 class="fw-bold text-white mb-3 d-flex align-items-center justify-content-between">
-                        <span><i class="ti ti-playlist text-success me-2"></i> Playlist hàng đợi</span>
+                        <span><i class="ti ti-playlist text-success me-2"></i> Danh sách chờ phát</span>
                         <button @click="clearPlaylist" v-if="sessionPlaylist.length > 0" class="btn btn-sm text-danger border-0 p-0 fw-bold" style="font-size: 11px; background: transparent;">XÓA SẠCH</button>
                     </h5>
                     <div class="suno-queue-list custom-scrollbar" style="max-height: 280px; overflow-y: auto;">

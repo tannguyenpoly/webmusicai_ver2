@@ -1,13 +1,27 @@
 package com.fpoly.webmusicai.entity;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @SuppressWarnings("serial")
 @Data
@@ -26,7 +40,7 @@ public class Song implements Serializable {
     @Column(name = "audio_url", columnDefinition = "VARCHAR(MAX)")
     private String audioUrl;
 
-	private String status; // PENDING, COMPLETED, FAILED
+	private String status; // PENDING, COMPLETED, FAILED, CANCELLED
 
 	@Column(name = "is_public")
 	private Boolean isPublic = false;
@@ -59,7 +73,7 @@ public class Song implements Serializable {
 	
 	@ManyToMany
 	@JoinTable(name = "songgenres", joinColumns = @JoinColumn(name = "song_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
-	private List<Genre> genres;
+	private List<Genre> genres = new ArrayList<>();
 
 	public Map<String, Object> toMap() {
 		Map<String, Object> map = new HashMap<>();

@@ -33,8 +33,10 @@ public class User implements Serializable {
     private String photo;
     
     @Column(name = "token_balance")
+    @JsonIgnore
     private Integer tokenBalance = 0;
     
+    @JsonIgnore
     private Boolean enabled = true;
 
     @JsonIgnore
@@ -50,12 +52,28 @@ public class User implements Serializable {
     private List<Transaction> transactions;
     
     @Column(name = "email")
+    @JsonIgnore
     private String email;
+
+    @Column(name = "auth_provider")
+    @JsonIgnore
+    private String authProvider = "LOCAL"; // LOCAL, GOOGLE, BOTH
     
     @Column(name = "account_tier")
-    private String accountTier = "BASIC";
+    @JsonIgnore
+    private String accountTier = "FREE";
 
+    @JsonIgnore
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "pro_expired_at")
     private Date proExpiredAt;
+
+    @Column(name = "token_version")
+    @JsonIgnore
+    private Integer tokenVersion = 0;
+
+    @JsonIgnore
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "last_seen_at")
+    private Date lastSeenAt;
 }

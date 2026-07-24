@@ -13,7 +13,6 @@ import com.fpoly.webmusicai.repository.PackageRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/packages")
 public class PackageRestController {
@@ -54,6 +53,9 @@ public class PackageRestController {
 		pkg.setTokens(tokens);
 		pkg.setPrice(price);
 		pkg.setDescription((String) body.get("description"));
+		pkg.setTierCode(normalizeTier(body.get("tierCode")));
+		Integer durationDays = parseIntSafe(body.get("durationDays"));
+		pkg.setDurationDays(durationDays == null ? 30 : Math.max(1, durationDays));
 
 		packageRepo.save(pkg);
 		log.info("Đã tạo gói mới: {} - {} token - {}đ", pkg.getName(), pkg.getTokens(), pkg.getPrice());
@@ -92,6 +94,16 @@ public class PackageRestController {
 			if (body.containsKey("description")) {
 				pkg.setDescription((String) body.get("description"));
 			}
+			if (body.containsKey("tierCode")) {
+				pkg.setTierCode(normalizeTier(body.get("tierCode")));
+			}
+			if (body.containsKey("durationDays")) {
+				Integer durationDays = parseIntSafe(body.get("durationDays"));
+				if (durationDays == null || durationDays <= 0) {
+					return ResponseEntity.badRequest().body(Map.of("message", "Thời hạn gói phải lớn hơn 0 ngày!"));
+				}
+				pkg.setDurationDays(durationDays);
+			}
 
 			packageRepo.save(pkg);
 			log.info("Đã cập nhật gói #{}", id);
@@ -129,5 +141,13 @@ public class PackageRestController {
 		} catch (NumberFormatException e) {
 			return null;
 		}
+	}
+
+	private String normalizeTier(Object value) {
+		String tier = value == null ? "CREATOR" : value.toString().trim().toUpperCase();
+		return switch (tier) {
+			case "CREATOR", "PRO", "STUDIO" -> tier;
+			default -> "CREATOR";
+		};
 	}
 }

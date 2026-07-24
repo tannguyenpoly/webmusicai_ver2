@@ -1,34 +1,44 @@
 package com.fpoly.webmusicai.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import com.fpoly.webmusicai.repository.SongRepository;
 import java.util.Calendar;
-import java.sql.Date; // ← đổi sang java.sql.Date
+import java.util.Date;
 
 @Component
 @Slf4j
 public class DatabaseCleanupTask {
 
-	@Autowired
-	private SongRepository songRepository;
+	private final SongGenerationService songGenerationService;
+	private final OrderLifecycleService orderLifecycleService;
 
-	@Scheduled(cron = "0 0 0 * * *")
-	public void cleanupDatabase() {
-		log.info("=== Bắt đầu dọn rác DB lúc 12h đêm ===");
+	public DatabaseCleanupTask(
+			SongGenerationService songGenerationService,
+			OrderLifecycleService orderLifecycleService) {
+		this.songGenerationService = songGenerationService;
+		this.orderLifecycleService = orderLifecycleService;
+	}
 
-		Calendar cal7 = Calendar.getInstance();
-		cal7.add(Calendar.DAY_OF_MONTH, -7);
-		songRepository.deleteOldFailedSongs(new Date(cal7.getTimeInMillis())); 
-		log.info("Đã xóa bài FAILED quá 7 ngày");
+	@Scheduled(cron = "${music.cleanup.recover-cron:0 */10 * * * *}")
+	public void recoverStuckJobs() {
+		Calendar cutoff = Calendar.getInstance();
+		cutoff.add(Calendar.MINUTE, -30);
+		int refunded = songGenerationService.refundStuckPendingSongs(cutoff.getTime());
+		if (refunded > 0) {
+			log.warn("Đã đánh dấu FAILED và hoàn token cho {} tác vụ PENDING quá 30 phút", refunded);
+		}
+		int expiredOrders = orderLifecycleService.expirePendingOrders();
+		if (expiredOrders > 0) {
+			log.info("Đã đóng {} đơn thanh toán PENDING quá 15 phút", expiredOrders);
+		}
+	}
 
-		Calendar cal1h = Calendar.getInstance();
-		cal1h.add(Calendar.HOUR_OF_DAY, -1);
-		songRepository.deleteStuckPendingSongs(new Date(cal1h.getTimeInMillis())); 
-		log.info("Đã xóa bài PENDING bị treo quá 1 giờ");
-
-		log.info("=== Dọn rác DB hoàn thành ===");
+	@Scheduled(cron = "${music.cleanup.delete-cron:0 0 2 * * *}")
+	public void deleteOldFailures() {
+		Calendar cutoff = Calendar.getInstance();
+		cutoff.add(Calendar.DAY_OF_MONTH, -7);
+		int deleted = songGenerationService.deleteOldFailedSongs(new Date(cutoff.getTimeInMillis()));
+		log.info("Cleanup lúc 02:00: đã xóa {} tác vụ FAILED quá 7 ngày", deleted);
 	}
 }

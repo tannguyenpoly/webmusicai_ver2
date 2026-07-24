@@ -274,7 +274,7 @@
         <form @submit.prevent="handleRegister" autocomplete="off">
 
             <div class="status-row">
-                <label class="field-label" for="username">Tên đăng nhập (Username)</label>
+                    <label class="field-label" for="username">Tên đăng nhập</label>
                 <div class="status-dot"><div class="dot-live"></div>trực tuyến</div>
             </div>
             <div class="input-wrap" style="margin-bottom:1rem">
@@ -282,7 +282,7 @@
                 <input id="username" type="text" v-model="registerForm.username" placeholder="Viết liền không dấu..." required />
             </div>
 
-            <label class="field-label" for="fullname" style="display:block; margin-bottom:6px">Họ và tên (Fullname)</label>
+                <label class="field-label" for="fullname" style="display:block; margin-bottom:6px">Họ và tên</label>
             <div class="input-wrap" style="margin-bottom:1rem">
                 <i class="ti ti-id-card"></i>
                 <input id="fullname" type="text" v-model="registerForm.fullname" placeholder="Nhập họ và tên đầy đủ..." required />

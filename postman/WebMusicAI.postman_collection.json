@@ -1,0 +1,419 @@
+{
+  "info": {
+    "_postman_id": "8d190c2f-3bd9-4ab1-9656-webmusicai-demo",
+    "name": "WebMusicAI - API Demo",
+    "description": "Collection kiểm tra các luồng chính. Chạy Login trước; test script tự lưu JWT.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{jwt}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "username", "value": "demo_lofi" },
+    { "key": "password", "value": "123456" },
+    { "key": "email", "value": "demo.lofi@musicai.local" },
+    { "key": "otp", "value": "" },
+    { "key": "newPassword", "value": "123456" },
+    { "key": "targetUser", "value": "demo_rock" },
+    { "key": "jwt", "value": "" },
+    { "key": "songId", "value": "1" },
+    { "key": "genreId", "value": "1" },
+    { "key": "playlistId", "value": "1" },
+    { "key": "friendshipId", "value": "1" },
+    { "key": "orderCode", "value": "" },
+    { "key": "packageId", "value": "1" },
+    { "key": "sepayApiKey", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Login - lưu JWT",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Đăng nhập thành công', () => pm.response.to.have.status(200));",
+                "const body = pm.response.json();",
+                "pm.collectionVariables.set('jwt', body.token);",
+                "pm.collectionVariables.set('username', body.username);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Thông tin phiên hiện tại",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/auth-session" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Đúng user đang đăng nhập', () => pm.expect(pm.response.json().username).to.eql(pm.collectionVariables.get('username')));"] }
+          }]
+        },
+        {
+          "name": "Đăng ký tài khoản",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"postman_user\",\n  \"password\": \"123456\",\n  \"fullname\": \"Postman User\",\n  \"email\": \"postman_user@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Gửi OTP quên mật khẩu",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/forgot-password"
+          },
+          "description": "Nhập email thật và lấy mã trong hộp thư, sau đó điền biến otp trước khi chạy bước đặt lại."
+        },
+        {
+          "name": "Đặt lại mật khẩu bằng OTP",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\",\n  \"newPassword\": \"{{newPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/reset-password"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/auth/logout" }
+        }
+      ]
+    },
+    {
+      "name": "02 - Songs",
+      "item": [
+        {
+          "name": "Danh sách thể loại dùng khi tạo nhạc",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/genres" }
+        },
+        {
+          "name": "Danh sách nhạc công khai",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/songs/public?page=0&size=12" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('HTTP 200', () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Tạo nhạc AI",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bài tạo từ Postman\",\n  \"prompt\": \"Piano nhẹ nhàng cho buổi tối\",\n  \"genreId\": {{genreId}},\n  \"instrumental\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/songs/generate"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Đã nhận job', () => pm.expect(pm.response.code).to.be.oneOf([200, 202]));",
+                "const b = pm.response.json();",
+                "if (b.songId || b.id) pm.collectionVariables.set('songId', b.songId || b.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Theo dõi trạng thái tạo nhạc",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/songs/{{songId}}/status" }
+        },
+        {
+          "name": "Dừng tạo nhạc và hoàn token",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/songs/{{songId}}/cancel" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Job đã hủy', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"] }
+          }]
+        },
+        {
+          "name": "Đổi quyền riêng tư bài hát",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/api/songs/{{songId}}/visibility" }
+        },
+        {
+          "name": "Like / Unlike",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/songs/{{songId}}/like" }
+        },
+        {
+          "name": "Thêm bình luận",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"content\": \"Bình luận kiểm thử từ Postman\"\n}" },
+            "url": "{{baseUrl}}/api/songs/{{songId}}/comments"
+          }
+        },
+        {
+          "name": "Danh sách bình luận",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/songs/{{songId}}/comments?page=0&size=10" }
+        },
+        {
+          "name": "Remix",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Postman Remix\",\n  \"prompt\": \"Chuyển sang phong cách acoustic\"\n}" },
+            "url": "{{baseUrl}}/api/songs/{{songId}}/remix"
+          }
+        },
+        {
+          "name": "Download",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/songs/{{songId}}/download" }
+        }
+      ]
+    },
+    {
+      "name": "03 - Playlists",
+      "item": [
+        {
+          "name": "Tạo playlist riêng tư",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Playlist kiểm thử Postman\",\n  \"isPublic\": false\n}" },
+            "url": "{{baseUrl}}/api/playlists"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Tạo thành công', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('playlistId', pm.response.json().id);"] }
+          }]
+        },
+        {
+          "name": "Playlist của tôi",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/playlists/my?page=0&size=50" }
+        },
+        {
+          "name": "Thêm bài vào playlist",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/playlists/{{playlistId}}/songs/{{songId}}" }
+        },
+        {
+          "name": "Chuyển playlist sang công khai",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"isPublic\": true\n}" },
+            "url": "{{baseUrl}}/api/playlists/{{playlistId}}"
+          }
+        },
+        {
+          "name": "Đọc chi tiết playlist",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/playlists/{{playlistId}}" }
+        },
+        {
+          "name": "Danh sách playlist công khai",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/playlists/public" }
+        },
+        {
+          "name": "Xóa bài khỏi playlist",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/playlists/{{playlistId}}/songs/{{songId}}" }
+        }
+      ]
+    },
+    {
+      "name": "04 - Social, Presence, Friends",
+      "item": [
+        {
+          "name": "Profile người dùng",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/users/{{targetUser}}/profile" }
+        },
+        {
+          "name": "Heartbeat online",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/presence/heartbeat" }
+        },
+        {
+          "name": "Xem presence",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/presence/{{targetUser}}" }
+        },
+        {
+          "name": "Gửi lời mời kết bạn",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/friends/{{targetUser}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 200) pm.collectionVariables.set('friendshipId', pm.response.json().id);"] }
+          }]
+        },
+        {
+          "name": "Trạng thái kết bạn",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/friends/status/{{targetUser}}" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["const b=pm.response.json(); if (b.id) pm.collectionVariables.set('friendshipId', b.id);"] }
+          }]
+        },
+        {
+          "name": "Danh sách bạn bè",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/friends" }
+        },
+        {
+          "name": "Lời mời đã nhận",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/friends/requests" }
+        },
+        {
+          "name": "Theo dõi user",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/users/{{targetUser}}/follow" }
+        },
+        {
+          "name": "Bỏ theo dõi user",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/users/{{targetUser}}/unfollow" }
+        },
+        {
+          "name": "Danh sách thông báo",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications?limit=20" }
+        },
+        {
+          "name": "Số thông báo chưa đọc",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/notifications/unread-count" }
+        },
+        {
+          "name": "Đánh dấu mọi thông báo đã đọc",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/api/notifications/read-all" }
+        }
+      ]
+    },
+    {
+      "name": "05 - Chat",
+      "item": [
+        {
+          "name": "Gửi tin nhắn REST",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"recipientUsername\": \"{{targetUser}}\",\n  \"content\": \"Xin chào từ Postman\"\n}" },
+            "url": "{{baseUrl}}/api/chat/send"
+          }
+        },
+        {
+          "name": "Lịch sử chat",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/chat/history?partner={{targetUser}}" }
+        },
+        {
+          "name": "Đánh dấu đã đọc",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/api/chat/messages/read-all?partner={{targetUser}}" }
+        },
+        {
+          "name": "Chat gần đây",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/chat/recent-chats" }
+        },
+        {
+          "name": "Tổng chưa đọc",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/chat/unread-count" }
+        }
+      ]
+    },
+    {
+      "name": "06 - Payments",
+      "item": [
+        {
+          "name": "Danh sách gói",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/packages" }
+        },
+        {
+          "name": "Tạo đơn SePay + VietQR",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"package_id\": {{packageId}},\n  \"payment_method\": \"SEPAY\"\n}" },
+            "url": "{{baseUrl}}/api/orders/create"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 200) {", "  const data = pm.response.json();", "  pm.collectionVariables.set('orderCode', data.order_invoice_number);", "  pm.collectionVariables.set('orderAmount', data.amount);", "}"] }
+          }]
+        },
+        {
+          "name": "Theo dõi đơn hàng",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/orders/{{orderCode}}/status" }
+        },
+        {
+          "name": "Webhook SePay - chỉ dùng kiểm thử",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Apikey {{sepayApiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"POSTMAN-{{$timestamp}}\",\n  \"gateway\": \"MBBank\",\n  \"transactionDate\": \"2026-07-23 10:00:00\",\n  \"accountNumber\": \"demo\",\n  \"content\": \"Thanh toan {{orderCode}}\",\n  \"transferType\": \"in\",\n  \"transferAmount\": {{orderAmount}},\n  \"referenceCode\": \"POSTMAN-{{$timestamp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/orders/sepay-ipn"
+          },
+          "description": "Chỉ chạy trên database demo. Số tiền phải đúng giá gói và API key phải trùng cấu hình server."
+        },
+        {
+          "name": "Đơn hàng của tôi",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/orders/my-orders" }
+        },
+        {
+          "name": "Hủy đơn đang chờ",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/orders/{{orderCode}}/cancel" },
+          "description": "Dùng sau bước tạo đơn và trước webhook. Đơn thành công không thể hủy."
+        }
+      ]
+    },
+    {
+      "name": "07 - Security negative tests",
+      "item": [
+        {
+          "name": "API bảo vệ không có JWT phải trả 401",
+          "auth": { "type": "noauth" },
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/playlists/my" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Bị chặn đúng', () => pm.response.to.have.status(401));"] }
+          }]
+        },
+        {
+          "name": "Webhook sai API key phải trả 401",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Apikey sai-key" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/api/orders/sepay-ipn"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('Webhook bị chặn', () => pm.expect(pm.response.code).to.be.oneOf([401, 503]));"] }
+          }]
+        }
+      ]
+    }
+  ]
+}

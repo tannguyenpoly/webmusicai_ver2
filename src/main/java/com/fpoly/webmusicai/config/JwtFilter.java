@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
+import com.fpoly.webmusicai.repository.UserRepository;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -22,6 +23,8 @@ public class JwtFilter extends OncePerRequestFilter {
     private JwtService jwtService;
     @Autowired
     private UserDetailsService userDetailsService;
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -46,6 +49,15 @@ public class JwtFilter extends OncePerRequestFilter {
             try {
                 String username = jwtService.extractUsername(token);
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                com.fpoly.webmusicai.entity.User user = userRepository.findById(username).orElse(null);
+                int databaseVersion = user != null && user.getTokenVersion() != null ? user.getTokenVersion() : 0;
+                if (user == null || !Boolean.TRUE.equals(user.getEnabled())
+                        || !userDetails.isEnabled()
+                        || jwtService.extractTokenVersion(token) != databaseVersion) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
                         null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);

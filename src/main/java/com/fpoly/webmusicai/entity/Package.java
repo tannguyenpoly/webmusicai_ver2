@@ -24,4 +24,10 @@ public class Package implements Serializable {
 
 	@Column(name = "badge")
 	private String badge;
+
+	@Column(name = "tier_code")
+	private String tierCode = "CREATOR";
+
+	@Column(name = "duration_days")
+	private Integer durationDays = 30;
 }

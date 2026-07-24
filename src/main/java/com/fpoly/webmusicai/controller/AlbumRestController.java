@@ -25,7 +25,6 @@ import com.fpoly.webmusicai.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/albums")
 public class AlbumRestController {

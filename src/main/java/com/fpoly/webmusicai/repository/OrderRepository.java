@@ -6,14 +6,24 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import com.fpoly.webmusicai.entity.Order;
 
 public interface OrderRepository extends JpaRepository<Order, Integer> {
 	Optional<Order> findByOrderCode(String orderCode);
 
+	boolean existsByOrderCode(String orderCode);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT o FROM Order o WHERE o.orderCode = :orderCode")
+	Optional<Order> findByOrderCodeForUpdate(@Param("orderCode") String orderCode);
+
 	List<Order> findByUserUsernameOrderByCreatedAtDesc(String username);
+	List<Order> findByUserUsernameAndStatusOrderByCreatedAtDesc(String username, String status);
 
 	List<Order> findByStatus(String status);
+	List<Order> findByStatusAndCreatedAtBefore(String status, Date cutoff);
 
 	long countByStatus(String status);
 

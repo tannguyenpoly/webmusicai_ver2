@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.net.URI;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,24 +25,31 @@ import com.fpoly.webmusicai.entity.Favorite;
 import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.entity.LikeCount;
 import com.fpoly.webmusicai.entity.SongComment;
-import com.fpoly.webmusicai.entity.Transaction;
 import com.fpoly.webmusicai.entity.User;
+import com.fpoly.webmusicai.entity.Genre;
+import com.fpoly.webmusicai.dto.GenerateSongRequest;
 import com.fpoly.webmusicai.repository.FavoriteRepository;
 import com.fpoly.webmusicai.repository.SongCommentRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
-import com.fpoly.webmusicai.repository.TransactionRepository;
+import com.fpoly.webmusicai.repository.GenreRepository;
 import com.fpoly.webmusicai.repository.PlaylistSongRepository;
 import com.fpoly.webmusicai.repository.AlbumSongRepository;
-import com.fpoly.webmusicai.service.MusicGeneratorService;
+import com.fpoly.webmusicai.service.MusicJobService;
+import com.fpoly.webmusicai.service.SongGenerationService;
+import com.fpoly.webmusicai.service.SongGenerationTicket;
+import com.fpoly.webmusicai.service.SongCancellationResult;
+import com.fpoly.webmusicai.service.SongNotificationService;
+import com.fpoly.webmusicai.service.AudioStorageService;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.core.task.TaskRejectedException;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/songs")
 public class SongRestController {
@@ -59,7 +67,7 @@ public class SongRestController {
     UserRepository userRepo;
 
     @Autowired
-    TransactionRepository transRepo;
+    GenreRepository genreRepo;
 
     @Autowired
     PlaylistSongRepository playlistSongRepo;
@@ -68,7 +76,16 @@ public class SongRestController {
     AlbumSongRepository albumSongRepo;
 
     @Autowired
-    MusicGeneratorService musicService;
+    MusicJobService musicJobService;
+
+    @Autowired
+    SongGenerationService songGenerationService;
+
+    @Autowired
+    AudioStorageService audioStorageService;
+
+    @Autowired
+    SongNotificationService songNotificationService;
 
     @GetMapping("/public")
     public ResponseEntity<?> getPublicSongs() {
@@ -158,73 +175,39 @@ public class SongRestController {
         return ResponseEntity.ok(mapPage);
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/generate")
-    public ResponseEntity<?> generateMusic(@RequestBody Map<String, String> requestData) {
+    public ResponseEntity<?> generateMusic(@Valid @RequestBody GenerateSongRequest requestData) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        String prompt = requestData.get("prompt");
-        String title = requestData.get("title");
-
-        Optional<User> userOpt = userRepo.findById(username);
-        if (!userOpt.isPresent())
-            return ResponseEntity.badRequest().body("User không tồn tại!");
-
-        User user = userOpt.get();
-        if (user.getTokenBalance() < 1)
-            return ResponseEntity.badRequest().body("Bạn không đủ Token!");
-
-        user.setTokenBalance(user.getTokenBalance() - 1);
-        userRepo.save(user);
-
-        Transaction trans = new Transaction();
-        trans.setUser(user);
-        trans.setAmount(-1);
-        trans.setDescription("Tạo nhạc: " + prompt);
-        transRepo.save(trans);
-
-        Song song = new Song();
-        song.setTitle(title != null && !title.isBlank() ? title : "Đang tạo...");
-        song.setPrompt(prompt);
-        song.setStatus("PENDING");
-
-        boolean forcePublic = "BASIC".equals(user.getAccountTier());
-        song.setIsPublic(forcePublic);
-        song.setUser(user);
-        songRepo.save(song);
-
-        final Integer currentSongId = song.getId();
-        new Thread(() -> {
-            try {
-                Map<String, Object> result = musicService.generateMusic(prompt);
-
-                String base64AudioUrl = (String) result.get("audio_url");
-                String aiTitle = (String) result.get("title");
-
-                Optional<Song> freshSongOpt = songRepo.findById(currentSongId);
-                if (freshSongOpt.isPresent()) {
-                    Song freshSong = freshSongOpt.get();
-                    freshSong.setAudioUrl(base64AudioUrl);
-                    freshSong.setStatus("COMPLETED");
-                    if (title == null || title.isBlank()) {
-                        freshSong.setTitle(aiTitle != null && !aiTitle.isBlank() ? aiTitle : "Bài hát không tên");
-                    }
-                    songRepo.saveAndFlush(freshSong);
-                    log.info("Lõi AI Colab đã cập nhật trạng thái COMPLETED thành công cho bài hát ID: {}", freshSong.getId());
-                }
-            } catch (Exception e) {
-                songRepo.findById(currentSongId).ifPresent(failedSong -> {
-                    failedSong.setStatus("FAILED");
-                    songRepo.saveAndFlush(failedSong);
-                });
-                log.error("Lỗi đồng bộ dữ liệu từ lõi AI Colab trong Thread tạo nhạc ngầm: {}", e.getMessage());
+        try {
+            Genre selectedGenre = null;
+            String effectivePrompt = requestData.getPrompt().trim();
+            if (requestData.getGenreId() != null) {
+                selectedGenre = genreRepo.findById(requestData.getGenreId())
+                        .orElseThrow(() -> new IllegalArgumentException("Thể loại đã chọn không tồn tại"));
+                effectivePrompt = "Thể loại " + selectedGenre.getName() + ". " + effectivePrompt;
             }
-        }).start();
+            SongGenerationTicket ticket = songGenerationService.createPendingSong(
+                    username, effectivePrompt, requestData.getTitle());
+            songGenerationService.assignGenre(ticket.songId(), selectedGenre);
+            try {
+                musicJobService.submit(
+                        ticket.songId(),
+                        effectivePrompt,
+                        requestData.getTitle(),
+                        requestData.isInstrumental());
+            } catch (TaskRejectedException e) {
+                songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(Map.of("message", "Hệ thống AI đang bận, token đã được hoàn lại"));
+            }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Đã nhận yêu cầu! Lõi AI cá nhân đang xử lý...");
-        response.put("songId", song.getId());
-        response.put("remaining_tokens", user.getTokenBalance());
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã nhận yêu cầu! Lõi AI cá nhân đang xử lý...",
+                    "songId", ticket.songId(),
+                    "remaining_tokens", ticket.remainingTokens()));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}/status")
@@ -234,8 +217,9 @@ public class SongRestController {
 
         return songRepo.findById(id).map(song -> {
             boolean isOwner = currentUser != null && song.getUser().getUsername().equals(currentUser);
-            boolean isPublic = song.getIsPublic();
-            boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            boolean isPublic = Boolean.TRUE.equals(song.getIsPublic());
+            boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
             if (!isOwner && !isAdmin && !isPublic) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền xem bài nhạc riêng tư này!");
@@ -266,6 +250,7 @@ public class SongRestController {
                 }
                 case "PENDING" -> result.put("message", "Đang xử lý, vui lòng chờ...");
                 case "FAILED" -> result.put("message", "Gen nhạc thất bại, vui lòng thử lại.");
+                case "CANCELLED" -> result.put("message", "Đã dừng tạo nhạc và hoàn lại token.");
                 default -> result.put("message", "Trạng thái không xác định");
             }
 
@@ -341,6 +326,9 @@ public class SongRestController {
             }
 
             songRepo.save(song);
+            if (Boolean.TRUE.equals(song.getIsPublic())) {
+                songNotificationService.notifyFollowersForPublicSong(song.getId());
+            }
             log.info("User {} cập nhật bài {}: {}", username, id, changes);
 
             Map<String, Object> response = new HashMap<>();
@@ -372,10 +360,41 @@ public class SongRestController {
             boolean currentPublic = song.getIsPublic() != null && song.getIsPublic();
             song.setIsPublic(!currentPublic);
             songRepo.save(song);
+            if (Boolean.TRUE.equals(song.getIsPublic())) {
+                songNotificationService.notifyFollowersForPublicSong(song.getId());
+            }
 
             log.info("User {} đổi trạng thái công khai bài #{}: {}", username, id, song.getIsPublic());
             return ResponseEntity.ok(Map.of("id", song.getId(), "isPublic", song.getIsPublic(), "message", song.getIsPublic() ? "Đã công khai bài hát" : "Đã chuyển thành riêng tư"));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelGeneration(@PathVariable Integer id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        try {
+            SongCancellationResult result =
+                    songGenerationService.cancelAndRefund(id, username, isAdmin);
+            boolean workerInterrupted = musicJobService.cancel(id);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã dừng tạo nhạc và hoàn lại 1 token",
+                    "songId", result.songId(),
+                    "status", result.status(),
+                    "remaining_tokens", result.remainingTokens(),
+                    "worker_interrupted", workerInterrupted));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -585,7 +604,6 @@ public class SongRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @PostMapping("/{id}/remix")
     public ResponseEntity<?> remixSong(@PathVariable Integer id, @RequestBody Map<String, String> body) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -596,79 +614,42 @@ public class SongRestController {
         }
 
         boolean isOwner = original.getUser().getUsername().equals(username);
-        if (!original.getIsPublic() && !isOwner) {
+        if (!Boolean.TRUE.equals(original.getIsPublic()) && !isOwner) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Không thể remix bài nhạc riêng tư!"));
         }
         if (!"COMPLETED".equals(original.getStatus())) {
             return ResponseEntity.badRequest().body(Map.of("message", "Chỉ remix được bài đã hoàn thành!"));
         }
 
-        User user = userRepo.findById(username).orElseThrow();
-        if (user.getTokenBalance() < 1) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Bạn không đủ Token!"));
-        }
-
         String remixPrompt = body.getOrDefault("prompt", "Remix lại theo phong cách mới từ: " + original.getPrompt());
         String customTitle = body.get("title");
+        if (remixPrompt == null || remixPrompt.isBlank() || remixPrompt.length() > 1000) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Prompt remix phải có từ 1 đến 1000 ký tự"));
+        }
+        if (customTitle != null && customTitle.length() > 255) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tên bản remix không được vượt quá 255 ký tự"));
+        }
+        boolean instrumental = Boolean.parseBoolean(body.getOrDefault("instrumental", "true"));
 
-        user.setTokenBalance(user.getTokenBalance() - 1);
-        userRepo.save(user);
-
-        Transaction trans = new Transaction();
-        trans.setUser(user);
-        trans.setAmount(-1);
-        trans.setDescription("Remix nhạc từ bài: " + original.getTitle());
-        transRepo.save(trans);
-
-        Song remixSong = new Song();
-        remixSong.setTitle(customTitle != null && !customTitle.isBlank() ? customTitle : original.getTitle() + " (Remix)");
-        remixSong.setPrompt(remixPrompt);
-        remixSong.setStatus("PENDING");
-
-        boolean forcePublic = "BASIC".equals(user.getAccountTier());
-        remixSong.setIsPublic(forcePublic);
-        remixSong.setIsRemix(true);
-        remixSong.setParentId(original.getId());
-        remixSong.setUser(user);
-        songRepo.save(remixSong);
-
-        final String finalCustomTitle = customTitle;
-        final Integer currentRemixId = remixSong.getId();
-
-        new Thread(() -> {
+        try {
+            SongGenerationTicket ticket = songGenerationService.createPendingRemix(
+                    username, original, remixPrompt, customTitle);
             try {
-                Map<String, Object> result = musicService.generateMusic(remixPrompt);
-
-                String audioUrl = (String) result.get("audio_url");
-                String aiTitle = (String) result.get("title");
-
-                Optional<Song> freshRemixOpt = songRepo.findById(currentRemixId);
-                if (freshRemixOpt.isPresent()) {
-                    Song freshRemix = freshRemixOpt.get();
-                    freshRemix.setAudioUrl(audioUrl);
-                    freshRemix.setStatus("COMPLETED");
-
-                    if (finalCustomTitle == null || finalCustomTitle.isBlank()) {
-                        freshRemix.setTitle(aiTitle != null ? aiTitle : original.getTitle() + " (Remix)");
-                    }
-                    songRepo.saveAndFlush(freshRemix);
-                    log.info("Lõi AI Colab đã remix xong và cập nhật thành công bài ID: {}", freshRemix.getId());
-                }
-            } catch (Exception e) {
-                songRepo.findById(currentRemixId).ifPresent(failedRemix -> {
-                    failedRemix.setStatus("FAILED");
-                    songRepo.saveAndFlush(failedRemix);
-                });
-                log.error("Lỗi remix nhạc từ Colab trong luồng chạy ngầm: {}", e.getMessage());
+                musicJobService.submit(
+                        ticket.songId(), remixPrompt.trim(), customTitle, instrumental);
+            } catch (TaskRejectedException e) {
+                songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(Map.of("message", "Hệ thống AI đang bận, token đã được hoàn lại"));
             }
-        }).start();
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Đã nhận yêu cầu remix! AI đang xử lý...");
-        response.put("songId", remixSong.getId());
-        response.put("parent_id", original.getId());
-        response.put("remaining_tokens", user.getTokenBalance());
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đã nhận yêu cầu remix! AI đang xử lý...",
+                    "songId", ticket.songId(),
+                    "parent_id", ticket.parentId(),
+                    "remaining_tokens", ticket.remainingTokens()));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}/remixes")
@@ -708,7 +689,27 @@ public class SongRestController {
         }
 
         try {
-            // audioUrl có định dạng "data:audio/wav;base64,BASE64_STRING"
+            if (song.getAudioUrl().startsWith("/media/audio/")) {
+                String storedFilename = song.getAudioUrl().substring("/media/audio/".length());
+                Resource storedAudio = audioStorageService.load(storedFilename);
+                String filename = sanitizeAudioFilename(song.getTitle(), storedFilename);
+                MediaType mediaType = storedFilename.toLowerCase(Locale.ROOT).endsWith(".mp3")
+                        ? MediaType.parseMediaType("audio/mpeg")
+                        : MediaType.parseMediaType("audio/wav");
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                        .contentType(mediaType)
+                        .contentLength(storedAudio.contentLength())
+                        .body(storedAudio);
+            }
+
+            if (song.getAudioUrl().startsWith("http://") || song.getAudioUrl().startsWith("https://")) {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                        .location(URI.create(song.getAudioUrl()))
+                        .build();
+            }
+
+            // Hỗ trợ ngược dữ liệu cũ đang lưu dạng data:audio/...;base64
             String[] parts = song.getAudioUrl().split(",");
             if (parts.length != 2) {
                 throw new IllegalArgumentException("Định dạng audioUrl không hợp lệ.");
@@ -732,6 +733,14 @@ public class SongRestController {
             log.error("Lỗi khi giải mã hoặc tạo file download cho bài hát ID {}: {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    private String sanitizeAudioFilename(String title, String storedFilename) {
+        String extension = storedFilename.contains(".")
+                ? storedFilename.substring(storedFilename.lastIndexOf('.'))
+                : ".wav";
+        String safeTitle = title != null ? title : "untitled";
+        return safeTitle.replaceAll("[^a-zA-Z0-9.\\-_]+", "_") + extension;
     }
 
     @PostMapping("/{id}/cover")

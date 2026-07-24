@@ -179,6 +179,15 @@
             height: 100%;
         }
 
+        .stat-card.clickable {
+            cursor: pointer;
+        }
+
+        .stat-card.clickable:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
         .stat-card .stat-icon {
             width: 44px; height: 44px;
             border-radius: 12px;
@@ -459,7 +468,10 @@
 
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-md-4 col-lg-3" v-for="stat in dashboardStats" :key="stat.label">
-                        <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-card d-flex align-items-center gap-3"
+                             :class="{ clickable: stat.targetTab }"
+                             :title="stat.help"
+                             @click="stat.targetTab && (activeTab = stat.targetTab)">
                             <div class="stat-icon" :style="{ background: stat.bg, color: stat.color }">
                                 <i :class="stat.icon"></i>
                             </div>
@@ -467,6 +479,17 @@
                                 <div class="stat-value">{{ stat.value }}</div>
                                 <div class="stat-label">{{ stat.label }}</div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-custom mb-4">
+                    <div class="card-body">
+                        <div class="fw-semibold mb-2"><i class="ti ti-info-circle text-success me-2"></i>Ý nghĩa số liệu</div>
+                        <div class="small text-muted-sync">
+                            Thể loại được người dùng chọn khi tạo nhạc và được đưa vào nội dung gửi cho mô hình AI.
+                            Album và danh sách phát là bộ sưu tập do người dùng tự quản lý, không phải danh mục cần quản trị viên CRUD.
+                            Đơn hàng chỉ đếm giao dịch đã thanh toán; tỉ lệ thành công là số bài hoàn thành trên tổng số yêu cầu tạo nhạc.
                         </div>
                     </div>
                 </div>
@@ -523,7 +546,7 @@
                 <div class="page-header">
                     <h4><i class="ti ti-users text-success me-2"></i>Quản lý người dùng</h4>
                     <div class="d-flex gap-2">
-                        <input type="text" v-model="userSearch" @input="searchUsers" class="form-input-custom" placeholder="Tìm username hoặc họ tên..." style="width: 240px;">
+                        <input type="text" v-model="userSearch" @input="searchUsers" class="form-input-custom" placeholder="Tìm tên đăng nhập hoặc họ tên..." style="width: 240px;">
                     </div>
                 </div>
 
@@ -531,7 +554,7 @@
                     <div class="card-body p-0">
                         <table class="table table-custom">
                             <thead><tr>
-                                <th>Username</th><th>Họ tên</th><th>Email</th><th class="text-center">Token</th><th class="text-center">Hạng</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
+                                <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th class="text-center">Token</th><th class="text-center">Gói</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
                             </tr></thead>
                             <tbody>
                                 <tr v-for="u in usersPage.content" :key="u.username" style="cursor: pointer;">
@@ -541,7 +564,7 @@
                                     <td class="text-center">{{ u.tokenBalance }}</td>
                                     <td class="text-center">
                                         <span class="badge-status" :class="u.accountTier === 'PRO' ? 'badge-completed' : 'badge-pending'">
-                                            {{ u.accountTier }}
+                                            {{ tierLabel(u.accountTier) }}
                                         </span>
                                     </td>
                                     <td class="text-center">
@@ -554,7 +577,7 @@
                                             <i :class="u.enabled ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
                                             {{ u.enabled ? 'Khóa' : 'Mở' }}
                                         </button>
-                                        <span v-else class="text-muted-sync" style="font-size: 13px;">Admin</span>
+                                        <span v-else class="text-muted-sync" style="font-size: 13px;">Quản trị viên</span>
                                     </td>
                                 </tr>
                                 <tr v-if="!usersPage.content || usersPage.content.length === 0">
@@ -590,7 +613,7 @@
                     <div class="card-body p-0">
                         <table class="table table-custom">
                             <thead><tr>
-                                <th>ID</th><th>Tên bài hát</th><th>Người dùng</th><th class="text-center">Trạng thái</th><th class="text-center">Public</th><th>Ngày tạo</th><th class="text-center">Thao tác</th>
+                                <th>ID</th><th>Tên bài hát</th><th>Người dùng</th><th class="text-center">Trạng thái</th><th class="text-center">Hiển thị</th><th>Ngày tạo</th><th class="text-center">Thao tác</th>
                             </tr></thead>
                             <tbody>
                                 <tr v-for="s in songsPage.content" :key="s.id">
@@ -598,17 +621,17 @@
                                     <td class="fw-medium" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.title }}</td>
                                     <td class="text-muted-sync">@{{ s.user?.username }}</td>
                                     <td class="text-center">
-                                        <span class="badge-status" :class="'badge-' + (s.status ? s.status.toLowerCase() : 'pending')">{{ s.status }}</span>
+                                        <span class="badge-status" :class="'badge-' + (s.status ? s.status.toLowerCase() : 'pending')">{{ statusLabel(s.status) }}</span>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge-status" :class="s.isPublic ? 'badge-completed' : 'badge-failed'">
-                                            {{ s.isPublic ? 'Public' : 'Private' }}
+                                            {{ s.isPublic ? 'Công khai' : 'Riêng tư' }}
                                         </span>
                                     </td>
                                     <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(s.createdAt) }}</td>
                                     <td class="text-center">
                                         <div class="d-flex gap-1 justify-content-center">
-                                            <button @click="toggleSongPublic(s)" class="btn btn-admin-sm btn-admin-outline" title="Chuyển public/private">
+                                            <button @click="toggleSongPublic(s)" class="btn btn-admin-sm btn-admin-outline" title="Đổi trạng thái công khai/riêng tư">
                                                 <i :class="s.isPublic ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
                                             </button>
                                             <button @click="deleteSong(s)" class="btn btn-admin-sm btn-admin-danger" title="Xóa bài nhạc">
@@ -639,6 +662,13 @@
                     <button @click="openGenreModal(null)" class="btn btn-admin-primary">
                         <i class="ti ti-plus me-1"></i> Thêm thể loại
                     </button>
+                </div>
+
+                <div class="card-custom mb-3">
+                    <div class="card-body small text-muted-sync">
+                        Thể loại tại đây xuất hiện trong màn hình Tạo nhạc. Khi người dùng chọn một thể loại,
+                        hệ thống bổ sung tên thể loại vào prompt gửi sang mô hình AI và đồng thời gắn thể loại vào bài hát.
+                    </div>
                 </div>
 
                 <div class="card-custom">
@@ -699,12 +729,14 @@
                 <div class="card-custom">
                     <div class="card-body p-0">
                         <table class="table table-custom">
-                            <thead><tr><th>ID</th><th>Tên gói</th><th class="text-center">Token</th><th class="text-center">Giá (VNĐ)</th><th>Mô tả</th><th class="text-center">Thao tác</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Tên gói</th><th class="text-center">Cấp độ</th><th class="text-center">Token</th><th class="text-center">Thời hạn</th><th class="text-center">Giá (VNĐ)</th><th>Mô tả</th><th class="text-center">Thao tác</th></tr></thead>
                             <tbody>
                                 <tr v-for="p in packages" :key="p.id">
                                     <td class="text-muted-sync">#{{ p.id }}</td>
                                     <td class="fw-medium">{{ p.name }}</td>
+                                    <td class="text-center">{{ p.tierCode }}</td>
                                     <td class="text-center">{{ p.tokens }}</td>
+                                    <td class="text-center">{{ p.durationDays }} ngày</td>
                                     <td class="text-center">{{ formatPrice(p.price) }}</td>
                                     <td class="text-muted-sync" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.description || '—' }}</td>
                                     <td class="text-center">
@@ -715,7 +747,7 @@
                                     </td>
                                 </tr>
                                 <tr v-if="packages.length === 0">
-                                    <td colspan="6" class="text-center text-muted-sync py-4">Chưa có gói token nào.</td>
+                                    <td colspan="8" class="text-center text-muted-sync py-4">Chưa có gói token nào.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -738,6 +770,18 @@
                             <div class="col-md-3">
                                 <label class="form-label small text-muted-sync">Giá (VNĐ)</label>
                                 <input type="number" v-model.number="packageForm.price" class="form-input-custom w-100" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted-sync">Cấp tài khoản</label>
+                                <select v-model="packageForm.tierCode" class="form-input-custom w-100">
+                                    <option value="CREATOR">Nhà sáng tạo</option>
+                                    <option value="PRO">Chuyên nghiệp</option>
+                                    <option value="STUDIO">Phòng thu</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted-sync">Thời hạn (ngày)</label>
+                                <input type="number" v-model.number="packageForm.durationDays" class="form-input-custom w-100" min="1">
                             </div>
                             <div class="col-12">
                                 <label class="form-label small text-muted-sync">Mô tả</label>
@@ -776,7 +820,7 @@
                                     <i class="ti ti-filter me-1"></i> Lọc
                                 </button>
                                 <button @click="clearRevenueFilter" class="btn btn-admin-outline">
-                                    <i class="ti ti-refresh me-1"></i> Reset
+                                    <i class="ti ti-refresh me-1"></i> Đặt lại
                                 </button>
                             </div>
                         </div>
@@ -830,6 +874,8 @@
                             <option value="PENDING">Chờ thanh toán</option>
                             <option value="SUCCESS">Thành công</option>
                             <option value="FAILED">Thất bại</option>
+                            <option value="CANCELLED">Đã hủy</option>
+                            <option value="EXPIRED">Hết hạn</option>
                         </select>
                     </div>
                     <div class="card-body p-0">
@@ -844,7 +890,7 @@
                                     <td>{{ o.pkg?.name }}</td>
                                     <td class="text-center fw-medium">{{ formatPrice(o.totalPrice) }}</td>
                                     <td class="text-center">
-                                        <span class="badge-status" :class="'badge-' + (o.status ? o.status.toLowerCase() : 'pending')">{{ o.status }}</span>
+                                        <span class="badge-status" :class="'badge-' + (o.status ? o.status.toLowerCase() : 'pending')">{{ statusLabel(o.status) }}</span>
                                     </td>
                                     <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(o.createdAt) }}</td>
                                 </tr>
@@ -872,16 +918,16 @@
                         Đang tải...
                     </div>
                     <table class="table table-custom" v-else-if="userSongs.length">
-                        <thead><tr><th>ID</th><th>Tên bài hát</th><th class="text-center">Trạng thái</th><th class="text-center">Public</th><th>Ngày tạo</th></tr></thead>
+                        <thead><tr><th>ID</th><th>Tên bài hát</th><th class="text-center">Trạng thái</th><th class="text-center">Hiển thị</th><th>Ngày tạo</th></tr></thead>
                         <tbody>
                             <tr v-for="s in userSongs" :key="s.id">
                                 <td class="text-muted-sync">#{{ s.id }}</td>
                                 <td class="fw-medium" style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.title }}</td>
                                 <td class="text-center">
-                                    <span class="badge-status" :class="'badge-' + (s.status ? s.status.toLowerCase() : 'pending')">{{ s.status }}</span>
+                                    <span class="badge-status" :class="'badge-' + (s.status ? s.status.toLowerCase() : 'pending')">{{ statusLabel(s.status) }}</span>
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge-status" :class="s.isPublic ? 'badge-completed' : 'badge-failed'">{{ s.isPublic ? 'Public' : 'Private' }}</span>
+                                    <span class="badge-status" :class="s.isPublic ? 'badge-completed' : 'badge-failed'">{{ s.isPublic ? 'Công khai' : 'Riêng tư' }}</span>
                                 </td>
                                 <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(s.createdAt) }}</td>
                             </tr>
@@ -926,7 +972,7 @@ new Vue({
         // Packages
         packages: [],
         showPackageModal: false,
-        packageForm: { id: null, name: '', tokens: 0, price: 0, description: '' },
+        packageForm: { id: null, name: '', tokens: 0, price: 0, description: '', tierCode: 'CREATOR', durationDays: 30 },
 
         // Orders
         orders: [],
@@ -947,33 +993,29 @@ new Vue({
         userSearchTimer: null,
     },
 
-    created() {
-        axios.interceptors.request.use(config => {
-            const token = localStorage.getItem('jwt_token');
-            if (token) config.headers.Authorization = `Bearer ${token}`;
-            return config;
-        }, e => Promise.reject(e));
-    },
-
     mounted() {
         this.Toast = Swal.mixin({
             toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
             didOpen: toast => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); }
         });
 
-        const token = localStorage.getItem('jwt_token');
-        const user = localStorage.getItem('music_username');
-        if (!token || !user) {
-            Swal.fire({ icon: 'error', title: 'Từ chối truy cập', text: 'Vui lòng đăng nhập với quyền Admin.' }).then(() => { window.location.href = '/'; });
-            return;
-        }
-
-        this.loadDashboard();
-        this.loadUsers(0);
-        this.loadSongs(0);
-        this.loadGenres();
-        this.loadPackages();
-        this.loadRevenue();
+        axios.get('/api/users/auth-session')
+            .then(response => {
+                if (!response.data.isAdmin) throw new Error('NOT_ADMIN');
+                this.loadDashboard();
+                this.loadUsers(0);
+                this.loadSongs(0);
+                this.loadGenres();
+                this.loadPackages();
+                this.loadRevenue();
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Từ chối truy cập',
+                    text: 'Vui lòng đăng nhập với quyền Admin.'
+                }).then(() => { window.location.href = '/'; });
+            });
     },
 
     methods: {
@@ -995,23 +1037,48 @@ new Vue({
             return new Intl.NumberFormat('vi-VN').format(p) + '₫';
         },
 
+        tierLabel(tier) {
+            const labels = {
+                FREE: 'Miễn phí',
+                BASIC: 'Miễn phí',
+                CREATOR: 'Nhà sáng tạo',
+                PRO: 'Chuyên nghiệp',
+                STUDIO: 'Phòng thu'
+            };
+            const tierKey = (tier || 'FREE').toUpperCase();
+            return labels[tierKey] || tier;
+        },
+
+        statusLabel(status) {
+            const labels = {
+                PENDING: 'Đang chờ',
+                COMPLETED: 'Hoàn thành',
+                SUCCESS: 'Thành công',
+                FAILED: 'Thất bại',
+                CANCELLED: 'Đã hủy',
+                EXPIRED: 'Hết hạn'
+            };
+            const statusKey = (status || 'PENDING').toUpperCase();
+            return labels[statusKey] || status;
+        },
+
         // ===== DASHBOARD =====
         loadDashboard() {
             axios.get('/api/reports/overview')
                 .then(res => {
                     const d = res.data;
                     this.dashboardStats = [
-                        { label: 'Người dùng', value: d.totalUsers, icon: 'ti ti-users', bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
-                        { label: 'Tổng bài nhạc', value: d.totalSongs, icon: 'ti ti-music', bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
-                        { label: 'Hoàn thành', value: d.completedSongs, icon: 'ti ti-check-circle', bg: 'rgba(22,163,74,0.15)', color: '#4ade80' },
-                        { label: 'Đang xử lý', value: d.pendingSongs, icon: 'ti ti-refresh', bg: 'rgba(234,179,8,0.15)', color: '#facc15' },
-                        { label: 'Thất bại', value: d.failedSongs, icon: 'ti ti-alert-circle', bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
-                        { label: 'Public', value: d.publicSongs, icon: 'ti ti-world', bg: 'rgba(22,163,74,0.15)', color: '#4ade80' },
-                        { label: 'Album', value: d.totalAlbums, icon: 'ti ti-album', bg: 'rgba(249,115,22,0.15)', color: '#fb923c' },
-                        { label: 'Playlist', value: d.totalPlaylists, icon: 'ti ti-list', bg: 'rgba(236,72,153,0.15)', color: '#f472b6' },
-                        { label: 'Thể loại', value: d.totalGenres, icon: 'ti ti-category', bg: 'rgba(14,165,233,0.15)', color: '#38bdf8' },
-                        { label: 'Đơn hàng', value: d.totalOrders, icon: 'ti ti-receipt', bg: 'rgba(168,85,247,0.15)', color: '#c084fc' },
-                        { label: 'Tỉ lệ thành công', value: d.successRate + '%', icon: 'ti ti-percentage', bg: 'rgba(22,163,74,0.15)', color: '#4ade80' },
+                        { label: 'Người dùng', value: d.totalUsers, icon: 'ti ti-users', bg: 'rgba(59,130,246,0.15)', color: '#60a5fa', targetTab: 'users', help: 'Mở danh sách tài khoản' },
+                        { label: 'Tổng bài nhạc', value: d.totalSongs, icon: 'ti ti-music', bg: 'rgba(139,92,246,0.15)', color: '#a78bfa', targetTab: 'songs', help: 'Mở danh sách bài nhạc' },
+                        { label: 'Hoàn thành', value: d.completedSongs, icon: 'ti ti-check-circle', bg: 'rgba(22,163,74,0.15)', color: '#4ade80', targetTab: 'songs', help: 'Số yêu cầu tạo nhạc đã hoàn thành' },
+                        { label: 'Đang xử lý', value: d.pendingSongs, icon: 'ti ti-refresh', bg: 'rgba(234,179,8,0.15)', color: '#facc15', targetTab: 'songs', help: 'Số yêu cầu AI đang xử lý' },
+                        { label: 'Thất bại', value: d.failedSongs, icon: 'ti ti-alert-circle', bg: 'rgba(239,68,68,0.15)', color: '#f87171', targetTab: 'songs', help: 'Số yêu cầu tạo nhạc thất bại' },
+                        { label: 'Công khai', value: d.publicSongs, icon: 'ti ti-world', bg: 'rgba(22,163,74,0.15)', color: '#4ade80', targetTab: 'songs', help: 'Bài nhạc cộng đồng có thể nghe' },
+                        { label: 'Album', value: d.totalAlbums, icon: 'ti ti-album', bg: 'rgba(249,115,22,0.15)', color: '#fb923c', help: 'Bộ sưu tập album do người dùng tạo' },
+                        { label: 'Danh sách phát', value: d.totalPlaylists, icon: 'ti ti-list', bg: 'rgba(236,72,153,0.15)', color: '#f472b6', help: 'Danh sách phát do người dùng tạo' },
+                        { label: 'Thể loại', value: d.totalGenres, icon: 'ti ti-category', bg: 'rgba(14,165,233,0.15)', color: '#38bdf8', targetTab: 'genres', help: 'Dữ liệu lựa chọn được gửi vào prompt tạo nhạc' },
+                        { label: 'Đơn đã thanh toán', value: d.totalOrders, icon: 'ti ti-receipt', bg: 'rgba(168,85,247,0.15)', color: '#c084fc', targetTab: 'revenue', help: 'Chỉ tính giao dịch đã thanh toán thành công' },
+                        { label: 'Tỉ lệ tạo thành công', value: d.successRate + '%', icon: 'ti ti-percentage', bg: 'rgba(22,163,74,0.15)', color: '#4ade80', help: 'Bài hoàn thành chia cho tổng số yêu cầu tạo nhạc' },
                     ];
                 })
                 .catch(err => {
@@ -1067,7 +1134,7 @@ new Vue({
         },
 
         toggleSongPublic(s) {
-            const action = s.isPublic ? 'chuyển sang Private' : 'chuyển sang Public';
+            const action = s.isPublic ? 'chuyển sang riêng tư' : 'chuyển sang công khai';
             Swal.fire({
                 title: 'Xác nhận',
                 text: `Bạn có chắc muốn ${action} bài "#${s.id} - ${s.title}"?`,
@@ -1168,9 +1235,9 @@ new Vue({
 
         openPackageModal(p) {
             if (p) {
-                this.packageForm = { id: p.id, name: p.name, tokens: p.tokens, price: p.price, description: p.description || '' };
+                this.packageForm = { id: p.id, name: p.name, tokens: p.tokens, price: p.price, description: p.description || '', tierCode: p.tierCode || 'CREATOR', durationDays: p.durationDays || 30 };
             } else {
-                this.packageForm = { id: null, name: '', tokens: 0, price: 0, description: '' };
+                this.packageForm = { id: null, name: '', tokens: 0, price: 0, description: '', tierCode: 'CREATOR', durationDays: 30 };
             }
             this.showPackageModal = true;
         },
@@ -1193,7 +1260,9 @@ new Vue({
                 name: this.packageForm.name.trim(),
                 tokens: this.packageForm.tokens,
                 price: this.packageForm.price,
-                description: this.packageForm.description.trim()
+                description: this.packageForm.description.trim(),
+                tierCode: this.packageForm.tierCode,
+                durationDays: this.packageForm.durationDays
             };
 
             if (this.packageForm.id) {

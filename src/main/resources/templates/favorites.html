@@ -33,7 +33,7 @@
                 <div v-else>
                     <div v-if="isLoadingFavorites" class="text-center py-5">
                         <div class="spinner-border text-success" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">Đang tải...</span>
                         </div>
                         <p class="mt-2 text-muted-sync small">Đang tải danh sách...</p>
                     </div>
@@ -71,7 +71,7 @@
                                     title="Phát bài hát này">
                                     <i class="ti ti-player-play"></i>
                                 </button>
-                                <button @click="addToPlaylist(song)" class="btn btn-sm action-btn-gray"
+                                <button @click="openPlaylistModal(song)" class="btn btn-sm action-btn-gray"
                                     title="Thêm vào danh sách phát tạm">
                                     <i class="ti ti-plus"></i>
                                 </button>

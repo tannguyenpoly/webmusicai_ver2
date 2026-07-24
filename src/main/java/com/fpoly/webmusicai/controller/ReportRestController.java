@@ -16,7 +16,6 @@ import com.fpoly.webmusicai.repository.*;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/reports")
 public class ReportRestController {
@@ -61,7 +60,7 @@ public class ReportRestController {
         long totalAlbums = albumRepo.count();
         long totalPlaylists = playlistRepo.count();
         long totalGenres = genreRepo.count();
-        long totalOrders = orderRepo.count();
+        long totalOrders = orderRepo.countByStatus("SUCCESS");
 
         double successRate = totalSongs > 0 ? (completed * 100.0 / totalSongs) : 0;
 
@@ -144,7 +143,9 @@ public class ReportRestController {
     public ResponseEntity<?> getUserGrowth() {
         long totalUsers = userRepo.count();
         long basicUsers = userRepo.findAll().stream()
-                .filter(u -> "BASIC".equals(u.getAccountTier()))
+                .filter(u -> u.getAccountTier() == null
+                        || "FREE".equalsIgnoreCase(u.getAccountTier())
+                        || "BASIC".equalsIgnoreCase(u.getAccountTier()))
                 .count();
         long proUsers = totalUsers - basicUsers;
 

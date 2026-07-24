@@ -20,9 +20,10 @@ import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.AuthorityRepository;
 import com.fpoly.webmusicai.repository.RoleRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
+import com.fpoly.webmusicai.service.MailService;
+import com.fpoly.webmusicai.service.PresenceService;
 
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -45,6 +46,15 @@ public class OAuthController implements AuthenticationSuccessHandler {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private JwtCookieService jwtCookieService;
+
+    @Autowired
+    private PresenceService presenceService;
+
+    @Autowired
+    private MailService mailService;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
@@ -59,8 +69,10 @@ public class OAuthController implements AuthenticationSuccessHandler {
             return;
         }
 
-        Optional<User> optionalUser = userRepo.findFirstByEmail(email);
+        email = email.trim().toLowerCase();
+        Optional<User> optionalUser = userRepo.findFirstByEmailIgnoreCase(email);
         User user;
+        boolean newAccount = false;
 
         String displayName = name != null ? name : email;
         String avatarUrl = (picture != null && !picture.trim().isEmpty()) ? picture 
@@ -68,16 +80,27 @@ public class OAuthController implements AuthenticationSuccessHandler {
 
         if (optionalUser.isPresent()) {
             user = optionalUser.get();
+            user.setEmail(email);
+            if (user.getFullname() == null || user.getFullname().isBlank()) {
+                user.setFullname(displayName);
+            }
             user.setPhoto(avatarUrl);
+            String provider = user.getAuthProvider();
+            user.setAuthProvider("LOCAL".equalsIgnoreCase(provider) || "BOTH".equalsIgnoreCase(provider)
+                    ? "BOTH"
+                    : "GOOGLE");
             userRepo.save(user);
         } else {
             String username = email;
             if (userRepo.existsById(username)) {
                 user = userRepo.findById(username).get();
-                if (user.getPhoto() == null || user.getPhoto().trim().isEmpty()) {
-                    user.setPhoto(avatarUrl);
-                    userRepo.save(user);
-                }
+                user.setEmail(email);
+                user.setFullname(user.getFullname() == null || user.getFullname().isBlank()
+                        ? displayName
+                        : user.getFullname());
+                user.setPhoto(avatarUrl);
+                user.setAuthProvider("GOOGLE");
+                userRepo.save(user);
             } else {
                 user = new User();
                 user.setUsername(username);
@@ -85,10 +108,13 @@ public class OAuthController implements AuthenticationSuccessHandler {
                 user.setFullname(displayName);
                 user.setPhoto(avatarUrl);
                 user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-                user.setTokenBalance(5);
+                user.setTokenBalance(15);
                 user.setEnabled(true);
-                user.setAccountTier("BASIC");
+                user.setAccountTier("FREE");
+                user.setAuthProvider("GOOGLE");
+                user.setTokenVersion(0);
                 userRepo.save(user);
+                newAccount = true;
 
                 Role role = roleRepo.findById("USER").orElse(null);
                 if (role != null) {
@@ -100,19 +126,20 @@ public class OAuthController implements AuthenticationSuccessHandler {
             }
         }
 
-        String token = jwtService.generateToken(user.getUsername());
+        if (newAccount) {
+            mailService.sendWelcomeEmail(user.getEmail(), user.getFullname(), user.getUsername());
+        }
+
+        String token = jwtService.generateToken(user);
 
         boolean isAdmin = user.getAuthorities() != null && user.getAuthorities().stream()
                 .anyMatch(a -> a.getRole() != null && "ADMIN".equalsIgnoreCase(a.getRole().getId()));
 
-        Cookie cookie = new Cookie("jwt_token", token);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(86400);
-        response.addCookie(cookie);
+        jwtCookieService.write(response, token);
+        presenceService.heartbeat(user.getUsername());
 
-        String redirectUrl = "/?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
-                + "&username=" + URLEncoder.encode(user.getUsername(), StandardCharsets.UTF_8)
+        String redirectUrl = "/?oauth=success&username="
+                + URLEncoder.encode(user.getUsername(), StandardCharsets.UTF_8)
                 + "&isAdmin=" + isAdmin;
 
         response.sendRedirect(redirectUrl);

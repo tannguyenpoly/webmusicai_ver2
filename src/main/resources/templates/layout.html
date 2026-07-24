@@ -1183,6 +1183,8 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            min-width: 0;
+            max-width: 185px;
         }
         .chat-header-name {
             font-weight: 600;
@@ -1300,6 +1302,16 @@
             position: relative;
             flex-shrink: 0;
         }
+        .chat-online-dot {
+            position: absolute;
+            right: -1px;
+            bottom: -1px;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #22c55e;
+            border: 2px solid var(--chat-window-bg);
+        }
         .chat-contact-avatar {
             width: 40px;
             height: 40px;
@@ -1308,6 +1320,7 @@
         }
         .chat-contact-info {
             flex-grow: 1;
+            min-width: 0;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -1487,6 +1500,43 @@
         </div>
 
         <div class="suno-wrapper">
+            <div v-if="currentUser" class="dropdown position-fixed" style="top: 14px; right: 18px; z-index: 1080;" v-cloak>
+                <button class="btn rounded-circle position-relative d-flex align-items-center justify-content-center"
+                        style="width: 42px; height: 42px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color);"
+                        data-bs-toggle="dropdown" @click="loadNotifications(true)" title="Thông báo">
+                    <i class="ti ti-bell" style="font-size: 20px;"></i>
+                    <span v-if="notificationUnreadCount > 0"
+                          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                          style="font-size: 9px;">{{ notificationUnreadCount > 99 ? '99+' : notificationUnreadCount }}</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg"
+                     style="width: min(360px, 92vw); max-height: 440px; overflow: hidden; background: var(--card-bg); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="border-color: var(--border-color) !important;">
+                        <span class="fw-bold" style="color: var(--text-color);">Thông báo</span>
+                        <button v-if="notificationUnreadCount > 0" class="btn btn-sm text-success border-0"
+                                @click.stop="markAllNotificationsRead">Đọc tất cả</button>
+                    </div>
+                    <div style="max-height: 370px; overflow-y: auto;">
+                        <button v-for="notification in notifications" :key="notification.id"
+                                class="dropdown-item text-wrap px-3 py-3 border-bottom"
+                                :class="{ 'fw-semibold': !notification.read }"
+                                style="color: var(--text-color); border-color: var(--border-color) !important;"
+                                @click="openNotification(notification)">
+                            <div class="d-flex gap-2">
+                                <i class="ti ti-music text-success mt-1"></i>
+                                <div class="min-w-0">
+                                    <div style="font-size: 13px;">{{ notification.content }}</div>
+                                    <small class="text-muted-sync">{{ formatRelativeTime(notification.createdAt) }}</small>
+                                </div>
+                                <span v-if="!notification.read" class="rounded-circle bg-success flex-shrink-0 mt-2" style="width: 7px; height: 7px;"></span>
+                            </div>
+                        </button>
+                        <div v-if="notifications.length === 0" class="text-center text-muted-sync px-3 py-4 small">
+                            Chưa có thông báo.
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <div class="suno-sidebar d-none" :class="{ 'd-lg-flex': currentUser !== null }" v-cloak>
                 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -1497,12 +1547,15 @@
                 </div>
 
                 <div v-if="currentUser !== null" class="p-3 rounded-4 mb-3 d-flex align-items-center justify-content-between" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color);">
-                    <div class="d-flex align-items-center gap-2.5 min-w-0" @click="showProfileModal = true; profileModalTab = 'info';" style="cursor: pointer;">
+                    <div class="d-flex align-items-center gap-2.5 min-w-0 overflow-hidden" @click="openProfileModal" style="cursor: pointer; min-width: 0;">
                         <img :src="formatAvatarUrl(userPhoto, currentUser)" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--brand-green);" alt="Avatar">
-                        <div class="text-truncate">
-                            <div class="fw-bold small text-truncate" style="color: var(--text-color);">{{ currentUser }}</div>
+                        <div class="text-truncate" style="min-width: 0;">
+                            <div class="fw-bold small text-truncate" :title="currentUser" style="color: var(--text-color);">{{ currentUser }}</div>
                             <div class="text-muted-sync" style="font-size: 10px;">
-                                <i class="ti ti-coin text-warning me-0.5"></i> <span class="fw-bold text-warning">{{ userTokens }} Tokens</span>
+                                <i class="ti ti-coin text-warning me-0.5"></i>
+                                <span class="fw-bold text-warning">{{ userTokens }} token</span>
+                                <span class="mx-1">•</span>
+                                <span class="fw-semibold text-success">{{ userTierLabel }}</span>
                             </div>
                         </div>
                     </div>
@@ -1520,27 +1573,27 @@
                 </div>
 
                 <a href="/orders" class="btn w-100 py-2 mb-4 fw-bold text-white d-flex align-items-center justify-content-center gap-2" style="border-radius: 10px; background: linear-gradient(135deg, #15803d, #22c55e); border: 0; font-size: 13px;">
-                    <i class="ti ti-sparkles"></i> Upgrade to Pro
+                    <i class="ti ti-sparkles"></i> Nâng cấp gói sáng tạo
                 </a>
 
                 <div class="nav flex-column gap-1.5">
                     <a href="/" class="suno-nav-link" :class="{ active: currentPage === '/' || currentPage === '' }">
-                        <i class="ti ti-home fs-5"></i> <span>Home</span>
+                        <i class="ti ti-home fs-5"></i> <span>Trang chủ</span>
                     </a>
                     <a href="/explore" class="suno-nav-link" :class="{ active: currentPage === '/explore' }">
-                        <i class="ti ti-compass fs-5"></i> <span>Explore</span>
+                        <i class="ti ti-compass fs-5"></i> <span>Khám phá</span>
                     </a>
                     <a href="/create" class="suno-nav-link" :class="{ active: currentPage === '/create' }">
-                        <i class="ti ti-music fs-5"></i> <span>Create</span>
+                        <i class="ti ti-music fs-5"></i> <span>Tạo nhạc</span>
                     </a>
                     <a href="/profile" class="suno-nav-link" :class="{ active: currentPage === '/profile' }">
-                        <i class="ti ti-books fs-5"></i> <span>Library</span>
+                        <i class="ti ti-books fs-5"></i> <span>Thư viện</span>
                     </a>
                     <a href="/favorites" class="suno-nav-link" :class="{ active: currentPage === '/favorites' }">
-                        <i class="ti ti-heart fs-5"></i> <span>Favorites</span>
+                        <i class="ti ti-heart fs-5"></i> <span>Yêu thích</span>
                     </a>
                     <a v-if="isAdmin" href="/admin" class="suno-nav-link" :class="{ active: currentPage === '/admin' }">
-                        <i class="ti ti-shield-lock fs-5 text-danger"></i> <span class="text-danger fw-bold">Admin Panel</span>
+                        <i class="ti ti-shield-lock fs-5 text-danger"></i> <span class="text-danger fw-bold">Quản trị</span>
                     </a>
                 </div>
 
@@ -1611,8 +1664,29 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-medium text-muted-sync">Địa chỉ Email</label>
-                            <input type="email" v-model="profileForm.email" class="form-control custom-theme-input py-2"
+                            <input type="email" v-model="profileForm.email"
+                                :readonly="authProvider === 'GOOGLE' || authProvider === 'BOTH'"
+                                class="form-control custom-theme-input py-2"
                                 placeholder="username@gmail.com">
+                            <div v-if="authProvider === 'GOOGLE' || authProvider === 'BOTH'"
+                                class="small text-muted-sync mt-1" style="font-size: 11px;">
+                                Email này được liên kết với tài khoản Google.
+                            </div>
+                        </div>
+                        <div class="mb-3 p-3 rounded-3"
+                            style="background: rgba(22,163,74,.08); border: 1px solid rgba(22,163,74,.2);">
+                            <div class="d-flex justify-content-between align-items-center gap-3">
+                                <div>
+                                    <div class="small text-muted-sync">Gói đang sử dụng</div>
+                                    <div class="fw-bold text-success">{{ userTierLabel }}</div>
+                                </div>
+                                <a href="/orders" class="btn btn-sm btn-outline-success rounded-pill">
+                                    Xem các gói
+                                </a>
+                            </div>
+                            <div v-if="userTierExpiresAt" class="small text-muted-sync mt-2">
+                                Có hiệu lực đến {{ formatDate(userTierExpiresAt) }}
+                            </div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label small fw-medium text-muted-sync mb-2 d-block">Ảnh đại diện</label>
@@ -1628,21 +1702,76 @@
                         </div>
                     </div>
 
-                    <div v-if="profileModalTab === 'password'">
-                        <div class="mb-3">
+                    <div v-if="profileModalTab === 'password' && !passwordResetMode">
+                        <div v-if="!hasLocalPassword" class="alert border-0 rounded-3 mb-3"
+                            style="background: rgba(13,110,253,.10); color: var(--text-color);">
+                            <div class="fw-semibold mb-1"><i class="ti ti-brand-google me-1"></i>Tài khoản Google</div>
+                            <div class="small text-muted-sync">
+                                Bạn chưa có mật khẩu cục bộ nên không cần nhập mật khẩu cũ. Hãy nhận OTP qua email để thiết lập mật khẩu.
+                            </div>
+                        </div>
+                        <div v-if="hasLocalPassword" class="mb-3">
                             <label class="form-label small fw-medium text-muted-sync">Mật khẩu cũ</label>
                             <input type="password" v-model="changePasswordForm.oldPassword"
                                 class="form-control custom-theme-input py-2" placeholder="Nhập mật khẩu hiện tại">
                         </div>
-                        <div class="mb-3">
+                        <div v-if="hasLocalPassword" class="mb-3">
                             <label class="form-label small fw-medium text-muted-sync">Mật khẩu mới</label>
                             <input type="password" v-model="changePasswordForm.newPassword"
                                 class="form-control custom-theme-input py-2" placeholder="Nhập mật khẩu mới">
                         </div>
-                        <div class="mb-4">
+                        <div v-if="hasLocalPassword" class="mb-3">
                             <label class="form-label small fw-medium text-muted-sync">Xác nhận mật khẩu mới</label>
                             <input type="password" v-model="changePasswordForm.confirmNewPassword"
                                 class="form-control custom-theme-input py-2" placeholder="Nhập lại mật khẩu mới">
+                        </div>
+                        <button type="button" @click="beginProfilePasswordReset"
+                            class="btn btn-link text-success p-0 small text-decoration-none">
+                            <i class="ti ti-mail me-1"></i>
+                            {{ hasLocalPassword ? 'Quên mật khẩu hiện tại? Đặt lại qua email' : 'Thiết lập mật khẩu qua email' }}
+                        </button>
+                    </div>
+
+                    <div v-if="profileModalTab === 'password' && passwordResetMode">
+                        <button type="button" class="btn btn-sm btn-link text-muted-sync p-0 mb-3 text-decoration-none"
+                            @click="passwordResetMode = false">
+                            <i class="ti ti-arrow-left me-1"></i>Quay lại
+                        </button>
+                        <div class="mb-3">
+                            <label class="form-label small fw-medium text-muted-sync">Email nhận mã</label>
+                            <input type="email" v-model="forgotPasswordForm.email" readonly
+                                class="form-control custom-theme-input py-2">
+                        </div>
+                        <div v-if="forgotPasswordForm.step === 1">
+                            <p class="small text-muted-sync">Hệ thống sẽ gửi mã OTP có hiệu lực trong 5 phút.</p>
+                            <button type="button" @click="sendForgotPasswordOtp"
+                                :disabled="forgotPasswordForm.isSending"
+                                class="btn btn-main-sync w-100 py-2">
+                                <span v-if="forgotPasswordForm.isSending" class="spinner-border spinner-border-sm me-1"></span>
+                                Gửi mã OTP
+                            </button>
+                        </div>
+                        <div v-else>
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium text-muted-sync">Mã OTP</label>
+                                <input type="text" maxlength="6" v-model="forgotPasswordForm.otp"
+                                    class="form-control custom-theme-input py-2" placeholder="Nhập 6 chữ số">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium text-muted-sync">Mật khẩu mới</label>
+                                <input type="password" v-model="forgotPasswordForm.newPassword"
+                                    class="form-control custom-theme-input py-2" placeholder="Tối thiểu 6 ký tự">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-medium text-muted-sync">Xác nhận mật khẩu</label>
+                                <input type="password" v-model="forgotPasswordForm.confirmPassword"
+                                    class="form-control custom-theme-input py-2" placeholder="Nhập lại mật khẩu">
+                            </div>
+                            <button type="button" @click="submitResetPassword"
+                                :disabled="forgotPasswordForm.isSending"
+                                class="btn btn-main-sync w-100 py-2">
+                                Xác nhận đặt lại mật khẩu
+                            </button>
                         </div>
                     </div>
 
@@ -1653,7 +1782,8 @@
                             class="btn btn-main-sync flex-grow-1 py-2 fw-medium d-flex justify-content-center align-items-center">
                             <i class="ti ti-device-floppy me-2"></i> Lưu thay đổi
                         </button>
-                        <button v-if="profileModalTab === 'password'" @click="submitChangePassword"
+                        <button v-if="profileModalTab === 'password' && !passwordResetMode && hasLocalPassword"
+                            @click="submitChangePassword"
                             class="btn btn-main-sync flex-grow-1 py-2 fw-medium d-flex justify-content-center align-items-center">
                             <i class="ti ti-lock-check me-2"></i> Xác nhận đổi
                         </button>
@@ -1677,14 +1807,14 @@
                             <input type="text" v-model="editingSongForm.title" class="form-control custom-theme-input py-2 text-white" placeholder="Nhập tên bài hát...">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold text-white-50">Caption / Mô tả ý tưởng</label>
+                            <label class="form-label small fw-semibold text-white-50">Chú thích / Mô tả ý tưởng</label>
                             <textarea v-model="editingSongForm.prompt" class="form-control custom-theme-input py-2 text-white" rows="3" placeholder="Nhập caption bài viết..."></textarea>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-semibold text-white-50">Trạng thái bài viết</label>
                             <select v-model="editingSongForm.isPublic" class="form-select custom-theme-input py-2 text-white" style="background-color: var(--card-bg) !important;">
-                                <option :value="true">🌍 Công khai (Explore)</option>
-                                <option :value="false">🔒 Riêng tư (Private)</option>
+                                <option :value="true">🌍 Công khai trên Khám phá</option>
+                                <option :value="false">🔒 Riêng tư</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -1754,7 +1884,7 @@
                         <!-- Chat History List Section -->
                         <div class="mb-2">
                             <label class="form-label small fw-semibold text-white-50 mb-2 d-flex justify-content-between align-items-center">
-                                <span><i class="ti ti-history me-1 text-success"></i> Người dùng trong Lịch sử Chat</span>
+                                <span><i class="ti ti-history me-1 text-success"></i> Người dùng trong lịch sử trò chuyện</span>
                                 <span v-if="shareModalData.isLoadingContacts" class="spinner-border spinner-border-sm text-success" style="width: 12px; height: 12px;"></span>
                             </label>
 
@@ -1787,6 +1917,63 @@
             </div>
         </div>
 
+        <!-- Playlist thật được lưu trong cơ sở dữ liệu -->
+        <div class="modal fade" id="playlistManagerModal" tabindex="-1" aria-hidden="true" v-cloak>
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content custom-theme-modal border border-secondary shadow-lg" style="border-radius: 20px;">
+                    <div class="modal-header border-bottom border-secondary-subtle px-4 py-3">
+                        <div class="min-w-0">
+                        <h5 class="modal-title fw-bold fs-6 mb-0">Thêm vào danh sách phát</h5>
+                            <small v-if="playlistTargetSong" class="text-muted-sync d-block text-truncate" style="max-width: 340px;">
+                                {{ playlistTargetSong.title }}
+                            </small>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <form @submit.prevent="createPersistentPlaylist" class="p-3 rounded-4 mb-3" style="background: rgba(120,120,120,.08); border: 1px solid var(--border-color);">
+                                <label class="form-label small fw-semibold">Tạo danh sách phát mới</label>
+                            <div class="input-group mb-2">
+                                <input v-model.trim="newPlaylistForm.name" maxlength="100" class="form-control custom-theme-input" placeholder="Tên danh sách phát" required>
+                                <button class="btn btn-success fw-semibold" type="submit" :disabled="!newPlaylistForm.name">Tạo</button>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="newPlaylistPublic" v-model="newPlaylistForm.isPublic">
+                                <label class="form-check-label small" for="newPlaylistPublic">
+                                    Công khai để mọi người có thể xem
+                                </label>
+                            </div>
+                        </form>
+
+                        <div v-if="isLoadingPlaylists" class="text-center py-4">
+                            <span class="spinner-border spinner-border-sm text-success"></span>
+                        </div>
+                        <div v-else class="d-flex flex-column gap-2 overflow-y-auto pe-1" style="max-height: 300px;">
+                            <div v-for="playlist in myPlaylists" :key="playlist.id" class="d-flex align-items-center gap-2 p-2 rounded-3" style="border: 1px solid var(--border-color);">
+                                <button type="button" @click="addSongToPersistentPlaylist(playlist)" class="btn btn-sm flex-grow-1 text-start border-0 min-w-0">
+                                    <span class="d-block fw-semibold text-truncate">{{ playlist.name }}</span>
+                                    <small :class="playlist.isPublic ? 'text-success' : 'text-muted-sync'">
+                                        <i :class="playlist.isPublic ? 'ti ti-world' : 'ti ti-lock'"></i>
+                                        {{ playlist.isPublic ? 'Công khai' : 'Riêng tư' }}
+                                    </small>
+                                </button>
+                                <button type="button" class="btn btn-sm action-btn-gray" @click="togglePlaylistPrivacy(playlist)"
+                                        :title="playlist.isPublic ? 'Chuyển sang riêng tư' : 'Chuyển sang công khai'">
+                                    <i :class="playlist.isPublic ? 'ti ti-world' : 'ti ti-lock'"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm text-danger border-0" @click="deletePersistentPlaylist(playlist)" title="Xóa playlist">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                            <div v-if="myPlaylists.length === 0" class="text-center text-muted-sync py-4 small">
+                                Chưa có danh sách phát. Hãy tạo danh sách đầu tiên ở phía trên.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="currentTrack.id && !isOnSongDetailPage" class="suno-sticky-player" v-cloak>
             <div class="suno-player-left">
                 <img :src="getSongCover(currentTrack)" class="suno-player-cover" alt="Song Cover" />
@@ -1805,6 +1992,8 @@
                 <div class="suno-audio-wrapper">
                     <div v-if="currentTrack.status === 'PENDING'" class="text-warning small text-center mb-1">
                         <span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px;"></span> AI đang tạo nhạc...
+                        <button class="btn btn-sm btn-outline-danger ms-2 py-0 px-2"
+                                @click="cancelMusicGeneration(currentTrack)">Dừng</button>
                     </div>
                     <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay @play="isPlaying = true" @pause="isPlaying = false" class="custom-audio-player w-100" v-if="currentTrack.audioUrl"></audio>
                 </div>
@@ -1881,7 +2070,7 @@
                         <img :src="activeChatUser.photo" class="chat-header-avatar" alt="Avatar">
                         <div class="chat-header-info">
                             <span class="chat-header-name">{{ activeChatUser.fullname || activeChatUser.username }}</span>
-                            <span class="chat-header-status">Trực tuyến</span>
+                            <span class="chat-header-status" :class="{ 'text-success': activeChatUser.online }">{{ formatPresenceStatus(activeChatUser) }}</span>
                         </div>
                     </div>
                     
@@ -1909,9 +2098,12 @@
                         <div v-if="chatSearchQuery && chatSearchResults.length > 0" class="chat-contact-list mb-3">
                             <div class="small text-success px-2 mb-2 fw-semibold">Kết quả tìm kiếm</div>
                             <div v-for="user in chatSearchResults" :key="user.username" @click="startChatWithUser(user)" class="chat-contact-item">
-                                <img :src="user.photo" class="chat-contact-avatar" alt="Avatar">
+                                <div class="chat-contact-avatar-wrapper">
+                                    <img :src="user.photo" class="chat-contact-avatar" alt="Avatar">
+                                    <span v-if="user.online" class="chat-online-dot" title="Trực tuyến"></span>
+                                </div>
                                 <div class="chat-contact-info">
-                                    <h6 class="chat-contact-name">{{ user.fullname || user.username }}</h6>
+                                    <h6 class="chat-contact-name" :title="user.fullname || user.username">{{ user.fullname || user.username }}</h6>
                                     <p class="chat-contact-last-msg">@{{ user.username }}</p>
                                 </div>
                             </div>
@@ -1926,6 +2118,7 @@
                             <div v-for="contact in chatContacts" :key="contact.username" @click="openChatRoom(contact)" class="chat-contact-item" :class="{ 'unread': contact.unreadCount > 0 }">
                                 <div class="chat-contact-avatar-wrapper">
                                     <img :src="contact.photo" class="chat-contact-avatar" alt="Avatar">
+                                    <span v-if="contact.online" class="chat-online-dot" title="Trực tuyến"></span>
                                 </div>
                                 <div class="chat-contact-info">
                                     <div class="chat-contact-name-row">

@@ -1,25 +1,30 @@
 package com.fpoly.webmusicai.config;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import jakarta.servlet.http.HttpServletRequest; // Dùng javax.servlet... nếu bạn xài Spring Boot 2.x
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+@Component
 public class VNPayConfig {
 
-    public static String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-    public static String vnp_ReturnUrl = "http://localhost:8080/api/orders/vnpay-return"; // API hứng kết quả trả về
-    public static String vnp_TmnCode = "8AHDDYUX"; // Mã website
-    public static String secretKey = "34LM6LOVORNFUHFWOVO5YSPI645IO84Y"; // Chuỗi bí mật
-    public static String vnp_ApiUrl = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
+    @Value("${vnpay.pay-url}")
+    private String payUrl;
 
-    public static String hmacSHA512(final String key, final String data) {
+    @Value("${vnpay.return-url}")
+    private String returnUrl;
+
+    @Value("${vnpay.tmn-code:}")
+    private String tmnCode;
+
+    @Value("${vnpay.secret-key:}")
+    private String secretKey;
+
+    public String hmacSHA512(final String key, final String data) {
         try {
             if (key == null || data == null) {
                 throw new NullPointerException();
@@ -40,7 +45,7 @@ public class VNPayConfig {
         }
     }
 
-    public static String getIpAddress(HttpServletRequest request) {
+    public String getIpAddress(HttpServletRequest request) {
         String ipAdress;
         try {
             ipAdress = request.getHeader("X-FORWARDED-FOR");
@@ -53,7 +58,7 @@ public class VNPayConfig {
         return ipAdress;
     }
 
-    public static String getRandomNumber(int len) {
+    public String getRandomNumber(int len) {
         Random rnd = new Random();
         String chars = "0123456789";
         StringBuilder sb = new StringBuilder(len);
@@ -61,5 +66,26 @@ public class VNPayConfig {
             sb.append(chars.charAt(rnd.nextInt(chars.length())));
         }
         return sb.toString();
+    }
+
+    public boolean isConfigured() {
+        return tmnCode != null && !tmnCode.isBlank()
+                && secretKey != null && !secretKey.isBlank();
+    }
+
+    public String getPayUrl() {
+        return payUrl;
+    }
+
+    public String getReturnUrl() {
+        return returnUrl;
+    }
+
+    public String getTmnCode() {
+        return tmnCode;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
     }
 }
