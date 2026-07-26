@@ -46,6 +46,12 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .successHandler(oAuthController)
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .defaultAuthenticationEntryPointFor(
+                                (request, response, authException) -> response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"),
+                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**")
+                        )
+                )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
@@ -88,11 +94,16 @@ public class SecurityConfig {
         if (path.startsWith("/api/auth/") || path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
             return true;
         }
+        if ("POST".equals(method) && path.matches("/api/songs/\\d+/play")) {
+            return true;
+        }
         if ("GET".equals(method)) {
             if (path.equals("/api/songs/public")
+                    || path.equals("/api/songs/by-tag")
                     || path.matches("/api/songs/\\d+/status")
                     || path.matches("/api/songs/\\d+/likes")
-                    || path.matches("/api/songs/\\d+/comments")) {
+                    || path.matches("/api/songs/\\d+/comments")
+                    || path.matches("/api/songs/\\d+/tags")) {
                 return true;
             }
             if (path.equals("/api/packages") || path.equals("/api/packages/")) {
@@ -105,6 +116,9 @@ public class SecurityConfig {
                 return true;
             }
             if (path.startsWith("/api/genres/") && path.split("/").length == 4) {
+                return true;
+            }
+            if (path.equals("/api/tags") || path.equals("/api/tags/")) {
                 return true;
             }
             if (path.equals("/api/albums") || path.equals("/api/albums/")) {

@@ -16,9 +16,12 @@ import org.springframework.web.bind.annotation.*;
 import com.fpoly.webmusicai.entity.Authority;
 import com.fpoly.webmusicai.entity.Order;
 import com.fpoly.webmusicai.entity.Song;
+import com.fpoly.webmusicai.entity.Tag;
 import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.OrderRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
+import com.fpoly.webmusicai.repository.SongTagRepository;
+import com.fpoly.webmusicai.repository.TagRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 
 @CrossOrigin("*")
@@ -212,5 +215,43 @@ public class AdminRestController {
         stats.put("successRate", Math.round(successRate * 10) / 10.0); // 1 chữ số sau phẩy
 
         return ResponseEntity.ok(stats);
+    }
+
+    // ============ QUẢN LÝ TAGS ============
+
+    @Autowired
+    private TagRepository tagRepo;
+
+    @Autowired
+    private SongTagRepository songTagRepo;
+
+    @GetMapping("/tags")
+    public ResponseEntity<?> getAllTags() {
+        List<Tag> tags = tagRepo.findAll();
+        return ResponseEntity.ok(tags);
+    }
+
+    @PostMapping("/tags")
+    public ResponseEntity<?> createTag(@RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        if (name == null || name.trim().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tên tag không được để trống!"));
+        }
+        name = name.trim();
+
+        Tag tag = new Tag();
+        tag.setName(name);
+        tag = tagRepo.save(tag);
+        return ResponseEntity.ok(Map.of("message", "Đã tạo tag!", "id", tag.getId(), "name", tag.getName()));
+    }
+
+    @DeleteMapping("/tags/{id}")
+    public ResponseEntity<?> deleteTag(@PathVariable Integer id) {
+        if (!tagRepo.existsById(id)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tag không tồn tại!"));
+        }
+        songTagRepo.deleteByTagId(id);
+        tagRepo.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Đã xóa tag!"));
     }
 }

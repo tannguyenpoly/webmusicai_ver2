@@ -1,10 +1,8 @@
 new Vue({
     el: '#app',
     data: {
-        // QUẢN LÝ THEO DÕI CHẾ ĐỘ SÁNG / TỐI ĐỒNG BỘ LAYOUT VÀ INDEX
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
         currentPage: window.location.pathname,
-
         currentUser: null,
         userPhoto: null,
         isAdmin: false,
@@ -55,6 +53,12 @@ new Vue({
         editingSongForm: { id: null, title: '', prompt: '', isPublic: false, coverUrl: '' },
         isSavingSongEdit: false,
 
+        songTags: [],
+
+        availableTags: [],
+        selectedCreateTagIds: [],
+        selectedDetailTagIds: [],
+
         profileModalTab: 'info',
         showProfileModal: false,
         profileModalError: '',
@@ -63,19 +67,87 @@ new Vue({
 
         commentPagination: { content: [], number: 0, totalPages: 1, totalElements: 0 },
         isLoadingComments: false,
+        isSubmittingComment: false,
         newComment: { content: '' },
+        newReply: { content: '' },
         replyingToCommentId: null,
         editingComment: null,
 
-        // ================= DATA CHO TRANG PROFILE =================
-        profilePageData: {}, // Chứa thông tin user cho trang profile
-        profileStats: { total: 0, completed: 0, pending: 0, totalFavorites: 0 }, // Thống kê
-        profileTab: 'generated', // 'generated' hoặc 'favorites'
-        profileGeneratedSongs: [], // Danh sách nhạc đã tạo
-        profileFavoriteSongs: [], // Danh sách nhạc yêu thích ở profile
+        profilePageData: {},
+        profileStats: { total: 0, completed: 0, pending: 0, totalFavorites: 0 },
+        profileTab: 'generated',
+        profileGeneratedSongs: [],
+        profileFavoriteSongs: [],
         isLoadingProfileSongs: false,
         isLoadingProfileFav: false,
-        profileSongPagination: { page: 0, size: 10, hasMore: false }
+        profileSongPagination: { page: 0, size: 10, hasMore: false },
+
+        chatOpen: false,
+        chatContacts: [],
+        activeChatUser: null,
+        chatMessages: [],
+        chatInput: '',
+        chatSearchQuery: '',
+        chatSearchResults: [],
+        stompClient: null,
+        totalUnreadCount: 0,
+        chatSearchTimeout: null,
+
+        matchingCreators: [],
+        creatorSearchTimeout: null,
+
+        shareModalData: {
+            show: false,
+            song: null,
+            url: '',
+            copied: false,
+            userSearchQuery: '',
+            userSearchResults: [],
+            noteMessage: '',
+            isSearchingUsers: false,
+            sendingUsername: null
+        }
+    },
+    watch: {
+        'shareModalData.userSearchQuery': function (newVal) {
+            if (this.shareModalSearchTimeout) clearTimeout(this.shareModalSearchTimeout);
+            if (!newVal || !newVal.trim()) {
+                this.shareModalData.userSearchResults = [];
+                return;
+            }
+            this.shareModalData.isSearchingUsers = true;
+            this.shareModalSearchTimeout = setTimeout(() => {
+                axios.get('/api/users/search?query=' + encodeURIComponent(newVal.trim()))
+                    .then(res => {
+                        const list = res.data || [];
+                        this.shareModalData.userSearchResults = list.filter(u => u.username !== this.currentUser);
+                    })
+                    .catch(err => {
+                        console.error('Lỗi tìm kiếm người dùng:', err);
+                        this.shareModalData.userSearchResults = [];
+                    })
+                    .finally(() => {
+                        this.shareModalData.isSearchingUsers = false;
+                    });
+            }, 300);
+        },
+        'filters.keyword': function (newVal) {
+            if (this.creatorSearchTimeout) clearTimeout(this.creatorSearchTimeout);
+            if (!newVal || !newVal.trim()) {
+                this.matchingCreators = [];
+                return;
+            }
+            this.creatorSearchTimeout = setTimeout(() => {
+                axios.get('/api/users/search?query=' + encodeURIComponent(newVal.trim()))
+                    .then(response => {
+                        this.matchingCreators = response.data || [];
+                    })
+                    .catch(err => {
+                        console.error('Lỗi tìm kiếm creator:', err);
+                        this.matchingCreators = [];
+                    });
+            }, 300);
+        }
     },
     computed: {
         filteredSongs() {
@@ -127,23 +199,23 @@ new Vue({
                     (s.prompt && s.prompt.toLowerCase().includes(kw))
                 );
             }
-            
+
             const activeOptions = [];
             if (this.workspaceFilters.public) activeOptions.push('PUBLIC');
             if (this.workspaceFilters.private) activeOptions.push('PRIVATE');
-            
+
             if (activeOptions.length > 0) {
                 result = result.filter(s => activeOptions.includes(s.visibility));
             }
-            
+
             if (this.workspaceFilters.pending) {
                 result = result.filter(s => s.status === 'PENDING');
             }
-            
+
             if (this.workspaceFilters.liked) {
                 result = result.filter(s => this.profileFavoriteSongs.some(fav => (fav.song && fav.song.id === s.id) || fav.songId === s.id));
             }
-            
+
             if (this.workspaceSortOption === 'newest') {
                 result.sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0));
             } else if (this.workspaceSortOption === 'oldest') {
@@ -161,7 +233,7 @@ new Vue({
                 };
                 result.sort((a, b) => getLikes(a) - getLikes(b));
             }
-            
+
             return result;
         }
     },
@@ -173,6 +245,26 @@ new Vue({
             }
             return config;
         }, error => {
+            return Promise.reject(error);
+        });
+
+        axios.interceptors.response.use(response => {
+            const contentType = response.headers['content-type'];
+            if (contentType && contentType.includes('text/html') && response.config.url.includes('/api/')) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('music_username');
+                localStorage.removeItem('music_is_admin');
+                window.location.href = '/login?error=expired';
+                return Promise.reject(new Error('Session expired'));
+            }
+            return response;
+        }, error => {
+            if (error.response && error.response.status === 401) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('music_username');
+                localStorage.removeItem('music_is_admin');
+                window.location.href = '/login?error=expired';
+            }
             return Promise.reject(error);
         });
     },
@@ -195,7 +287,6 @@ new Vue({
             }
         });
 
-        // XỬ LÝ THÔNG BÁO VNPAY
         const urlParams = new URLSearchParams(window.location.search);
         const paymentStatus = urlParams.get('status');
         if (paymentStatus) {
@@ -209,7 +300,6 @@ new Vue({
             window.history.replaceState(null, null, window.location.pathname);
         }
 
-        // XỬ LÝ ĐĂNG NHẬP OAUTH2 GOOGLE
         const tokenParam = urlParams.get('token');
         const userParam = urlParams.get('username');
         const isAdminParam = urlParams.get('isAdmin');
@@ -229,6 +319,13 @@ new Vue({
             this.isAdmin = localStorage.getItem('music_is_admin') === 'true';
             this.generationForm.username = savedUser;
             this.loadUserTokenBalance(savedUser);
+
+            document.cookie = "jwt_token=" + savedToken + ";path=/;max-age=86400;SameSite=Lax";
+            setTimeout(() => {
+                this.connectWebSocket();
+                this.loadRecentChats();
+                this.loadTotalUnreadCount();
+            }, 600);
         } else {
             this.currentUser = null;
             this.isAdmin = false;
@@ -237,7 +334,6 @@ new Vue({
             localStorage.removeItem('music_is_admin');
         }
 
-        // PHÂN LUỒNG TRANG
         if (window.location.pathname === '/' || window.location.pathname === '/home') {
             this.loadPublicSongs();
         }
@@ -249,8 +345,7 @@ new Vue({
                 this.profileUsername = this.currentUser;
                 this.loadProfileGeneratedSongs();
                 this.loadProfileFavorites();
-                
-                // Prefill and auto-create from Home prompt box
+                this.loadAvailableTags();
                 const promptParam = urlParams.get('prompt');
                 if (promptParam) {
                     this.generationForm.prompt = promptParam;
@@ -278,7 +373,6 @@ new Vue({
             this.loadPackages();
             if (this.currentUser) this.loadMyOrders();
         }
-        // ================= LUỒNG LOAD CHO TRANG PROFILE =================
         else if (window.location.pathname === '/profile') {
             const urlParams = new URLSearchParams(window.location.search);
             const userParam = urlParams.get('u');
@@ -290,7 +384,7 @@ new Vue({
                 if (this.currentUser && this.profileUsername === this.currentUser) {
                     this.loadProfileFavorites();
                 } else {
-                    this.profileTab = 'generated'; // force public tab
+                    this.profileTab = 'generated';
                 }
                 this.loadFollowStatus();
             }
@@ -386,7 +480,7 @@ new Vue({
             if (!song) return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80';
             let id = typeof song === 'object' ? song.id : song;
             let customUrl = typeof song === 'object' ? song.coverUrl : null;
-            
+
             if (!customUrl && id && this.publicSongs) {
                 const found = this.publicSongs.find(s => s.id === id);
                 if (found && found.coverUrl) {
@@ -405,7 +499,7 @@ new Vue({
                     customUrl = found.coverUrl;
                 }
             }
-            
+
             if (customUrl && customUrl.trim() !== '') {
                 if (customUrl.startsWith('/images/')) {
                     let time = Date.now();
@@ -420,7 +514,7 @@ new Vue({
                 }
                 return customUrl;
             }
-            
+
             const covers = [
                 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80',
                 'https://images.unsplash.com/photo-1515621061946-eff1c2a352bd?w=400&auto=format&fit=crop&q=80',
@@ -472,57 +566,44 @@ new Vue({
             axios.post(`/api/songs/${songId}/cover`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
-            .then(res => {
-                const coverUrl = res.data.coverUrl;
-                
-                // Cập nhật trong publicSongs
-                const song = this.publicSongs.find(s => s.id === songId);
-                if (song) {
-                    Vue.set(song, 'coverUrl', coverUrl);
-                }
-                
-                // Cập nhật trong currentTrack
-                if (this.currentTrack.id === songId) {
-                    Vue.set(this.currentTrack, 'coverUrl', coverUrl);
-                }
-                
-                // Cập nhật trong sessionPlaylist
-                const playlistSong = this.sessionPlaylist.find(s => s.id === songId);
-                if (playlistSong) {
-                    Vue.set(playlistSong, 'coverUrl', coverUrl);
-                }
-                
-                // Cập nhật trong favoriteSongs
-                const favSong = this.favoriteSongs.find(s => s.id === songId);
-                if (favSong) {
-                    Vue.set(favSong, 'coverUrl', coverUrl);
-                }
-                
-                // Cập nhật trong danh sách profile
-                if (this.profileGeneratedSongs) {
-                    const profSong = this.profileGeneratedSongs.find(s => s.id === songId);
-                    if (profSong) Vue.set(profSong, 'coverUrl', coverUrl);
-                }
-                if (this.profileFavoriteSongs) {
-                    const profFav = this.profileFavoriteSongs.find(s => s.id === songId);
-                    if (profFav) Vue.set(profFav, 'coverUrl', coverUrl);
-                }
+                .then(res => {
+                    const coverUrl = res.data.coverUrl;
 
-                Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh bìa mới cho bài hát thành công!' });
-            })
-            .catch(err => {
-                let msg = 'Tải ảnh bìa thất bại!';
-                if (err.response && err.response.data && err.response.data.message) {
-                    msg = err.response.data.message;
-                }
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
-            });
+                    const song = this.publicSongs.find(s => s.id === songId);
+                    if (song) Vue.set(song, 'coverUrl', coverUrl);
+
+                    if (this.currentTrack.id === songId) Vue.set(this.currentTrack, 'coverUrl', coverUrl);
+
+                    const playlistSong = this.sessionPlaylist.find(s => s.id === songId);
+                    if (playlistSong) Vue.set(playlistSong, 'coverUrl', coverUrl);
+
+                    const favSong = this.favoriteSongs.find(s => s.id === songId);
+                    if (favSong) Vue.set(favSong, 'coverUrl', coverUrl);
+
+                    if (this.profileGeneratedSongs) {
+                        const profSong = this.profileGeneratedSongs.find(s => s.id === songId);
+                        if (profSong) Vue.set(profSong, 'coverUrl', coverUrl);
+                    }
+                    if (this.profileFavoriteSongs) {
+                        const profFav = this.profileFavoriteSongs.find(s => s.id === songId);
+                        if (profFav) Vue.set(profFav, 'coverUrl', coverUrl);
+                    }
+
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh bìa mới cho bài hát thành công!' });
+                })
+                .catch(err => {
+                    let msg = 'Tải ảnh bìa thất bại!';
+                    if (err.response && err.response.data && err.response.data.message) {
+                        msg = err.response.data.message;
+                    }
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                });
         },
 
         renameSong(songId) {
             const track = this.publicSongs.find(s => s.id === songId) || this.currentTrack;
             if (!track) return;
-            
+
             Swal.fire({
                 title: 'Đổi tên bài hát',
                 input: 'text',
@@ -542,19 +623,17 @@ new Vue({
                     const newTitle = result.value.trim();
                     axios.put(`/api/songs/${songId}/setting`, { title: newTitle })
                         .then(res => {
-                            if (this.currentTrack.id === songId) {
-                                this.currentTrack.title = newTitle;
-                            }
-                            
+                            if (this.currentTrack.id === songId) this.currentTrack.title = newTitle;
+
                             const publicSong = this.publicSongs.find(s => s.id === songId);
                             if (publicSong) publicSong.title = newTitle;
-                            
+
                             const favSong = this.favoriteSongs.find(s => s.id === songId);
                             if (favSong) favSong.title = newTitle;
-                            
+
                             const playSong = this.sessionPlaylist.find(s => s.id === songId);
                             if (playSong) playSong.title = newTitle;
-                            
+
                             if (this.profileGeneratedSongs) {
                                 const profSong = this.profileGeneratedSongs.find(s => s.id === songId);
                                 if (profSong) profSong.title = newTitle;
@@ -563,7 +642,7 @@ new Vue({
                                 const profFav = this.profileFavoriteSongs.find(s => s.id === songId);
                                 if (profFav) profFav.title = newTitle;
                             }
-                            
+
                             this.Toast.fire({ icon: 'success', title: 'Đổi tên bài hát thành công!' });
                         })
                         .catch(err => {
@@ -614,7 +693,7 @@ new Vue({
                 coverUrl: song.coverUrl
             };
             this.isSavingSongEdit = false;
-            
+
             const modalElem = document.getElementById('songEditModal');
             if (modalElem) {
                 const modal = new bootstrap.Modal(modalElem);
@@ -630,32 +709,28 @@ new Vue({
         uploadSongEditCoverFile(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             if (!file.type.startsWith('image/')) {
                 Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn file hình ảnh!' });
                 return;
             }
-
             const formData = new FormData();
             formData.append('file', file);
-
             Swal.fire({
                 title: 'Đang tải ảnh lên...',
                 text: 'Vui lòng chờ',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
-
             axios.post(`/api/songs/${this.editingSongForm.id}/cover`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
-            .then(res => {
-                this.editingSongForm.coverUrl = res.data.coverUrl;
-                Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh bìa thành công!' });
-            })
-            .catch(err => {
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || 'Không thể tải ảnh lên!' });
-            });
+                .then(res => {
+                    this.editingSongForm.coverUrl = res.data.coverUrl;
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh bìa thành công!' });
+                })
+                .catch(err => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || 'Không thể tải ảnh lên!' });
+                });
         },
 
         saveSongEdit() {
@@ -666,69 +741,69 @@ new Vue({
                 is_public: this.editingSongForm.isPublic,
                 cover_url: this.editingSongForm.coverUrl
             })
-            .then(res => {
-                const songId = this.editingSongForm.id;
-                const newTitle = this.editingSongForm.title;
-                const newPrompt = this.editingSongForm.prompt;
-                const newIsPublic = this.editingSongForm.isPublic;
-                const newCoverUrl = this.editingSongForm.coverUrl;
+                .then(res => {
+                    const songId = this.editingSongForm.id;
+                    const newTitle = this.editingSongForm.title;
+                    const newPrompt = this.editingSongForm.prompt;
+                    const newIsPublic = this.editingSongForm.isPublic;
+                    const newCoverUrl = this.editingSongForm.coverUrl;
 
-                const updateInList = (list) => {
-                    if (!list) return;
-                    const item = list.find(s => s.id === songId);
-                    if (item) {
-                        Vue.set(item, 'title', newTitle);
-                        Vue.set(item, 'prompt', newPrompt);
-                        Vue.set(item, 'isPublic', newIsPublic);
-                        Vue.set(item, 'coverUrl', newCoverUrl);
+                    const updateInList = (list) => {
+                        if (!list) return;
+                        const item = list.find(s => s.id === songId);
+                        if (item) {
+                            Vue.set(item, 'title', newTitle);
+                            Vue.set(item, 'prompt', newPrompt);
+                            Vue.set(item, 'isPublic', newIsPublic);
+                            Vue.set(item, 'coverUrl', newCoverUrl);
+                        }
+                    };
+
+                    updateInList(this.publicSongs);
+                    updateInList(this.favoriteSongs);
+                    updateInList(this.sessionPlaylist);
+                    updateInList(this.profileGeneratedSongs);
+                    updateInList(this.profileFavoriteSongs);
+
+                    if (this.currentTrack.id === songId) {
+                        Vue.set(this.currentTrack, 'title', newTitle);
+                        Vue.set(this.currentTrack, 'prompt', newPrompt);
+                        Vue.set(this.currentTrack, 'coverUrl', newCoverUrl);
+                        Vue.set(this.currentTrack, 'isPublic', newIsPublic);
                     }
-                };
 
-                updateInList(this.publicSongs);
-                updateInList(this.favoriteSongs);
-                updateInList(this.sessionPlaylist);
-                updateInList(this.profileGeneratedSongs);
-                updateInList(this.profileFavoriteSongs);
+                    const modalElem = document.getElementById('songEditModal');
+                    if (modalElem) {
+                        const modal = bootstrap.Modal.getInstance(modalElem);
+                        if (modal) modal.hide();
+                    }
 
-                if (this.currentTrack.id === songId) {
-                    Vue.set(this.currentTrack, 'title', newTitle);
-                    Vue.set(this.currentTrack, 'prompt', newPrompt);
-                    Vue.set(this.currentTrack, 'coverUrl', newCoverUrl);
-                    Vue.set(this.currentTrack, 'isPublic', newIsPublic);
-                }
-
-                const modalElem = document.getElementById('songEditModal');
-                if (modalElem) {
-                    const modal = bootstrap.Modal.getInstance(modalElem);
-                    if (modal) modal.hide();
-                }
-
-                this.Toast.fire({ icon: 'success', title: 'Cập nhật bài viết thành công!' });
-                this.loadPublicSongs();
-            })
-            .catch(err => {
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || err.response?.data || 'Không thể cập nhật bài viết!' });
-            })
-            .finally(() => {
-                this.isSavingSongEdit = false;
-            });
+                    this.Toast.fire({ icon: 'success', title: 'Cập nhật bài viết thành công!' });
+                    this.loadPublicSongs();
+                })
+                .catch(err => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || err.response?.data || 'Không thể cập nhật bài viết!' });
+                })
+                .finally(() => {
+                    this.isSavingSongEdit = false;
+                });
         },
 
-        getListensCount(songId) {
-            if (!songId) return '0';
-            if (songId > 10) {
-                return ((songId * 3 + 5) % 100) + ' lượt nghe';
+        getListensCount(song) {
+            if (!song) return '0 lượt nghe';
+            const id = typeof song === 'object' ? song.id : song;
+            const realListens = typeof song === 'object' ? (song.listenCount || 0) : 0;
+            if (id <= 8) {
+                const seedPlays = (id * 73 + 124) % 800 + 50;
+                return (seedPlays + realListens) + 'K';
             }
-            const seedPlays = (songId * 73 + 124) % 800 + 50;
-            return seedPlays + 'K';
+            return realListens + ' lượt nghe';
         },
 
         getLikesCount(song) {
             if (!song) return '0';
             const id = typeof song === 'object' ? song.id : song;
-            if (id > 10) {
-                return (song.total_likes || 0);
-            }
+            if (id > 10) return (song.total_likes || 0);
             const seedLikes = (id * 23 + 17) % 80 + 10;
             return (seedLikes + (song.total_likes || 0)) + 'K';
         },
@@ -744,18 +819,12 @@ new Vue({
             axios.get(`/api/users/${username}/profile`)
                 .then(response => {
                     if (response.data) {
-                        if (response.data.token_balance !== undefined) {
-                            this.userTokens = response.data.token_balance;
-                        }
-                        if (response.data.photo) {
-                            this.userPhoto = response.data.photo;
-                        }
+                        if (response.data.token_balance !== undefined) this.userTokens = response.data.token_balance;
+                        if (response.data.photo) this.userPhoto = response.data.photo;
                     }
                 })
                 .catch(error => {
-                    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                        this.handleLogout(false);
-                    }
+                    if (error.response && (error.response.status === 401 || error.response.status === 403)) this.handleLogout(false);
                 });
         },
 
@@ -763,6 +832,56 @@ new Vue({
             axios.get('/api/songs/public')
                 .then(response => { this.publicSongs = Array.isArray(response.data) ? response.data : []; })
                 .catch(error => { console.error(error); });
+        },
+
+        loadTags(songId) {
+            if (!songId) return;
+            axios.get(`/api/songs/${songId}/tags`)
+                .then(response => {
+                    const tags = Array.isArray(response.data) ? response.data : [];
+                    this.songTags = tags;
+                    this.selectedDetailTagIds = tags.map(t => t.tagId);
+                })
+                .catch(() => { this.songTags = []; this.selectedDetailTagIds = []; });
+        },
+
+        loadAvailableTags() {
+            axios.get('/api/tags')
+                .then(response => {
+                    this.availableTags = Array.isArray(response.data) ? response.data : [];
+                })
+                .catch(() => { this.availableTags = []; });
+        },
+
+        toggleCreateTag(id) {
+            const idx = this.selectedCreateTagIds.indexOf(id);
+            if (idx > -1) {
+                this.selectedCreateTagIds.splice(idx, 1);
+            } else {
+                this.selectedCreateTagIds.push(id);
+            }
+        },
+
+        toggleDetailTag(id) {
+            const idx = this.selectedDetailTagIds.indexOf(id);
+            if (idx > -1) {
+                this.selectedDetailTagIds.splice(idx, 1);
+            } else {
+                this.selectedDetailTagIds.push(id);
+            }
+        },
+
+        saveDetailTags() {
+            const songId = this.currentTrack && this.currentTrack.id;
+            if (!songId) return;
+            axios.post(`/api/songs/${songId}/tags/batch`, { tagIds: [...this.selectedDetailTagIds] })
+                .then(() => {
+                    this.Toast.fire({ icon: 'success', title: 'Đã lưu tags!' });
+                    this.loadTags(songId);
+                })
+                .catch(err => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || 'Không thể lưu tags!' });
+                });
         },
 
         loadFavoriteSongs() {
@@ -774,11 +893,9 @@ new Vue({
                 .finally(() => { this.isLoadingFavorites = false; });
         },
 
-        // ================= CÁC HÀM CHO TRANG PROFILE =================
         triggerAvatarUpload() {
-            if (this.$refs.avatarFileInput) {
-                this.$refs.avatarFileInput.click();
-            } else {
+            if (this.$refs.avatarFileInput) this.$refs.avatarFileInput.click();
+            else {
                 const elem = document.getElementById('avatarFileInputHidden');
                 if (elem) elem.click();
             }
@@ -787,48 +904,37 @@ new Vue({
         uploadAvatarFile(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             if (!file.type.startsWith('image/')) {
                 Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng chọn file hình ảnh (.jpg, .png, .webp, .gif)!' });
                 return;
             }
-
             if (file.size > 5 * 1024 * 1024) {
                 Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Dung lượng ảnh tối đa là 5MB!' });
                 return;
             }
-
             const formData = new FormData();
             formData.append('file', file);
-
             Swal.fire({
                 title: 'Đang tải ảnh lên...',
                 text: 'Vui lòng chờ trong giây lát',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
-
             axios.post(`/api/users/${this.currentUser}/avatar`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
-            .then(res => {
-                const newPhoto = res.data.photo;
-                this.userPhoto = newPhoto;
-                if (this.profilePageData) {
-                    this.profilePageData.photo = newPhoto;
-                }
-                if (this.profileForm) {
-                    this.profileForm.photo = newPhoto;
-                }
-                Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh đại diện mới thành công!' });
-            })
-            .catch(err => {
-                let msg = 'Tải ảnh đại diện thất bại!';
-                if (err.response && err.response.data && err.response.data.message) {
-                    msg = err.response.data.message;
-                }
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
-            });
+                .then(res => {
+                    const newPhoto = res.data.photo;
+                    this.userPhoto = newPhoto;
+                    if (this.profilePageData) this.profilePageData.photo = newPhoto;
+                    if (this.profileForm) this.profileForm.photo = newPhoto;
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tải ảnh đại diện mới thành công!' });
+                })
+                .catch(err => {
+                    let msg = 'Tải ảnh đại diện thất bại!';
+                    if (err.response && err.response.data && err.response.data.message) msg = err.response.data.message;
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                });
         },
 
         loadProfilePageData() {
@@ -840,9 +946,7 @@ new Vue({
                         this.profileStats.completed = res.data.completed_songs;
                         this.profileStats.pending = res.data.pending_songs;
                     }
-                    if (res.data.total_favorites !== undefined) {
-                        this.profileStats.totalFavorites = res.data.total_favorites;
-                    }
+                    if (res.data.total_favorites !== undefined) this.profileStats.totalFavorites = res.data.total_favorites;
                 })
                 .catch(err => console.error(err));
         },
@@ -857,18 +961,12 @@ new Vue({
                 .then(res => {
                     const data = res.data;
                     const content = data.content ? data.content : Array.isArray(data) ? data : [];
-
-                    if (loadMore) {
-                        this.profileGeneratedSongs = this.profileGeneratedSongs.concat(content);
-                    } else {
-                        this.profileGeneratedSongs = content;
-                    }
+                    if (loadMore) this.profileGeneratedSongs = this.profileGeneratedSongs.concat(content);
+                    else this.profileGeneratedSongs = content;
 
                     if (data.content) {
                         this.profileSongPagination.hasMore = !data.last;
-                        if (this.profileStats.total === 0 || !loadMore) {
-                            this.profileStats.total = data.totalElements;
-                        }
+                        if (this.profileStats.total === 0 || !loadMore) this.profileStats.total = data.totalElements;
                     } else {
                         this.profileSongPagination.hasMore = false;
                         this.profileStats.total = this.profileGeneratedSongs.length;
@@ -885,9 +983,7 @@ new Vue({
 
         switchToFavTab() {
             this.profileTab = 'favorites';
-            if (this.profileFavoriteSongs.length === 0) {
-                this.loadProfileFavorites();
-            }
+            if (this.profileFavoriteSongs.length === 0) this.loadProfileFavorites();
         },
 
         loadProfileFavorites() {
@@ -940,14 +1036,11 @@ new Vue({
             axios.post(`/api/songs/${song.id}/like`)
                 .then(res => {
                     this.profileFavoriteSongs = this.profileFavoriteSongs.filter(s => s.id !== song.id);
-                    if (this.profileStats.totalFavorites > 0) {
-                        this.profileStats.totalFavorites--;
-                    }
+                    if (this.profileStats.totalFavorites > 0) this.profileStats.totalFavorites--;
                     this.Toast.fire({ icon: 'success', title: 'Đã bỏ yêu thích bài hát.' });
                 })
                 .catch(err => this.Toast.fire({ icon: 'error', title: 'Lỗi xử lý.' }));
         },
-        // ================= KẾT THÚC CÁC HÀM TRANG PROFILE =================
 
         generateMusic() {
             if (!this.generationForm.prompt.trim()) {
@@ -962,7 +1055,7 @@ new Vue({
                     this.Toast.fire({ icon: 'success', title: 'AI đang xử lý giai điệu ngầm...' });
                     this.userTokens = data.remaining_tokens;
                     this.currentTrack = { id: data.songId, title: "AI đang tiến hành xử lý bài hát...", prompt: this.generationForm.prompt, status: "PENDING", audioUrl: "", username: this.currentUser };
-                    
+
                     if (window.location.pathname === '/' || window.location.pathname === '/profile') {
                         this.profileGeneratedSongs.unshift({
                             id: data.songId,
@@ -974,8 +1067,17 @@ new Vue({
                             created_at: new Date().toISOString()
                         });
                     }
-                    
                     this.generationForm.prompt = '';
+                    if (this.selectedCreateTagIds.length > 0) {
+                        const tagIds = [...this.selectedCreateTagIds];
+                        axios.post(`/api/songs/${data.songId}/tags/batch`, { tagIds })
+                            .then(() => {
+                                this.selectedCreateTagIds = [];
+                            })
+                            .catch(() => {});
+                    } else {
+                        this.selectedCreateTagIds = [];
+                    }
                     this.isGenerating = false;
                     this.startPollingStatus(data.songId);
                 })
@@ -991,7 +1093,7 @@ new Vue({
                 axios.get(`/api/songs/${songId}/status`)
                     .then(response => {
                         const statusData = response.data;
-                        if (this.currentTrack.id === songId) { this.currentTrack.status = statusData.status; }
+                        if (this.currentTrack.id === songId) this.currentTrack.status = statusData.status;
                         if (statusData.status === 'COMPLETED') {
                             clearInterval(this.pollingTimer);
                             this.currentTrack.title = statusData.title;
@@ -1016,9 +1118,7 @@ new Vue({
                 const audio = document.getElementById('audio-element');
                 if (audio) {
                     if (audio.paused) {
-                        audio.play().then(() => {
-                            this.isPlaying = true;
-                        }).catch(err => console.error(err));
+                        audio.play().then(() => { this.isPlaying = true; }).catch(err => console.error(err));
                     } else {
                         audio.pause();
                         this.isPlaying = false;
@@ -1026,7 +1126,6 @@ new Vue({
                     return;
                 }
             }
-
             if (this.pollingTimer && this.currentTrack.id === song.id && this.currentTrack.status === 'PENDING') return;
             if (this.pollingTimer) clearInterval(this.pollingTimer);
 
@@ -1037,19 +1136,30 @@ new Vue({
                 status: 'COMPLETED',
                 audioUrl: song.audioUrl,
                 coverUrl: song.coverUrl,
-                username: song.username
+                username: song.username,
+                listenCount: song.listenCount || 0
             };
             this.isPlaying = true;
-
+            this.incrementListenCount(song);
             this.$nextTick(() => {
                 const audio = document.getElementById('audio-element');
-                if (audio) { 
-                    audio.load(); 
-                    audio.play().then(() => {
-                        this.isPlaying = true;
-                    }).catch(err => console.error(err));
+                if (audio) {
+                    audio.load();
+                    audio.play().then(() => { this.isPlaying = true; }).catch(err => console.error(err));
                 }
             });
+        },
+
+        incrementListenCount(song) {
+            if (!song || !song.id) return;
+            axios.post(`/api/songs/${song.id}/play`)
+                .then(response => {
+                    if (response.data && response.data.success) {
+                        song.listenCount = response.data.listenCount;
+                        if (this.currentTrack.id === song.id) this.currentTrack.listenCount = response.data.listenCount;
+                    }
+                })
+                .catch(err => console.error("Lỗi tăng lượt nghe:", err));
         },
 
         loadSessionPlaylist() {
@@ -1084,6 +1194,8 @@ new Vue({
                     this.profileUsername = response.data.username;
                     this.loadFollowStatus();
                     this.loadComments(songId);
+                    this.loadTags(songId);
+                    this.loadAvailableTags();
                 })
                 .catch(error => {
                     console.error("Không thể tải thông tin bài hát:", error);
@@ -1103,25 +1215,18 @@ new Vue({
                     confirmButtonColor: '#16a34a',
                     cancelButtonText: 'Hủy'
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = '/login';
-                    }
+                    if (result.isConfirmed) window.location.href = '/login';
                 });
                 return;
             }
-
             const originalLikedState = song.liked_by_me;
             const originalLikeCount = song.total_likes;
             song.liked_by_me = !song.liked_by_me;
             song.total_likes += song.liked_by_me ? 1 : -1;
-
             if (window.location.pathname.startsWith('/favorites') && !song.liked_by_me) {
                 const index = this.favoriteSongs.findIndex(s => s.id === song.id);
-                if (index > -1) {
-                    this.favoriteSongs.splice(index, 1);
-                }
+                if (index > -1) this.favoriteSongs.splice(index, 1);
             }
-
             axios.post(`/api/songs/${song.id}/like`)
                 .then(response => {
                     song.liked_by_me = response.data.liked;
@@ -1148,36 +1253,25 @@ new Vue({
                 Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
                 return;
             }
-
             const btn = document.getElementById('submit-btn');
             if (btn) {
                 btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang kết nối...';
                 btn.disabled = true;
             }
-
             axios.post('/api/auth/login', this.loginForm)
                 .then(response => {
                     localStorage.setItem('music_username', response.data.username);
                     localStorage.setItem('jwt_token', response.data.token);
                     localStorage.setItem('music_is_admin', response.data.isAdmin);
                     document.cookie = 'jwt_token=' + response.data.token + '; path=/; max-age=86400; SameSite=Lax';
-
                     if (btn) {
                         btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!';
                         btn.style.background = '#15803d';
                     }
-
-                    this.Toast.fire({
-                        icon: 'success',
-                        title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.`
-                    });
-
+                    this.Toast.fire({ icon: 'success', title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.` });
                     setTimeout(() => {
-                        if (response.data.isAdmin) {
-                            window.location.href = '/admin';
-                        } else {
-                            window.location.href = '/';
-                        }
+                        if (response.data.isAdmin) window.location.href = '/admin';
+                        else window.location.href = '/';
                     }, 1000);
                 })
                 .catch(err => {
@@ -1201,115 +1295,55 @@ new Vue({
         },
 
         handleRegister() {
-            if (!this.registerForm.username.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
+            if (!this.registerForm.username.trim() || this.registerForm.username.trim().includes(' ')) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên đăng nhập không hợp lệ!' });
                 return;
             }
-            if (this.registerForm.username.trim().includes(' ')) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên đăng nhập không được chứa khoảng trắng!' });
-                return;
-            }
-            if (!this.registerForm.fullname.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập họ tên!' });
-                return;
-            }
-            if (!this.registerForm.email.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập email!' });
-                return;
-            }
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.registerForm.email.trim())) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Email không đúng định dạng!' });
-                return;
-            }
-            if (!this.registerForm.password.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
-                return;
-            }
-            if (this.registerForm.password.trim().length < 6) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu phải có ít nhất 6 ký tự!' });
+            if (!this.registerForm.fullname.trim() || !this.registerForm.email.trim() || !this.registerForm.password.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng điền đủ thông tin!' });
                 return;
             }
             if (this.registerForm.password !== this.registerForm.confirmPassword) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu xác nhận không trùng khớp!' });
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu không trùng khớp!' });
                 return;
             }
-
             const btn = document.querySelector('button[type="submit"]');
             if (btn) { btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Đang khởi tạo...'; btn.disabled = true; }
-
-            const submitData = {
-                username: this.registerForm.username,
-                fullname: this.registerForm.fullname,
-                email: this.registerForm.email,
-                password: this.registerForm.password
-            };
-
-            axios.post('/api/auth/register', submitData)
+            axios.post('/api/auth/register', this.registerForm)
                 .then(() => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Thành công',
-                        text: 'Tạo tài khoản thành công! Bạn nhận được 5 Token trải nghiệm.',
-                        confirmButtonColor: '#16a34a'
-                    }).then(() => {
-                        window.location.href = '/login';
-                    });
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Tạo tài khoản thành công!', confirmButtonColor: '#16a34a' })
+                        .then(() => { window.location.href = '/login'; });
                 })
                 .catch(error => {
                     if (btn) { btn.innerHTML = '<i class="ti ti-user-plus"></i> Khởi tạo tài khoản'; btn.disabled = false; }
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Lỗi',
-                        text: error.response && error.response.data ? "Đăng ký thất bại: " + (error.response.data.message || error.response.data) : "Tài khoản hoặc Email đã tồn tại."
-                    });
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Đăng ký thất bại.' });
                 });
         },
 
         openForgotPasswordModal() {
             this.forgotPasswordForm = { email: '', otp: '', newPassword: '', confirmPassword: '', step: 1, isSending: false };
             const modalElem = document.getElementById('forgotPasswordModal');
-            if (modalElem) {
-                const modal = new bootstrap.Modal(modalElem);
-                modal.show();
-            }
+            if (modalElem) { const modal = new bootstrap.Modal(modalElem); modal.show(); }
         },
 
         sendForgotPasswordOtp() {
             if (!this.forgotPasswordForm.email || !this.forgotPasswordForm.email.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng nhập Email của bạn!' });
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng nhập Email!' });
                 return;
             }
             this.forgotPasswordForm.isSending = true;
             axios.post('/api/auth/forgot-password', { email: this.forgotPasswordForm.email.trim() })
                 .then(res => {
-                    Swal.fire({ icon: 'success', title: 'Thành công', text: res.data.message || 'Đã gửi mã OTP qua Email.' });
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã gửi OTP qua Email.' });
                     this.forgotPasswordForm.step = 2;
                 })
                 .catch(err => {
-                    let msg = 'Không thể gửi mã OTP. Vui lòng thử lại sau.';
-                    if (err.response && err.response.data) {
-                        msg = err.response.data.message || err.response.data || msg;
-                    }
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || 'Lỗi gửi OTP.' });
                 })
-                .finally(() => {
-                    this.forgotPasswordForm.isSending = false;
-                });
+                .finally(() => { this.forgotPasswordForm.isSending = false; });
         },
 
         submitResetPassword() {
-            if (!this.forgotPasswordForm.otp || !this.forgotPasswordForm.otp.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng nhập mã OTP 6 chữ số!' });
-                return;
-            }
-            if (!this.forgotPasswordForm.newPassword || this.forgotPasswordForm.newPassword.length < 6) {
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Mật khẩu mới phải có ít nhất 6 ký tự!' });
-                return;
-            }
-            if (this.forgotPasswordForm.newPassword !== this.forgotPasswordForm.confirmPassword) {
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Mật khẩu xác nhận không trùng khớp!' });
-                return;
-            }
             this.forgotPasswordForm.isSending = true;
             axios.post('/api/auth/reset-password', {
                 email: this.forgotPasswordForm.email.trim(),
@@ -1317,45 +1351,30 @@ new Vue({
                 newPassword: this.forgotPasswordForm.newPassword
             })
                 .then(res => {
-                    Swal.fire({ icon: 'success', title: 'Thành công', text: res.data.message || 'Đặt lại mật khẩu thành công!' })
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đặt lại mật khẩu thành công!' })
                         .then(() => {
                             const modalElem = document.getElementById('forgotPasswordModal');
-                            if (modalElem) {
-                                const modal = bootstrap.Modal.getInstance(modalElem);
-                                if (modal) modal.hide();
-                            }
-                            if (this.loginForm) {
-                                this.loginForm.password = '';
-                            }
+                            if (modalElem) { const modal = bootstrap.Modal.getInstance(modalElem); modal.hide(); }
                         });
                 })
                 .catch(err => {
-                    let msg = 'Đặt lại mật khẩu thất bại!';
-                    if (err.response && err.response.data) {
-                        msg = err.response.data.message || err.response.data || msg;
-                    }
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: err.response?.data?.message || 'Đặt lại mật khẩu thất bại!' });
                 })
-                .finally(() => {
-                    this.forgotPasswordForm.isSending = false;
-                });
+                .finally(() => { this.forgotPasswordForm.isSending = false; });
         },
 
         handleLogout(showConfirm = true) {
             const executeLogout = () => {
+                if (this.stompClient) { try { this.stompClient.disconnect(); } catch(e) {} }
                 localStorage.removeItem('music_username');
                 localStorage.removeItem('jwt_token');
                 localStorage.removeItem('music_is_admin');
                 document.cookie = 'jwt_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
-                this.currentUser = null;
-                this.isAdmin = false;
-                this.userTokens = 0;
-                this.generationForm.username = '';
                 window.location.href = '/';
             };
-            if (!showConfirm) { executeLogout(); return; }
-            Swal.fire({ title: 'Xác nhận đăng xuất?', text: "Hệ thống sẽ ngắt kết nối với tài khoản hiện tại.", icon: 'question', showCancelButton: true, confirmButtonColor: '#16a34a', cancelButtonColor: '#d33', confirmButtonText: 'Đăng xuất', cancelButtonText: 'Hủy' })
-                .then((result) => { if (result.isConfirmed) { executeLogout(); } });
+            if (!showConfirm) executeLogout();
+            else Swal.fire({ title: 'Xác nhận đăng xuất?', icon: 'question', showCancelButton: true, confirmButtonColor: '#16a34a', confirmButtonText: 'Đăng xuất' })
+                .then(result => { if (result.isConfirmed) executeLogout(); });
         },
 
         openProfileModal() {
@@ -1376,23 +1395,9 @@ new Vue({
 
         closeProfileModal() {
             this.showProfileModal = false;
-            this.profileModalError = '';
         },
 
         submitUpdateProfile() {
-            this.profileModalError = '';
-            if (!this.profileForm.fullname || !this.profileForm.fullname.trim()) {
-                const msg = 'Họ và tên không được để trống!';
-                this.profileModalError = msg;
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
-                return;
-            }
-            if (!this.profileForm.email || !this.profileForm.email.trim()) {
-                const msg = 'Địa chỉ Email không được để trống!';
-                this.profileModalError = msg;
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
-                return;
-            }
             axios.put(`/api/users/${this.currentUser}/profile`, this.profileForm)
                 .then(response => {
                     this.Toast.fire({ icon: 'success', title: 'Cập nhật hồ sơ thành công!' });
@@ -1400,81 +1405,23 @@ new Vue({
                     this.showProfileModal = false;
                 })
                 .catch(error => {
-                    let msg = 'Vui lòng kiểm tra lại thông tin.';
-                    if (error.response && error.response.data) {
-                        if (typeof error.response.data === 'string') {
-                            msg = error.response.data;
-                        } else if (error.response.data.message) {
-                            msg = error.response.data.message;
-                        } else if (typeof error.response.data === 'object') {
-                            msg = Object.values(error.response.data).join(', ');
-                        }
-                    }
-                    this.profileModalError = msg;
-                    Swal.fire({ icon: 'error', title: 'Cập nhật thất bại', text: msg });
+                    Swal.fire({ icon: 'error', title: 'Cập nhật thất bại', text: 'Vui lòng kiểm tra lại thông tin.' });
                 });
         },
 
         submitChangePassword() {
-            this.profileModalError = '';
-            const oldPass = this.changePasswordForm.oldPassword ? this.changePasswordForm.oldPassword.trim() : '';
-            const newPass = this.changePasswordForm.newPassword ? this.changePasswordForm.newPassword.trim() : '';
-            const confirmPass = this.changePasswordForm.confirmNewPassword ? this.changePasswordForm.confirmNewPassword.trim() : '';
-
-            if (!oldPass) {
-                const msg = 'Mật khẩu hiện tại không được để trống!';
-                this.profileModalError = msg;
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
+            if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmNewPassword) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Mật khẩu không khớp!' });
                 return;
             }
-            if (!newPass) {
-                const msg = 'Mật khẩu mới không được để trống!';
-                this.profileModalError = msg;
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
-                return;
-            }
-            if (newPass.length < 6) {
-                const msg = 'Mật khẩu mới phải có ít nhất 6 ký tự!';
-                this.profileModalError = msg;
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
-                return;
-            }
-            if (!confirmPass) {
-                const msg = 'Xác nhận mật khẩu mới không được để trống!';
-                this.profileModalError = msg;
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
-                return;
-            }
-            if (newPass !== confirmPass) {
-                const msg = 'Mật khẩu mới và xác nhận mật khẩu không khớp!';
-                this.profileModalError = msg;
-                Swal.fire({ icon: 'warning', title: 'Thông báo', text: msg });
-                return;
-            }
-
-            const payload = {
-                oldPassword: oldPass,
-                newPassword: newPass,
-                confirmNewPassword: confirmPass
-            };
-
-            axios.put(`/api/users/${this.currentUser}/change-password`, payload)
+            axios.put(`/api/users/${this.currentUser}/change-password`, this.changePasswordForm)
                 .then(response => {
                     this.showProfileModal = false;
                     Swal.fire({ icon: 'success', title: 'Thành công!', text: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.', confirmButtonColor: '#16a34a' })
                         .then(() => { this.handleLogout(false); });
                 })
                 .catch(error => {
-                    let msg = 'Đã có lỗi xảy ra.';
-                    if (error.response && error.response.data) {
-                        if (typeof error.response.data === 'string') {
-                            msg = error.response.data;
-                        } else if (error.response.data.message) {
-                            msg = error.response.data.message;
-                        }
-                    }
-                    this.profileModalError = msg;
-                    Swal.fire({ icon: 'error', title: 'Đổi mật khẩu thất bại', text: msg });
+                    Swal.fire({ icon: 'error', title: 'Đổi mật khẩu thất bại', text: error.response?.data?.message || 'Có lỗi xảy ra.' });
                 });
         },
 
@@ -1493,26 +1440,59 @@ new Vue({
                 .catch(() => { this.isLoadingOrders = false; });
         },
 
+        // --- HÀM THANH TOÁN TÍCH HỢP SEPAY QR ---
         buyPackage(pkg) {
             if (!this.currentUser) { window.location.href = '/login'; return; }
+            this.selectedPkg = pkg;
+
             Swal.fire({
-                title: 'Xác nhận mua gói?',
-                html: `<b>${pkg.name}</b><br>${pkg.tokens} token — <b>${this.formatPrice(pkg.price)}đ</b><br><br><span style="font-size: 13px; color: #6e7881;">Hệ thống sẽ chuyển hướng sang VNPAY.</span>`,
+                title: 'Chọn phương thức thanh toán',
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonText: 'Đến trang thanh toán',
-                cancelButtonText: 'Huỷ',
-                confirmButtonColor: '#16a34a'
+                confirmButtonText: 'SePay (Chuyển khoản QR)',
+                cancelButtonText: 'VNPAY (Online)',
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#0d6efd'
             }).then(result => {
-                if (!result.isConfirmed) return;
-                Swal.fire({ title: 'Đang chuyển hướng...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-                axios.post('/api/orders/create', { package_id: pkg.id })
-                    .then(res => {
-                        if (res.data.paymentUrl) { window.location.href = res.data.paymentUrl; }
-                        else { Swal.fire('Lỗi', 'Không thể tạo phiên thanh toán', 'error'); }
-                    })
-                    .catch(err => { Swal.fire('Lỗi', err.response?.data?.message || 'Có lỗi xảy ra khi kết nối máy chủ!', 'error'); });
+                if (result.isConfirmed) {
+                    this.confirmPayment('SEPAY');
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    this.confirmPayment('VNPAY');
+                }
             });
+        },
+
+        confirmPayment(method) {
+            Swal.fire({ title: 'Đang tạo đơn hàng...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+            axios.post('/api/orders/create', { package_id: this.selectedPkg.id, payment_method: method })
+                .then(res => {
+                    if (method === "SEPAY") {
+                        const data = res.data;
+                        const qrUrl = `https://img.vietqr.io/image/MB-0344196798-compact2.png?amount=${this.selectedPkg.price}&addInfo=${data.order_invoice_number}&accountName=TRANTRITHIEN`;
+
+                        Swal.fire({
+                            title: 'Quét mã QR thanh toán',
+                            html: `
+                                <div class="text-center">
+                                    <img src="${qrUrl}" style="max-width: 280px; border-radius: 10px; border: 1px solid #ddd;" class="mb-3">
+                                    <p class="mb-1">Số tiền: <b class="text-success">${this.formatPrice(this.selectedPkg.price)}đ</b></p>
+                                    <p class="mb-1">Nội dung: <code class="text-danger">${data.order_invoice_number}</code></p>
+                                    <p class="small text-muted mt-2">Hệ thống sẽ cập nhật sau khi bạn chuyển tiền!</p>
+                                    <button class="btn btn-sm btn-outline-success mt-2" onclick="window.location.reload()">
+                                        <i class="ti ti-refresh"></i> Đã chuyển tiền
+                                    </button>
+                                </div>`,
+                            showConfirmButton: false,
+                            allowOutsideClick: true
+                        });
+                    } else {
+                        if (res.data.paymentUrl) { window.location.href = res.data.paymentUrl; }
+                    }
+                })
+                .catch(err => {
+                    Swal.fire('Lỗi', err.response?.data || 'Không thể tạo đơn hàng!', 'error');
+                });
         },
 
         formatPrice(price) {
@@ -1540,27 +1520,68 @@ new Vue({
         },
 
         postComment(songId, parentId = null) {
-            if (!this.newComment.content.trim()) { this.Toast.fire({ icon: 'warning', title: 'Vui lòng nhập nội dung.' }); return; }
-            const payload = { content: this.newComment.content, parent_id: parentId };
+            if (this.isSubmittingComment) return;
+            const isReply = parentId !== null;
+            const content = isReply ? this.newReply.content.trim() : this.newComment.content.trim();
+            if (!content) { this.Toast.fire({ icon: 'warning', title: 'Vui lòng nhập nội dung.' }); return; }
+            
+            this.isSubmittingComment = true;
+            const payload = { content: content, parent_id: parentId };
             axios.post(`/api/songs/${songId}/comments`, payload)
                 .then(response => {
                     if (parentId) {
                         const parentComment = this.commentPagination.content.find(c => c.id === parentId);
-                        if (parentComment) { parentComment.replies.push(response.data); }
+                        if (parentComment) { 
+                            if (!parentComment.replies) { parentComment.replies = []; }
+                            parentComment.replies.push(response.data); 
+                        }
+                        this.newReply.content = '';
                     } else {
+                        if (!response.data.replies) { response.data.replies = []; }
                         this.commentPagination.content.unshift(response.data);
                         this.commentPagination.totalElements++;
+                        this.newComment.content = '';
                     }
-                    this.newComment.content = '';
                     this.replyingToCommentId = null;
                     this.Toast.fire({ icon: 'success', title: 'Đã gửi bình luận!' });
                 })
-                .catch(error => { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể gửi bình luận.' }); });
+                .catch(error => { 
+                    const msg = (error.response && error.response.data && error.response.data.message) ? error.response.data.message : 'Không thể gửi bình luận.';
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg }); 
+                })
+                .finally(() => { this.isSubmittingComment = false; });
         },
 
         toggleReplyForm(commentId) {
             this.replyingToCommentId = (this.replyingToCommentId === commentId) ? null : commentId;
-            this.newComment.content = '';
+            this.newReply.content = '';
+        },
+
+        editComment(comment) {
+            this.editingComment = { id: comment.id, content: comment.content };
+        },
+
+        cancelEditComment() {
+            this.editingComment = null;
+        },
+
+        saveComment(originalComment) {
+            if (this.isSubmittingComment) return;
+            if (!this.editingComment || !this.editingComment.content.trim()) {
+                this.Toast.fire({ icon: 'warning', title: 'Nội dung không được để trống.' });
+                return;
+            }
+            this.isSubmittingComment = true;
+            axios.put(`/api/songs/comments/${this.editingComment.id}`, { content: this.editingComment.content })
+                .then(response => {
+                    originalComment.content = response.data.content;
+                    this.editingComment = null;
+                    this.Toast.fire({ icon: 'success', title: 'Đã cập nhật bình luận!' });
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật bình luận.' });
+                })
+                .finally(() => { this.isSubmittingComment = false; });
         },
 
         deleteComment(commentId, index, parentIndex) {
@@ -1608,6 +1629,349 @@ new Vue({
             Swal.fire({ title: 'Huỷ đơn hàng?', text: 'Bạn có chắc muốn huỷ đơn này không?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Huỷ đơn', cancelButtonText: 'Giữ lại', confirmButtonColor: '#dc3545' })
                 .then(result => { if (result.isConfirmed) window.location.href = '/orders'; });
         },
-        goToOrders() { window.location.href = '/orders'; }
+        goToOrders() { window.location.href = '/orders'; },
+
+        // ================= METHODS CHO BOXCHAT =================
+        connectWebSocket() {
+            if (this.stompClient && this.stompClient.connected) return;
+            const socket = new SockJS('/ws');
+            this.stompClient = Stomp.over(socket);
+            this.stompClient.debug = null;
+            this.stompClient.connect({}, (frame) => {
+                this.stompClient.subscribe('/user/queue/messages', (messageOutput) => {
+                    const message = JSON.parse(messageOutput.body);
+                    this.handleIncomingChatMessage(message);
+                });
+            }, (error) => {
+                setTimeout(() => {
+                    if (this.currentUser) this.connectWebSocket();
+                }, 5000);
+            });
+        },
+
+        isMyMessage(msg) {
+            if (!msg || !msg.sender || !this.currentUser) return false;
+            const senderName = typeof msg.sender === 'object' ? msg.sender.username : msg.sender;
+            return senderName === this.currentUser;
+        },
+
+        handleIncomingChatMessage(rawMessage) {
+            if (!rawMessage) return;
+            const senderUsername = (typeof rawMessage.sender === 'object' && rawMessage.sender !== null) 
+                ? rawMessage.sender.username 
+                : rawMessage.sender;
+            const recipientUsername = (typeof rawMessage.recipient === 'object' && rawMessage.recipient !== null) 
+                ? rawMessage.recipient.username 
+                : rawMessage.recipient;
+
+            const normalizedMessage = {
+                id: rawMessage.id,
+                sender: senderUsername,
+                recipient: recipientUsername,
+                content: rawMessage.content,
+                timestamp: rawMessage.timestamp,
+                isRead: rawMessage.isRead
+            };
+
+            if (this.activeChatUser && 
+                ((senderUsername === this.activeChatUser.username && recipientUsername === this.currentUser) ||
+                 (senderUsername === this.currentUser && recipientUsername === this.activeChatUser.username))) {
+                
+                this.chatMessages.push(normalizedMessage);
+                this.scrollToBottom();
+                
+                if (recipientUsername === this.currentUser) {
+                    axios.put(`/api/chat/messages/read-all?partner=${senderUsername}`)
+                        .then(() => { this.loadRecentChats(); });
+                } else {
+                    this.loadRecentChats();
+                }
+            } else {
+                this.loadRecentChats();
+                this.loadTotalUnreadCount();
+                
+                if (senderUsername !== this.currentUser) {
+                    const senderDisplayName = (typeof rawMessage.sender === 'object' && rawMessage.sender !== null && rawMessage.sender.fullname) 
+                        ? rawMessage.sender.fullname 
+                        : senderUsername;
+                    this.Toast.fire({
+                        icon: 'info',
+                        title: `Tin nhắn mới từ ${senderDisplayName}`,
+                        text: (rawMessage.content || '').substring(0, 30) + ((rawMessage.content || '').length > 30 ? '...' : '')
+                    });
+                }
+            }
+        },
+
+        loadRecentChats() {
+            axios.get('/api/chat/recent-chats')
+                .then(response => { this.chatContacts = response.data; })
+                .catch(err => console.error("Lỗi tải tin nhắn gần đây:", err));
+        },
+
+        loadTotalUnreadCount() {
+            axios.get('/api/chat/unread-count')
+                .then(response => { this.totalUnreadCount = response.data.unreadCount; })
+                .catch(err => console.error("Lỗi tải số tin nhắn chưa đọc:", err));
+        },
+
+        toggleChat() {
+            this.chatOpen = !this.chatOpen;
+            if (this.chatOpen) {
+                this.loadRecentChats();
+                this.loadTotalUnreadCount();
+                if (this.activeChatUser) this.scrollToBottom();
+            }
+        },
+
+        openChatRoom(contact) {
+            this.activeChatUser = {
+                username: contact.username,
+                fullname: contact.fullname,
+                photo: contact.photo
+            };
+            this.chatMessages = [];
+            this.chatInput = '';
+            
+            axios.get(`/api/chat/history?partner=${contact.username}`)
+                .then(response => {
+                    this.chatMessages = response.data;
+                    this.scrollToBottom();
+                    return axios.put(`/api/chat/messages/read-all?partner=${contact.username}`);
+                })
+                .then(() => {
+                    this.loadRecentChats();
+                    this.loadTotalUnreadCount();
+                })
+                .catch(err => console.error("Lỗi tải lịch sử chat:", err));
+        },
+
+        backToContacts() {
+            this.activeChatUser = null;
+            this.chatMessages = [];
+            this.chatInput = '';
+            this.loadRecentChats();
+            this.loadTotalUnreadCount();
+        },
+
+        searchChatUsers() {
+            if (this.chatSearchTimeout) clearTimeout(this.chatSearchTimeout);
+            if (!this.chatSearchQuery || !this.chatSearchQuery.trim()) {
+                this.chatSearchResults = [];
+                return;
+            }
+            this.chatSearchTimeout = setTimeout(() => {
+                axios.get(`/api/chat/search-users?query=${this.chatSearchQuery}`)
+                    .then(response => { this.chatSearchResults = response.data; })
+                    .catch(err => console.error("Lỗi tìm kiếm user:", err));
+            }, 300);
+        },
+
+        clearChatSearch() {
+            this.chatSearchQuery = '';
+            this.chatSearchResults = [];
+        },
+
+        startChatWith(username) {
+            if (!this.currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu cầu đăng nhập',
+                    text: 'Vui lòng đăng nhập để thực hiện nhắn tin với thành viên khác!',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+            axios.get(`/api/users/${username}/profile`)
+                .then(response => {
+                    const u = response.data;
+                    const contact = {
+                        username: u.username,
+                        fullname: u.fullname,
+                        photo: u.photo
+                    };
+                    this.chatOpen = true;
+                    this.openChatRoom(contact);
+                })
+                .catch(err => {
+                    Swal.fire('Lỗi', 'Không thể bắt đầu chat với người dùng này.', 'error');
+                });
+        },
+
+        startChatWithUser(user) {
+            this.clearChatSearch();
+            this.openChatRoom(user);
+        },
+
+        sendChatMessage() {
+            if (!this.chatInput || !this.chatInput.trim() || !this.activeChatUser || !this.stompClient || !this.stompClient.connected) return;
+            const chatMessage = {
+                recipient: { username: this.activeChatUser.username },
+                content: this.chatInput.trim()
+            };
+            this.stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+            this.chatInput = '';
+        },
+
+        formatChatTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            const pad = (n) => n < 10 ? '0' + n : n;
+            const timeStr = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+            if (isToday) return timeStr;
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)} ${timeStr}`;
+        },
+
+        scrollToBottom() {
+            setTimeout(() => {
+                const container = document.getElementById('chat-body-scroll');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 100);
+        },
+
+        // ================= XỬ LÝ CHIA SẺ NHẠC NỘI BỘ (LỊCH SỬ CHAT) =================
+        getSongIdFromMessage(content) {
+            if (!content) return null;
+            const match = content.match(/\/song\/(\d+)/);
+            return match ? match[1] : null;
+        },
+
+        navigateToSharedSong(songId) {
+            if (songId) {
+                window.location.href = `/song/${songId}`;
+            }
+        },
+
+        openShareModal(song) {
+            if (!song || !song.id) return;
+            const absoluteUrl = window.location.origin + '/song/' + song.id;
+            this.shareModalData = {
+                show: true,
+                song: song,
+                url: absoluteUrl,
+                copied: false,
+                chatHistoryContacts: [],
+                isLoadingContacts: true,
+                noteMessage: `Đã chia sẻ bài hát "${song.title}"`,
+                sendingUsername: null
+            };
+
+            // Nạp danh sách những người dùng có trong Lịch sử Chat gần đây
+            if (this.currentUser) {
+                axios.get('/api/chat/recent-chats')
+                    .then(res => {
+                        const list = res.data || [];
+                        this.shareModalData.chatHistoryContacts = list.filter(c => c.username !== this.currentUser);
+                    })
+                    .catch(err => {
+                        console.error('Lỗi khi tải lịch sử chat:', err);
+                        this.shareModalData.chatHistoryContacts = [];
+                    })
+                    .finally(() => {
+                        this.shareModalData.isLoadingContacts = false;
+                    });
+            } else {
+                this.shareModalData.isLoadingContacts = false;
+            }
+        },
+
+        closeShareModal() {
+            this.shareModalData.show = false;
+        },
+
+        copyShareLink() {
+            if (!this.shareModalData.url) return;
+            navigator.clipboard.writeText(this.shareModalData.url).then(() => {
+                this.shareModalData.copied = true;
+                if (this.Toast) {
+                    this.Toast.fire({ icon: 'success', title: 'Đã sao chép liên kết bài hát!' });
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Đã sao chép liên kết bài hát!',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+                setTimeout(() => {
+                    this.shareModalData.copied = false;
+                }, 3000);
+            }).catch(err => {
+                console.error('Lỗi khi sao chép link:', err);
+                window.prompt('Sao chép liên kết bài hát:', this.shareModalData.url);
+            });
+        },
+
+        sendSongToUser(targetUser) {
+            if (!this.currentUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Yêu cầu đăng nhập',
+                    text: 'Vui lòng đăng nhập để chia sẻ bài hát tới thành viên khác!',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+
+            if (!targetUser || !targetUser.username) return;
+
+            const song = this.shareModalData.song;
+            if (!song) return;
+
+            this.shareModalData.sendingUsername = targetUser.username;
+
+            const messageContent = `🎵 [CHIA SẺ BÀI HÁT] ${song.title}\n🔗 Link: ${this.shareModalData.url}\n💬 ${this.shareModalData.noteMessage || 'Nghe thử giai điệu này nhé!'}`;
+
+            const chatMessage = {
+                recipient: { username: targetUser.username },
+                content: messageContent
+            };
+
+            if (this.stompClient && this.stompClient.connected) {
+                this.stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+                this.onSendSongSuccess(targetUser);
+            } else {
+                axios.post('/api/chat/send', {
+                    recipientUsername: targetUser.username,
+                    content: messageContent
+                }).then(() => {
+                    this.onSendSongSuccess(targetUser);
+                }).catch(err => {
+                    if (this.stompClient) {
+                        try {
+                            this.stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+                            this.onSendSongSuccess(targetUser);
+                            return;
+                        } catch (e) {}
+                    }
+                    Swal.fire('Lỗi', 'Không thể gửi tin nhắn chia sẻ bài hát.', 'error');
+                    this.shareModalData.sendingUsername = null;
+                });
+            }
+        },
+
+        onSendSongSuccess(targetUser) {
+            this.shareModalData.sendingUsername = null;
+            if (this.Toast) {
+                this.Toast.fire({
+                    icon: 'success',
+                    title: `Đã chia sẻ bài hát tới @${targetUser.username}!`
+                });
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `Đã chia sẻ bài hát tới @${targetUser.username}!`,
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+            }
+        }
     }
 });

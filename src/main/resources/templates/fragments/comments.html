@@ -193,8 +193,9 @@
             <textarea v-model="newComment.content" class="form-control custom-theme-input" rows="3"
                 placeholder="Viết bình luận của bạn..."></textarea>
             <div class="text-end mt-2">
-                <button @click="postComment(currentTrack.id)" class="btn btn-main-sync px-4 py-2">
-                    <i class="ti ti-send me-1"></i> Gửi bình luận
+                <button @click="postComment(currentTrack.id)" :disabled="isSubmittingComment" class="btn btn-main-sync px-4 py-2">
+                    <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    <i v-else class="ti ti-send me-1"></i> Gửi bình luận
                 </button>
             </div>
         </div>
@@ -213,14 +214,31 @@
             <!-- Dùng template để tránh tạo thẻ div thừa -->
             <template v-for="(comment, index) in commentPagination.content">
                 <div class="comment-box">
-                    <img :src="formatAvatarUrl(comment.user.photo, comment.user.fullname || comment.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                    <a :href="'/profile?u=' + comment.user.username">
+                        <img :src="formatAvatarUrl(comment.user.photo, comment.user.fullname || comment.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                    </a>
                     <div class="comment-content-wrapper">
                         <div class="comment-header">
-                            <span class="comment-author">{{ comment.user.fullname }}</span>
+                            <a :href="'/profile?u=' + comment.user.username" class="comment-author text-decoration-none song-link-hover">
+                                <span>{{ comment.user.fullname || comment.user.username }}</span>
+                            </a>
                             <span class="comment-time">{{ formatRelativeTime(comment.createdAt) }}</span>
                         </div>
-                        <p class="comment-body mb-0">{{ comment.content }}</p>
-                        <div class="comment-actions">
+                        
+                        <!-- Hiển thị nội dung bình luận hoặc form sửa -->
+                        <div v-if="editingComment && editingComment.id === comment.id" class="edit-form my-2">
+                            <textarea v-model="editingComment.content" class="form-control custom-theme-input" rows="2"></textarea>
+                            <div class="text-end mt-2">
+                                <button @click="cancelEditComment" class="btn btn-sm btn-register-sync me-2">Hủy</button>
+                                <button @click="saveComment(comment)" :disabled="isSubmittingComment" class="btn btn-sm btn-main-sync">
+                                    <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span v-else>Lưu</span>
+                                </button>
+                            </div>
+                        </div>
+                        <p v-else class="comment-body mb-0">{{ comment.content }}</p>
+
+                        <div class="comment-actions" v-if="!editingComment || editingComment.id !== comment.id">
                             <button v-if="currentUser" @click="toggleReplyForm(comment.id)" class="comment-action-btn">
                                 <i class="ti ti-arrow-back-up me-1"></i> Trả lời
                             </button>
@@ -234,25 +252,45 @@
 
                         <!-- FORM TRẢ LỜI (HIỂN THỊ KHI CẦN) -->
                         <div v-if="replyingToCommentId === comment.id" class="reply-form">
-                            <textarea v-model="newComment.content" class="form-control custom-theme-input" rows="2"
-                                :placeholder="'Trả lời ' + comment.user.fullname + '...'"></textarea>
+                            <textarea v-model="newReply.content" class="form-control custom-theme-input" rows="2"
+                                :placeholder="'Trả lời ' + (comment.user.fullname || comment.user.username) + '...'"></textarea>
                             <div class="text-end mt-2">
                                 <button @click="toggleReplyForm(null)" class="btn btn-sm btn-register-sync me-2">Hủy</button>
-                                <button @click="postComment(currentTrack.id, comment.id)" class="btn btn-sm btn-main-sync">Gửi trả lời</button>
+                                <button @click="postComment(currentTrack.id, comment.id)" :disabled="isSubmittingComment" class="btn btn-sm btn-main-sync">
+                                    <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span v-else>Gửi trả lời</span>
+                                </button>
                             </div>
                         </div>
 
                         <!-- DANH SÁCH CÁC BÌNH LUẬN TRẢ LỜI (REPLIES) -->
                         <div v-if="comment.replies && comment.replies.length > 0" class="comment-thread mt-4">
-                            <div v-for="(reply, replyIndex) in comment.replies" class="comment-box">
-                                <img :src="formatAvatarUrl(reply.user.photo, reply.user.fullname || reply.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                            <div v-for="(reply, replyIndex) in comment.replies" class="comment-box" :key="reply.id">
+                                <a :href="'/profile?u=' + reply.user.username">
+                                    <img :src="formatAvatarUrl(reply.user.photo, reply.user.fullname || reply.user.username)" class="comment-avatar rounded-circle" style="width: 40px; height: 40px; border-radius: 50% !important; object-fit: cover !important; border: 2px solid #16a34a; box-shadow: 0 0 5px rgba(22, 163, 74, 0.3);" alt="Avatar">
+                                </a>
                                 <div class="comment-content-wrapper">
                                     <div class="comment-header">
-                                        <span class="comment-author">{{ reply.user.fullname }}</span>
+                                        <a :href="'/profile?u=' + reply.user.username" class="comment-author text-decoration-none song-link-hover">
+                                            <span>{{ reply.user.fullname || reply.user.username }}</span>
+                                        </a>
                                         <span class="comment-time">{{ formatRelativeTime(reply.createdAt) }}</span>
                                     </div>
-                                    <p class="comment-body mb-0">{{ reply.content }}</p>
-                                    <div class="comment-actions">
+                                    
+                                    <!-- Hiển thị nội dung reply hoặc form sửa -->
+                                    <div v-if="editingComment && editingComment.id === reply.id" class="edit-form my-2">
+                                        <textarea v-model="editingComment.content" class="form-control custom-theme-input" rows="2"></textarea>
+                                        <div class="text-end mt-2">
+                                            <button @click="cancelEditComment" class="btn btn-sm btn-register-sync me-2">Hủy</button>
+                                            <button @click="saveComment(reply)" :disabled="isSubmittingComment" class="btn btn-sm btn-main-sync">
+                                                <span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                <span v-else>Lưu</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p v-else class="comment-body mb-0">{{ reply.content }}</p>
+
+                                    <div class="comment-actions" v-if="!editingComment || editingComment.id !== reply.id">
                                         <!-- Không cho phép trả lời của trả lời để giữ giao diện đơn giản -->
                                         <button v-if="currentUser === reply.user.username" @click="editComment(reply)" class="comment-action-btn">
                                             <i class="ti ti-pencil me-1"></i> Sửa

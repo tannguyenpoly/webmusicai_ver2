@@ -102,6 +102,23 @@
                         </div>
                     </div>
 
+                    <!-- Tag Selector -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold mb-2" style="color: var(--text-muted);">
+                            <i class="ti ti-tags me-1"></i> Gắn tag (chọn phong cách nhạc)
+                        </label>
+                        <div class="d-flex flex-wrap gap-1.5">
+                            <span v-for="t in availableTags" :key="t.id"
+                                @click="toggleCreateTag(t.id)"
+                                class="badge rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1"
+                                style="cursor: pointer; font-size: 11px; transition: all 0.15s; user-select: none;"
+                                :style="selectedCreateTagIds.includes(t.id) ? 'background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.5);' : 'background: rgba(120, 120, 120, 0.08); color: var(--text-muted); border: 1px solid var(--border-color);'">
+                                <i v-if="selectedCreateTagIds.includes(t.id)" class="ti ti-check" style="font-size: 10px;"></i>
+                                {{ t.name }}
+                            </span>
+                        </div>
+                    </div>
+
                     <!-- Create button -->
                     <button @click="generateMusic" :disabled="isGenerating"
                         class="btn btn-success w-100 py-2.5 fw-bold d-flex align-items-center justify-content-center shadow-lg" 

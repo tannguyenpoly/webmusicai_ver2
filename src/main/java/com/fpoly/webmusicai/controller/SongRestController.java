@@ -24,11 +24,15 @@ import com.fpoly.webmusicai.entity.Favorite;
 import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.entity.LikeCount;
 import com.fpoly.webmusicai.entity.SongComment;
+import com.fpoly.webmusicai.entity.SongTag;
+import com.fpoly.webmusicai.entity.Tag;
 import com.fpoly.webmusicai.entity.Transaction;
 import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.FavoriteRepository;
 import com.fpoly.webmusicai.repository.SongCommentRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
+import com.fpoly.webmusicai.repository.SongTagRepository;
+import com.fpoly.webmusicai.repository.TagRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 import com.fpoly.webmusicai.repository.TransactionRepository;
 import com.fpoly.webmusicai.repository.PlaylistSongRepository;
@@ -70,6 +74,12 @@ public class SongRestController {
     @Autowired
     MusicGeneratorService musicService;
 
+    @Autowired
+    SongTagRepository songTagRepo;
+
+    @Autowired
+    TagRepository tagRepo;
+
     @GetMapping("/public")
     public ResponseEntity<?> getPublicSongs() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -102,6 +112,37 @@ public class SongRestController {
                 .header("Expires", "0")
                 .header("Vary", "Authorization")
                 .body(result);
+    }
+
+    @GetMapping("/by-tag")
+    public ResponseEntity<?> getSongsByTag(@RequestParam(required = false) String tag, @RequestParam(required = false) Integer tagId) {
+        List<Integer> songIds;
+        if (tagId != null) {
+            songIds = songTagRepo.findSongIdsByTagId(tagId);
+        } else if (tag != null && !tag.isBlank()) {
+            songIds = songTagRepo.findSongIdsByTagId(tagRepo.findByNameIgnoreCase(tag.trim()).map(Tag::getId).orElse(-1));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng cung cấp tag hoặc tagId!"));
+        }
+        if (songIds.isEmpty()) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+        List<Song> songs = songRepo.findAllById(songIds).stream()
+                .filter(s -> s.getIsPublic() != null && s.getIsPublic())
+                .toList();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
+
+        List<Map<String, Object>> result = songs.stream().map(song -> {
+            Map<String, Object> songMap = song.toMap();
+            long likes = favoriteRepo.countBySongId(song.getId());
+            boolean liked = username != null && favoriteRepo.existsByUserUsernameAndSongId(username, song.getId());
+            songMap.put("total_likes", likes);
+            songMap.put("liked_by_me", liked);
+            return songMap;
+        }).toList();
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/my-favorites")
@@ -256,6 +297,7 @@ public class SongRestController {
             result.put("username", song.getUser().getUsername());
             result.put("fullname", song.getUser().getFullname());
             result.put("coverUrl", song.getCoverUrl());
+            result.put("listenCount", song.getListenCount() != null ? song.getListenCount() : 0);
 
             switch (song.getStatus()) {
                 case "COMPLETED" -> {
@@ -269,6 +311,20 @@ public class SongRestController {
             }
 
             return ResponseEntity.ok(result);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/play")
+    public ResponseEntity<?> incrementListenCount(@PathVariable Integer id) {
+        return songRepo.findById(id).map(song -> {
+            int currentCount = song.getListenCount() != null ? song.getListenCount() : 0;
+            song.setListenCount(currentCount + 1);
+            songRepo.save(song);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("listenCount", song.getListenCount());
+            return ResponseEntity.ok(response);
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -384,6 +440,7 @@ public class SongRestController {
             commentRepo.deleteBySongId(id);
             playlistSongRepo.deleteBySongId(id);
             albumSongRepo.deleteBySongId(id);
+            songTagRepo.deleteBySongId(id);
             songRepo.deleteSongGenresBySongId(id);
             songRepo.detachRemixesFromParent(id);
             songRepo.delete(song);
@@ -488,6 +545,19 @@ public class SongRestController {
         }
 
         return songRepo.findById(id).map(song -> {
+            // Kiểm tra chống gửi lặp lại bình luận cùng nội dung trong thời gian ngắn (3 giây)
+            Page<SongComment> recentComments = commentRepo.findBySongIdAndParentIdIsNullOrderByCreatedAtDesc(id, PageRequest.of(0, 1));
+            if (!recentComments.isEmpty()) {
+                SongComment latest = recentComments.getContent().get(0);
+                if (latest.getUser() != null 
+                        && username.equals(latest.getUser().getUsername())
+                        && content.trim().equalsIgnoreCase(latest.getContent().trim())
+                        && latest.getCreatedAt() != null
+                        && (System.currentTimeMillis() - latest.getCreatedAt().getTime()) < 3000) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Vui lòng không gửi lại bình luận trùng lặp!"));
+                }
+            }
+
             User user = userRepo.findById(username).orElseThrow();
             SongComment comment = new SongComment();
             comment.setSong(song);
@@ -771,5 +841,121 @@ public class SongRestController {
             log.error("Lỗi lưu file ảnh bìa: {}", e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi lưu file ảnh: " + e.getMessage()));
         }
+    }
+
+    @GetMapping("/{id}/tags")
+    public ResponseEntity<?> getTags(@PathVariable Integer id) {
+        if (!songRepo.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        List<Map<String, Object>> tags = songTagRepo.findBySongId(id).stream()
+                .map(st -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", st.getId());
+                    m.put("tagId", st.getTag().getId());
+                    m.put("tag", st.getTag().getName());
+                    return m;
+                })
+                .toList();
+        return ResponseEntity.ok(tags);
+    }
+
+    @PostMapping("/{id}/tags")
+    public ResponseEntity<?> addTag(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return songRepo.findById(id).map(song -> {
+            boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
+            if (!isOwner && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền gắn tag cho bài này!"));
+            }
+
+            Object tagIdObj = body.get("tagId");
+            if (tagIdObj == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "tagId không được để trống!"));
+            }
+            Integer tagId = Integer.parseInt(tagIdObj.toString());
+
+            Tag tag = tagRepo.findById(tagId).orElse(null);
+            if (tag == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Tag không tồn tại!"));
+            }
+
+            if (songTagRepo.existsBySongIdAndTagId(id, tagId)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Tag này đã được gắn!"));
+            }
+
+            SongTag songTag = new SongTag();
+            songTag.setSongId(id);
+            songTag.setTag(tag);
+            songTagRepo.save(songTag);
+
+            log.info("User {} gắn tag '{}' cho bài #{}", username, tag.getName(), id);
+            return ResponseEntity.ok(Map.of("message", "Đã thêm tag!", "tagId", tagId, "tag", tag.getName()));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}/tags/{songTagId}")
+    public ResponseEntity<?> removeTag(@PathVariable Integer id, @PathVariable Integer songTagId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return songRepo.findById(id).map(song -> {
+            boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
+            if (!isOwner && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền xóa tag!"));
+            }
+
+            return songTagRepo.findById(songTagId).map(st -> {
+                songTagRepo.delete(st);
+                log.info("User {} xóa tag #{} khỏi bài #{}", username, songTagId, id);
+                return ResponseEntity.ok(Map.of("message", "Đã xóa tag!"));
+            }).orElse(ResponseEntity.notFound().build());
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{id}/tags/batch")
+    @Transactional
+    public ResponseEntity<?> batchSetTags(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
+        }
+        String username = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return songRepo.findById(id).map(song -> {
+            boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
+            if (!isOwner && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền!"));
+            }
+
+            List<Integer> tagIds = ((List<?>) body.get("tagIds")).stream()
+                    .map(o -> Integer.parseInt(o.toString()))
+                    .toList();
+
+            songTagRepo.deleteBySongId(id);
+
+            for (Integer tagId : tagIds) {
+                Tag tag = tagRepo.findById(tagId).orElse(null);
+                if (tag != null) {
+                    SongTag st = new SongTag();
+                    st.setSongId(id);
+                    st.setTag(tag);
+                    songTagRepo.save(st);
+                }
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Đã cập nhật tags!"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

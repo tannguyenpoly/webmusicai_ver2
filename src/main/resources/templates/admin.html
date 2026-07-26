@@ -429,6 +429,10 @@
                     <i class="ti ti-category"></i>
                     <span class="nav-label">Thể loại</span>
                 </a>
+                <a class="nav-item" :class="{ active: activeTab === 'tags' }" @click.prevent="activeTab = 'tags'" href="#">
+                    <i class="ti ti-tags"></i>
+                    <span class="nav-label">Tags</span>
+                </a>
                 <a class="nav-item" :class="{ active: activeTab === 'packages' }" @click.prevent="activeTab = 'packages'" href="#">
                     <i class="ti ti-gift"></i>
                     <span class="nav-label">Gói token</span>
@@ -687,6 +691,57 @@
                 </div>
             </div>
 
+            <!-- ========== TAGS ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'tags' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-tags text-success me-2"></i>Quản lý Tags</h4>
+                    <button @click="openTagModal()" class="btn btn-admin-primary">
+                        <i class="ti ti-plus me-1"></i> Thêm tag
+                    </button>
+                </div>
+
+                <div class="card-custom">
+                    <div class="card-body p-0">
+                        <table class="table table-custom">
+                            <thead><tr><th>ID</th><th>Tên tag</th><th class="text-center">Thao tác</th></tr></thead>
+                            <tbody>
+                                <tr v-for="t in allTags" :key="t.id">
+                                    <td class="text-muted-sync">#{{ t.id }}</td>
+                                    <td class="fw-medium">
+                                        <span class="badge rounded-pill px-2.5 py-1" style="background: rgba(22, 163, 74, 0.12); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.25); font-size: 12px;">
+                                            {{ t.name }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="deleteTag(t)" class="btn btn-admin-sm btn-admin-danger"><i class="ti ti-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr v-if="allTags.length === 0">
+                                    <td colspan="3" class="text-center text-muted-sync py-4">Chưa có tag nào.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tag Modal -->
+                <div v-if="showTagModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
+                    <div class="card-custom" style="width: 400px; max-width:90%; padding: 24px;">
+                        <h5 class="fw-bold mb-3">Thêm tag mới</h5>
+                        <div class="mb-4">
+                            <label class="form-label small text-muted-sync">Tên tag</label>
+                            <input type="text" v-model="tagForm.name" @keydown.enter="saveTag" class="form-input-custom w-100" placeholder="Nhập tên tag...">
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button @click="showTagModal = false" class="btn btn-admin-outline">Hủy</button>
+                            <button @click="saveTag" class="btn btn-admin-primary">
+                                <i class="ti ti-device-floppy me-1"></i> Lưu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ========== PACKAGES ========== -->
             <div class="section-tab" :class="{ active: activeTab === 'packages' }">
                 <div class="page-header">
@@ -923,6 +978,11 @@ new Vue({
         showGenreModal: false,
         genreForm: { id: null, name: '', description: '' },
 
+        // Tags
+        allTags: [],
+        showTagModal: false,
+        tagForm: { name: '' },
+
         // Packages
         packages: [],
         showPackageModal: false,
@@ -972,6 +1032,7 @@ new Vue({
         this.loadUsers(0);
         this.loadSongs(0);
         this.loadGenres();
+        this.loadTags();
         this.loadPackages();
         this.loadRevenue();
     },
@@ -1155,6 +1216,48 @@ new Vue({
                         .then(r => {
                             this.Toast.fire({ icon: 'success', title: r.data.message });
                             this.loadGenres();
+                        })
+                        .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
+                }
+            });
+        },
+
+        // ===== TAGS =====
+        loadTags() {
+            axios.get('/api/admin/tags').then(r => { this.allTags = r.data; }).catch(() => {});
+        },
+        openTagModal() {
+            this.tagForm = { name: '' };
+            this.showTagModal = true;
+            this.$nextTick(() => {
+                document.querySelector('.form-input-custom')?.focus();
+            });
+        },
+        saveTag() {
+            if (!this.tagForm.name.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên tag không được để trống!' });
+                return;
+            }
+            axios.post('/api/admin/tags', { name: this.tagForm.name.trim() })
+                .then(() => {
+                    this.Toast.fire({ icon: 'success', title: 'Thêm tag thành công!' });
+                    this.showTagModal = false;
+                    this.loadTags();
+                })
+                .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Thêm thất bại' }); });
+        },
+        deleteTag(t) {
+            Swal.fire({
+                title: 'Xóa tag?',
+                text: `Bạn có chắc xóa tag "${t.name}"?`,
+                icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    axios.delete(`/api/admin/tags/${t.id}`)
+                        .then(r => {
+                            this.Toast.fire({ icon: 'success', title: r.data.message });
+                            this.loadTags();
                         })
                         .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
                 }

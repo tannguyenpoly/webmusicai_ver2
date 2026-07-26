@@ -50,6 +50,9 @@ public class Song implements Serializable {
 	@Column(name = "cover_url", columnDefinition = "VARCHAR(500)")
 	private String coverUrl;
 
+	@Column(name = "listen_count")
+	private Integer listenCount = 0;
+
 	@ManyToOne
 	@JoinColumn(name = "username")
 	private User user;
@@ -70,6 +73,7 @@ public class Song implements Serializable {
 		map.put("isRemix", this.getIsRemix());
 		map.put("parentId", this.getParentId());
 		map.put("coverUrl", this.getCoverUrl());
+		map.put("listenCount", this.getListenCount() != null ? this.getListenCount() : 0);
 
 		if (this.getUser() != null) {
 			map.put("username", this.getUser().getUsername());

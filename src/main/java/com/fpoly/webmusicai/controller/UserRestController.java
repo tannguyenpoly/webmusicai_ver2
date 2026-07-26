@@ -124,6 +124,36 @@ public class UserRestController {
 		return ResponseEntity.ok(profile);
 	}
 
+	@GetMapping("/search")
+	public ResponseEntity<?> searchUsers(@RequestParam String query) {
+		if (query == null || query.trim().isEmpty()) {
+			return ResponseEntity.ok(List.of());
+		}
+		String q = query.trim();
+		Page<User> usersPage = userRepo
+				.findByUsernameContainingIgnoreCaseOrFullnameContainingIgnoreCase(q, q, PageRequest.of(0, 10));
+
+		List<Map<String, Object>> result = new java.util.ArrayList<>();
+		for (User u : usersPage.getContent()) {
+			Map<String, Object> map = new HashMap<>();
+			map.put("username", u.getUsername());
+			map.put("fullname", u.getFullname());
+
+			String photo = u.getPhoto();
+			if (photo == null || photo.trim().isEmpty()) {
+				String name = u.getFullname() != null ? u.getFullname() : u.getUsername();
+				photo = "https://ui-avatars.com/api/?name=" 
+						+ URLEncoder.encode(name, StandardCharsets.UTF_8) 
+						+ "&background=16a34a&color=fff&rounded=true";
+			}
+			map.put("photo", photo);
+			long totalSongs = songRepo.countByUserUsername(u.getUsername());
+			map.put("total_songs", totalSongs);
+			result.add(map);
+		}
+		return ResponseEntity.ok(result);
+	}
+
 	@PutMapping("/{username}/profile")
 	public ResponseEntity<?> updateProfile(@PathVariable String username,
 			@Valid @RequestBody UpdateProfileRequest request, BindingResult bindingResult) {
