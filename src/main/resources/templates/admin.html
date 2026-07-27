@@ -446,6 +446,10 @@
                     <i class="ti ti-coin"></i>
                     <span class="nav-label">Doanh thu</span>
                 </a>
+                <a class="nav-item" :class="{ active: activeTab === 'transactions' }" @click.prevent="activeTab = 'transactions'" href="#">
+                    <i class="ti ti-history"></i>
+                    <span class="nav-label">Lịch sử Giao dịch</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -936,6 +940,109 @@
                 </div>
             </div>
 
+            <!-- ========== TRANSACTION HISTORY ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'transactions' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-history text-success me-2"></i>Lịch sử Giao dịch</h4>
+                </div>
+
+                <div class="d-flex border-bottom mb-4" style="border-color: var(--border-color) !important;">
+                    <button @click="transactionHistoryTab = 'tokens'" class="btn btn-admin-outline" :class="{'btn-admin-primary': transactionHistoryTab === 'tokens'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
+                        <i class="ti ti-arrows-exchange me-1"></i> Lịch sử Token
+                    </button>
+                    <button @click="transactionHistoryTab = 'payments'" class="btn btn-admin-outline" :class="{'btn-admin-primary': transactionHistoryTab === 'payments'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
+                        <i class="ti ti-receipt-2 me-1"></i> Lịch sử Thanh toán
+                    </button>
+                </div>
+
+                <!-- Sub-tab: Token History -->
+                <div v-if="transactionHistoryTab === 'tokens'">
+                    <div class="card-custom mb-4">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted-sync">Tìm theo Tên đăng nhập</label>
+                                    <input type="text" v-model="transactionFilters.username" @input="searchTransactions" class="form-input-custom w-100" placeholder="Để trống để xem tất cả...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted-sync">Loại giao dịch</label>
+                                    <select v-model="transactionFilters.type" @change="loadTransactions(0)" class="form-select-custom w-100">
+                                        <option value="ALL">Tất cả</option>
+                                        <option value="DEPOSIT">Cộng token (Nạp tiền)</option>
+                                        <option value="USAGE">Trừ token (Sử dụng)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="isLoadingTransactions" class="text-center py-5"><div class="spinner-border text-success"></div></div>
+                    <div v-else class="card-custom">
+                        <div class="card-body p-0">
+                            <table class="table table-custom">
+                                <thead><tr><th>ID</th><th>Người dùng</th><th class="text-center">Số lượng</th><th>Mô tả</th><th>Thời gian</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="t in transactionsPage.content" :key="t.id">
+                                        <td class="text-muted-sync">#{{ t.id }}</td>
+                                        <td>
+                                            <div class="fw-medium">@{{ t.username }}</div>
+                                            <small class="text-muted-sync">{{ t.fullname }}</small>
+                                        </td>
+                                        <td class="text-center fw-bold" :class="t.amount > 0 ? 'text-success' : 'text-danger'">
+                                            {{ t.amount > 0 ? '+' : '' }}{{ t.amount }}
+                                        </td>
+                                        <td class="text-muted-sync" style="max-width: 300px;">{{ t.description }}</td>
+                                        <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(t.createdAt) }}</td>
+                                    </tr>
+                                    <tr v-if="!transactionsPage.content || transactionsPage.content.length === 0">
+                                        <td colspan="5" class="text-center text-muted-sync py-4">Không có giao dịch nào.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination-custom" v-if="transactionsPage.totalPages > 1">
+                        <button class="page-btn" :disabled="transactionsPage.number === 0" @click="loadTransactions(transactionsPage.number - 1)">Trước</button>
+                        <button class="page-btn" v-for="p in transactionsPage.totalPages" :key="p" :class="{ active: p - 1 === transactionsPage.number }" @click="loadTransactions(p - 1)">{{ p }}</button>
+                        <button class="page-btn" :disabled="transactionsPage.number >= transactionsPage.totalPages - 1" @click="loadTransactions(transactionsPage.number + 1)">Sau</button>
+                    </div>
+                </div>
+
+                <!-- Sub-tab: Payment Logs -->
+                <div v-if="transactionHistoryTab === 'payments'">
+                    <div class="card-custom mb-4">
+                        <div class="card-body">
+                            <label class="form-label small text-muted-sync">Tìm theo Mã đơn hàng, Mã giao dịch NH, Nội dung</label>
+                            <input type="text" v-model="paymentLogFilters.keyword" @input="searchPaymentLogs" class="form-input-custom w-100" placeholder="Nhập từ khóa...">
+                        </div>
+                    </div>
+                    <div v-if="isLoadingPaymentLogs" class="text-center py-5"><div class="spinner-border text-success"></div></div>
+                    <div v-else class="card-custom">
+                        <div class="card-body p-0">
+                            <table class="table table-custom">
+                                <thead><tr><th>Mã GD Gateway</th><th>Cổng</th><th>Số tiền</th><th>Nội dung</th><th>Thời gian</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="log in paymentLogsPage.content" :key="log.id">
+                                        <td class="text-muted-sync" style="font-size: 12px;">{{ log.transactionId }}</td>
+                                        <td class="fw-medium">{{ log.gatewayName }}</td>
+                                        <td class="text-center">{{ formatPrice(log.amount) }}</td>
+                                        <td class="text-muted-sync" style="max-width: 300px;">{{ log.content }}</td>
+                                        <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(log.createdAt) }}</td>
+                                    </tr>
+                                    <tr v-if="!paymentLogsPage.content || paymentLogsPage.content.length === 0">
+                                        <td colspan="5" class="text-center text-muted-sync py-4">Không có nhật ký thanh toán nào.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination-custom" v-if="paymentLogsPage.totalPages > 1">
+                        <button class="page-btn" :disabled="paymentLogsPage.number === 0" @click="loadPaymentLogs(paymentLogsPage.number - 1)">Trước</button>
+                        <button class="page-btn" v-for="p in paymentLogsPage.totalPages" :key="p" :class="{ active: p - 1 === paymentLogsPage.number }" @click="loadPaymentLogs(p - 1)">{{ p }}</button>
+                        <button class="page-btn" :disabled="paymentLogsPage.number >= paymentLogsPage.totalPages - 1" @click="loadPaymentLogs(paymentLogsPage.number + 1)">Sau</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- ===== USER SONGS MODAL ===== -->
             <div v-if="showUserSongsModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
                 <div class="card-custom" style="width: 660px; max-width:90%; padding: 24px; max-height: 80vh; overflow-y: auto;">
@@ -1023,6 +1130,19 @@ new Vue({
         revenueFrom: '',
         revenueTo: '',
 
+        // Transaction History
+        transactionHistoryTab: 'tokens', // 'tokens' or 'payments'
+        transactionsPage: { content: [], totalPages: 0, number: 0, size: 15 },
+        isLoadingTransactions: false,
+        transactionFilters: {
+            username: '',
+            type: 'ALL' // ALL, DEPOSIT, USAGE
+        },
+        paymentLogsPage: { content: [], totalPages: 0, number: 0, size: 15 },
+        isLoadingPaymentLogs: false,
+        paymentLogFilters: {
+            keyword: ''
+        },
         // User Songs Modal
         showUserSongsModal: false,
         selectedUser: null,
@@ -1031,6 +1151,8 @@ new Vue({
 
         Toast: null,
         userSearchTimer: null,
+        transactionSearchTimer: null,
+        paymentLogSearchTimer: null,
     },
 
     mounted() {
@@ -1047,7 +1169,7 @@ new Vue({
                 this.loadSongs(0);
                 this.loadGenres();
                 this.loadPackages();
-                this.loadRevenue();
+                this.loadRevenue(); // This also loads orders
             })
             .catch(() => {
                 Swal.fire({
@@ -1056,6 +1178,19 @@ new Vue({
                     text: 'Vui lòng đăng nhập với quyền Admin.'
                 }).then(() => { window.location.href = '/'; });
             });
+    },
+
+    watch: {
+        activeTab(newTab, oldTab) {
+            if (newTab === 'transactions' && this.transactionsPage.content.length === 0) {
+                this.loadTransactions(0);
+            }
+        },
+        transactionHistoryTab(newTab, oldTab) {
+            if (newTab === 'payments' && this.paymentLogsPage.content.length === 0) {
+                this.loadPaymentLogs(0);
+            }
+        }
     },
 
     methods: {
@@ -1239,6 +1374,44 @@ new Vue({
                         .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
                 }
             });
+        },
+
+        // ===== TRANSACTION HISTORY =====
+        loadTransactions(page) {
+            this.isLoadingTransactions = true;
+            let params = new URLSearchParams();
+            params.append('page', page);
+            params.append('size', this.transactionsPage.size);
+            if (this.transactionFilters.username) params.append('username', this.transactionFilters.username);
+            if (this.transactionFilters.type) params.append('type', this.transactionFilters.type);
+
+            axios.get('/api/admin/transactions?' + params.toString())
+                .then(r => { this.transactionsPage = r.data; })
+                .catch(() => this.Toast.fire({ icon: 'error', title: 'Không thể tải lịch sử token.' }))
+                .finally(() => { this.isLoadingTransactions = false; });
+        },
+
+        searchTransactions() {
+            clearTimeout(this.transactionSearchTimer);
+            this.transactionSearchTimer = setTimeout(() => { this.loadTransactions(0); }, 400);
+        },
+
+        loadPaymentLogs(page) {
+            this.isLoadingPaymentLogs = true;
+            let params = new URLSearchParams();
+            params.append('page', page);
+            params.append('size', this.paymentLogsPage.size);
+            if (this.paymentLogFilters.keyword) params.append('keyword', this.paymentLogFilters.keyword);
+
+            axios.get('/api/admin/payment-logs?' + params.toString())
+                .then(r => { this.paymentLogsPage = r.data; })
+                .catch(() => this.Toast.fire({ icon: 'error', title: 'Không thể tải lịch sử thanh toán.' }))
+                .finally(() => { this.isLoadingPaymentLogs = false; });
+        },
+
+        searchPaymentLogs() {
+            clearTimeout(this.paymentLogSearchTimer);
+            this.paymentLogSearchTimer = setTimeout(() => { this.loadPaymentLogs(0); }, 400);
         },
 
         // ===== GENRES =====
