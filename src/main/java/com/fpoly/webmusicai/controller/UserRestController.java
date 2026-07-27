@@ -3,6 +3,7 @@ package com.fpoly.webmusicai.controller;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +23,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,10 +41,10 @@ import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.TransactionRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
+import com.fpoly.webmusicai.service.PresenceService;
 
 import jakarta.validation.Valid;
 
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/users")
 public class UserRestController {
@@ -64,6 +64,9 @@ public class UserRestController {
 	@Autowired
 	PasswordEncoder passwordEncoder;
 
+	@Autowired
+	PresenceService presenceService;
+
 	@GetMapping("/auth-session")
 	public ResponseEntity<?> getAuthSession() {
 		String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -74,11 +77,18 @@ public class UserRestController {
 		Optional<User> userOpt = userRepo.findById(username);
 		if (userOpt.isPresent()) {
 			User user = userOpt.get();
+			refreshExpiredTier(user);
 			Map<String, Object> sessionData = new HashMap<>();
 			sessionData.put("username", user.getUsername());
 			sessionData.put("fullname", user.getFullname());
 			sessionData.put("email", user.getEmail());
 			sessionData.put("token_balance", user.getTokenBalance());
+			sessionData.put("accountTier", safeTier(user));
+			sessionData.put("tierExpiresAt", user.getProExpiredAt());
+			sessionData.put("authProvider", safeProvider(user));
+			sessionData.put("hasLocalPassword", hasLocalPassword(user));
+			sessionData.put("isAdmin", SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+					.stream().anyMatch(a -> a.getAuthority().contains("ADMIN")));
 			return ResponseEntity.ok(sessionData);
 		}
 		return ResponseEntity.status(404).body(Map.of("message", "Tài khoản session không tồn tại trong DB"));
@@ -95,6 +105,7 @@ public class UserRestController {
 			return ResponseEntity.badRequest().body(Map.of("message", "Không tìm thấy người dùng!"));
 		}
 		User user = userOpt.get();
+		refreshExpiredTier(user);
 		Map<String, Object> profile = new HashMap<>();
 		profile.put("username", user.getUsername());
 		profile.put("fullname", user.getFullname());
@@ -102,6 +113,10 @@ public class UserRestController {
 		if (isOwnerOrAdmin) {
 			profile.put("email", user.getEmail());
 			profile.put("token_balance", user.getTokenBalance());
+			profile.put("accountTier", safeTier(user));
+			profile.put("tierExpiresAt", user.getProExpiredAt());
+			profile.put("authProvider", safeProvider(user));
+			profile.put("hasLocalPassword", hasLocalPassword(user));
 		}
 		
 		String photo = user.getPhoto();
@@ -110,10 +125,18 @@ public class UserRestController {
 			photo = "https://ui-avatars.com/api/?name=" + URLEncoder.encode(name, StandardCharsets.UTF_8) + "&background=16a34a&color=fff&rounded=true";
 		}
 		profile.put("photo", photo);
+		profile.put("online", presenceService.isOnline(user));
+		profile.put("lastSeenAt", user.getLastSeenAt());
 
-		long totalSongs = songRepo.countByUserUsername(username);
-		long completedSongs = songRepo.countByUserUsernameAndStatus(username, "COMPLETED");
-		long pendingSongs = songRepo.countByUserUsernameAndStatus(username, "PENDING");
+		long totalSongs = isOwnerOrAdmin
+				? songRepo.countByUserUsername(username)
+				: songRepo.countByUserUsernameAndIsPublicTrue(username);
+		long completedSongs = isOwnerOrAdmin
+				? songRepo.countByUserUsernameAndStatus(username, "COMPLETED")
+				: songRepo.countByUserUsernameAndStatusAndIsPublicTrue(username, "COMPLETED");
+		long pendingSongs = isOwnerOrAdmin
+				? songRepo.countByUserUsernameAndStatus(username, "PENDING")
+				: 0;
 		long totalFavorites = favoriteRepo.countByUserUsername(username);
 
 		profile.put("total_songs", totalSongs);
@@ -178,7 +201,21 @@ public class UserRestController {
 
 		User user = userOpt.get();
 		user.setFullname(request.getFullname());
-		user.setEmail(request.getEmail());
+		String requestedEmail = request.getEmail() == null ? "" : request.getEmail().trim().toLowerCase();
+		if (requestedEmail.isBlank()) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống!"));
+		}
+		Optional<User> emailOwner = userRepo.findFirstByEmailIgnoreCase(requestedEmail);
+		if (emailOwner.isPresent() && !emailOwner.get().getUsername().equals(username)) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Email đã được sử dụng bởi tài khoản khác!"));
+		}
+		if (safeProvider(user).contains("GOOGLE")
+				&& user.getEmail() != null
+				&& !user.getEmail().equalsIgnoreCase(requestedEmail)) {
+			return ResponseEntity.badRequest().body(Map.of(
+					"message", "Tài khoản liên kết Google không thể đổi email đăng nhập tại đây."));
+		}
+		user.setEmail(requestedEmail);
 		if (request.getPhoto() != null) {
 			user.setPhoto(request.getPhoto());
 		}
@@ -274,6 +311,10 @@ public class UserRestController {
 		}
 
 		User user = userOpt.get();
+		if (!hasLocalPassword(user)) {
+			return ResponseEntity.badRequest().body(Map.of(
+					"message", "Tài khoản Google chưa có mật khẩu cục bộ. Hãy chọn đặt mật khẩu qua email."));
+		}
 		String currentPassword = user.getPassword();
 
 		if (!passwordEncoder.matches(request.getOldPassword(), currentPassword)) {
@@ -281,6 +322,7 @@ public class UserRestController {
 		}
 
 		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+		user.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
 		userRepo.save(user);
 
 		return ResponseEntity.ok(Map.of("message", "Đổi mật khẩu thành công!"));
@@ -367,7 +409,10 @@ public class UserRestController {
 		Map<String, Object> response = new HashMap<>();
 		response.put("username", user.getUsername());
 		response.put("fullname", user.getFullname());
+		response.put("email", user.getEmail());
 		response.put("token_balance", user.getTokenBalance());
+		response.put("accountTier", safeTier(user));
+		response.put("tierExpiresAt", user.getProExpiredAt());
 		response.put("stats",
 				Map.of("total", songs.size(), "completed", completed, "pending", pending, "failed", failed));
 		response.put("songs", songs);
@@ -438,5 +483,38 @@ public class UserRestController {
 			"followersCount", followersCount,
 			"followingCount", followingCount
 		));
+	}
+
+	private void refreshExpiredTier(User user) {
+		if (user.getProExpiredAt() != null
+				&& user.getProExpiredAt().before(new Date())
+				&& !"FREE".equalsIgnoreCase(user.getAccountTier())) {
+			user.setAccountTier("FREE");
+			user.setProExpiredAt(null);
+			userRepo.save(user);
+		}
+	}
+
+	private String safeTier(User user) {
+		String tier = user.getAccountTier();
+		return tier == null || tier.isBlank() || "BASIC".equalsIgnoreCase(tier)
+				? "FREE"
+				: tier.toUpperCase();
+	}
+
+	private String safeProvider(User user) {
+		String provider = user.getAuthProvider();
+		if (provider == null || provider.isBlank()) {
+			return user.getUsername() != null
+					&& user.getEmail() != null
+					&& user.getUsername().equalsIgnoreCase(user.getEmail())
+							? "GOOGLE"
+							: "LOCAL";
+		}
+		return provider.toUpperCase();
+	}
+
+	private boolean hasLocalPassword(User user) {
+		return !"GOOGLE".equals(safeProvider(user));
 	}
 }

@@ -71,6 +71,15 @@
                 padding: 0 20px;
             }
 
+            .profile-username-text {
+                display: inline-block;
+                max-width: min(100%, 520px);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                vertical-align: bottom;
+            }
+
             .song-card {
                 background: var(--card-bg, #ffffff);
                 border: 1px solid var(--border-color, #e2e8f0);
@@ -226,7 +235,7 @@
                         class="rounded-circle"
                         style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; border-radius: 50% !important; object-fit: cover !important;"
                         alt="avatar">
-                    <button @click="triggerAvatarUpload" class="avatar-camera-btn"
+                    <button v-if="profileUsername === currentUser" @click="triggerAvatarUpload" class="avatar-camera-btn"
                         title="Tải ảnh đại diện mới từ máy tính">
                         <i class="ti ti-camera"></i>
                     </button>
@@ -244,11 +253,16 @@
                         </h2>
                         <div
                             class="text-muted-sync d-flex align-items-center justify-content-md-start justify-content-center gap-2 mb-2">
-                            <span>@{{ profileUsername }}</span>
+                            <span class="profile-username-text">@{{ profileUsername }}</span>
                             <button @click="copyText(profileUsername)" class="btn btn-sm btn-link p-0 text-muted-sync"
                                 title="Copy Username">
                                 <i class="ti ti-copy"></i>
                             </button>
+                        </div>
+                        <div class="small mb-2" :class="profilePageData.online ? 'text-success' : 'text-muted-sync'">
+                            <span class="d-inline-block rounded-circle me-1"
+                                :style="{ width: '8px', height: '8px', background: profilePageData.online ? '#22c55e' : '#94a3b8' }"></span>
+                            {{ formatPresenceStatus(profilePageData) }}
                         </div>
                         <div class="small text-muted-sync d-flex justify-content-md-start justify-content-center gap-3 mt-1 mb-2">
                             <span><strong>{{ followersCount }}</strong> người theo dõi</span>
@@ -278,6 +292,25 @@
                             <button class="btn btn-outline-success rounded-pill px-4 fw-medium shadow-sm"
                                 @click="startChatWith(profileUsername)">
                                 <i class="ti ti-brand-messenger me-1"></i> Nhắn tin
+                            </button>
+                            <button v-if="friendStatus.status === 'NONE'"
+                                class="btn btn-outline-primary rounded-pill px-4 fw-medium shadow-sm"
+                                @click="sendFriendRequest">
+                                <i class="ti ti-user-plus me-1"></i> Kết bạn
+                            </button>
+                            <button v-else-if="friendStatus.status === 'PENDING_SENT'"
+                                class="btn btn-outline-secondary rounded-pill px-4 fw-medium" disabled>
+                                <i class="ti ti-clock me-1"></i> Đã gửi lời mời
+                            </button>
+                            <button v-else-if="friendStatus.status === 'PENDING_RECEIVED'"
+                                class="btn btn-primary rounded-pill px-4 fw-medium shadow-sm"
+                                @click="acceptFriendRequest">
+                                <i class="ti ti-user-check me-1"></i> Chấp nhận
+                            </button>
+                            <button v-else-if="friendStatus.status === 'ACCEPTED'"
+                                class="btn btn-outline-primary rounded-pill px-4 fw-medium shadow-sm"
+                                @click="removeFriendship">
+                                <i class="ti ti-users me-1"></i> Bạn bè
                             </button>
                         </template>
                     </div>
@@ -349,7 +382,7 @@
                         <div v-for="(song, index) in profileGeneratedSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)">
                             <div class="suno-cover-wrapper">
                                 <!-- Artwork cover -->
-                                <img :src="getSongCover(song)" class="suno-cover-img" alt="Song Artwork" />
+                                <img :src="getSongCover(song)" class="suno-cover-img" alt="Ảnh bìa bài hát" />
 
                                 <!-- Top left tiny play/pause icon -->
                                 <div class="suno-top-play-btn" @click.stop="playTrack(song)">
@@ -371,6 +404,10 @@
                                 <div v-if="song.status === 'PENDING'" class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-black bg-opacity-75" style="z-index: 15; border-radius: 16px;">
                                     <div class="spinner-border text-success spinner-border-sm mb-2" role="status"></div>
                                     <span class="text-white-50" style="font-size: 10px; font-weight: 500;">AI đang xử lý...</span>
+                                    <button class="btn btn-sm btn-outline-danger mt-2 rounded-pill px-3"
+                                            style="font-size: 10px;" @click.stop="cancelMusicGeneration(song)">
+                                        <i class="ti ti-player-stop me-1"></i>Dừng và hoàn token
+                                    </button>
                                 </div>
 
                                 <!-- Play icon hover overlay -->
@@ -410,7 +447,7 @@
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="addToPlaylist(song)">
+                                            <a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="openPlaylistModal(song)">
                                                 <i class="ti ti-playlist-add text-success" style="font-size: 12px;"></i> Thêm vào danh sách tạm
                                             </a>
                                         </li>
@@ -461,7 +498,7 @@
                         <div v-for="(song, index) in profileFavoriteSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)">
                             <div class="suno-cover-wrapper">
                                 <!-- Artwork cover -->
-                                <img :src="getSongCover(song)" class="suno-cover-img" alt="Song Artwork" />
+                                <img :src="getSongCover(song)" class="suno-cover-img" alt="Ảnh bìa bài hát" />
 
                                 <!-- Top left tiny play/pause icon -->
                                 <div class="suno-top-play-btn" @click.stop="playTrack(song)">
@@ -503,7 +540,7 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark border border-secondary shadow-lg py-1 m-0" style="background: rgba(17, 22, 18, 0.95); backdrop-filter: blur(10px); border-radius: 12px; z-index: 100; font-size: 11.5px;">
                                         <li>
-                                            <a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="addToPlaylist(song)">
+                                            <a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="openPlaylistModal(song)">
                                                 <i class="ti ti-playlist-add text-success" style="font-size: 12px;"></i> Thêm vào danh sách tạm
                                             </a>
                                         </li>

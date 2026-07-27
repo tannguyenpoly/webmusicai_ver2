@@ -21,7 +21,6 @@ import com.fpoly.webmusicai.repository.OrderRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/admin")
 public class AdminRestController {
@@ -84,6 +83,7 @@ public class AdminRestController {
     public ResponseEntity<?> toggleUserStatus(@PathVariable String username) {
         return userRepo.findById(username).map(user -> {
             user.setEnabled(!user.getEnabled());
+            user.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
             userRepo.save(user);
             String status = user.getEnabled() ? "mở khóa" : "khóa";
             return ResponseEntity.ok(Map.of(

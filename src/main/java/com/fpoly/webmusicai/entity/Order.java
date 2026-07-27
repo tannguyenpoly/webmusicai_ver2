@@ -22,7 +22,10 @@ public class Order implements Serializable {
 	@Column(name = "total_price")
 	private Integer totalPrice;
 
-	private String status; // PENDING, SUCCESS, FAILED
+	private String status; // PENDING, SUCCESS, FAILED, CANCELLED, EXPIRED
+
+	@Column(name = "payment_method")
+	private String paymentMethod = "VNPAY";
 
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name = "created_at")

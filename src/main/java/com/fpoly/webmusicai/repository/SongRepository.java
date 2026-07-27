@@ -8,11 +8,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 
 import com.fpoly.webmusicai.entity.Song;
 
 import jakarta.transaction.Transactional;
+import jakarta.persistence.LockModeType;
 
 public interface SongRepository extends JpaRepository<Song, Integer> {
 
@@ -30,6 +32,10 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
 
 	long countByUserUsernameAndStatus(String username, String status);
 
+	long countByUserUsernameAndIsPublicTrue(String username);
+
+	long countByUserUsernameAndStatusAndIsPublicTrue(String username, String status);
+
 	long countByStatus(String status);
 
 	long countByIsPublicTrue();
@@ -37,6 +43,12 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
 	Page<Song> findByStatusOrderByCreatedAtDesc(String status, Pageable pageable);
 
 	List<Song> findByParentIdOrderByCreatedAtDesc(Integer parentId);
+
+	List<Song> findByStatusAndCreatedAtBefore(String status, java.util.Date cutoff);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT s FROM Song s WHERE s.id = :id")
+	java.util.Optional<Song> findByIdForUpdate(@Param("id") Integer id);
 
 	@Modifying
 	@Query("UPDATE Song s SET s.parentId = null WHERE s.parentId = :songId")

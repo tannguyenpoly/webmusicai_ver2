@@ -85,9 +85,12 @@ public class SecurityConfig {
         if ("GET".equals(method) && path.equals("/api/orders/vnpay-return")) {
             return true;
         }
+        if ("POST".equals(method) && path.equals("/api/orders/sepay-ipn")) {
+            return true;
+        }
 
-        if (path.equals("/") || path.equals("/create") || path.equals("/login") || path.equals("/register") || path.equals("/favorites") || path.equals("/profile") || path.equals("/orders")
-                || path.startsWith("/js/") || path.startsWith("/css/") || path.startsWith("/images/") || path.startsWith("/song/")|| path.startsWith("/orders/")
+        if (path.equals("/") || path.equals("/explore") || path.equals("/create") || path.equals("/login") || path.equals("/register") || path.equals("/favorites") || path.equals("/profile") || path.equals("/orders")
+                || path.startsWith("/js/") || path.startsWith("/css/") || path.startsWith("/images/") || path.startsWith("/media/audio/") || path.startsWith("/song/")|| path.startsWith("/orders/")
                 || path.equals("/favicon.ico")) {
             return true;
         }
@@ -102,6 +105,11 @@ public class SecurityConfig {
                     || path.matches("/api/songs/\\d+/status")
                     || path.matches("/api/songs/\\d+/likes")
                     || path.matches("/api/songs/\\d+/comments")) {
+                return true;
+            }
+            if (path.equals("/api/users/search")
+                    || path.matches("/api/users/[^/]+/profile")
+                    || path.matches("/api/users/[^/]+/songs")) {
                 return true;
             }
             if (path.equals("/api/packages") || path.equals("/api/packages/")) {

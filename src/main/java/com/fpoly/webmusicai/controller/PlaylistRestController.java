@@ -25,7 +25,6 @@ import com.fpoly.webmusicai.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/playlists")
 public class PlaylistRestController {
@@ -56,7 +55,8 @@ public class PlaylistRestController {
 
         Playlist playlist = new Playlist();
         playlist.setName(name.trim());
-        playlist.setIsPublic(body.containsKey("is_public") && Boolean.TRUE.equals(body.get("is_public")));
+        Object visibility = body.containsKey("isPublic") ? body.get("isPublic") : body.get("is_public");
+        playlist.setIsPublic(Boolean.TRUE.equals(visibility));
         playlist.setUser(user);
 
         playlistRepo.save(playlist);
@@ -72,7 +72,17 @@ public class PlaylistRestController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getPlaylistById(@PathVariable Integer id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth != null ? auth.getName() : "anonymousUser";
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
         return playlistRepo.findById(id).map(playlist -> {
+            boolean isOwner = playlist.getUser() != null
+                    && playlist.getUser().getUsername().equals(username);
+            if (!Boolean.TRUE.equals(playlist.getIsPublic()) && !isOwner && !isAdmin) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Playlist này đang ở chế độ riêng tư"));
+            }
             List<PlaylistSong> songs = playlistSongRepo.findByPlaylistIdOrderBySortOrderAsc(id);
             return ResponseEntity.ok(Map.of("playlist", playlist, "songs", songs));
         }).orElse(ResponseEntity.notFound().build());
@@ -91,7 +101,15 @@ public class PlaylistRestController {
 
     @GetMapping("/user/{username}")
     public ResponseEntity<List<Playlist>> getPlaylistsByUser(@PathVariable String username) {
-        return ResponseEntity.ok(playlistRepo.findByUserUsernameOrderByCreatedAtDesc(username));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = auth != null ? auth.getName() : "anonymousUser";
+        boolean canSeePrivate = username.equals(currentUsername)
+                || (auth != null && auth.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority())));
+        List<Playlist> playlists = canSeePrivate
+                ? playlistRepo.findByUserUsernameOrderByCreatedAtDesc(username)
+                : playlistRepo.findByUserUsernameAndIsPublicTrueOrderByCreatedAtDesc(username);
+        return ResponseEntity.ok(playlists);
     }
 
     @PutMapping("/{id}")
@@ -111,8 +129,9 @@ public class PlaylistRestController {
                 }
                 playlist.setName(name.trim());
             }
-            if (body.containsKey("is_public")) {
-                playlist.setIsPublic(Boolean.TRUE.equals(body.get("is_public")));
+            if (body.containsKey("is_public") || body.containsKey("isPublic")) {
+                Object visibility = body.containsKey("isPublic") ? body.get("isPublic") : body.get("is_public");
+                playlist.setIsPublic(Boolean.TRUE.equals(visibility));
             }
 
             playlistRepo.save(playlist);
@@ -151,6 +170,12 @@ public class PlaylistRestController {
             Song song = songRepo.findById(songId).orElse(null);
             if (song == null) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Bài nhạc không tồn tại!"));
+            }
+            boolean canUseSong = Boolean.TRUE.equals(song.getIsPublic())
+                    || (song.getUser() != null && username.equals(song.getUser().getUsername()));
+            if (!canUseSong) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Không thể thêm bài hát riêng tư của người khác"));
             }
 
             if (playlistSongRepo.existsByPlaylistIdAndSongId(playlistId, songId)) {

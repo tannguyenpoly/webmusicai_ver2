@@ -1,19 +1,17 @@
 package com.fpoly.webmusicai.controller;
 
 import java.security.Principal;
-import java.util.Date;
-import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import com.fpoly.webmusicai.entity.ChatMessage;
-import com.fpoly.webmusicai.entity.User;
-import com.fpoly.webmusicai.repository.ChatMessageRepository;
-import com.fpoly.webmusicai.repository.UserRepository;
+import com.fpoly.webmusicai.dto.ChatMessageRequest;
+import com.fpoly.webmusicai.dto.ChatMessageResponse;
+import com.fpoly.webmusicai.service.ChatMessageService;
+
+import jakarta.validation.Valid;
 
 @Controller
 public class ChatWebSocketController {
@@ -22,49 +20,20 @@ public class ChatWebSocketController {
     private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
-    private ChatMessageRepository chatMessageRepo;
-
-    @Autowired
-    private UserRepository userRepo;
+    private ChatMessageService chatMessageService;
 
     @MessageMapping("/chat.send")
-    public void sendMessage(@Payload ChatMessage chatMessage, Principal principal) {
+    public void sendMessage(@Valid @Payload ChatMessageRequest request, Principal principal) {
         if (principal == null) {
             return;
         }
 
         String senderUsername = principal.getName();
-        String recipientUsername = chatMessage.getRecipient() != null ? chatMessage.getRecipient().getUsername() : null;
+        ChatMessageResponse savedMessage = chatMessageService.send(senderUsername, request);
 
-        if (recipientUsername == null || recipientUsername.trim().isEmpty()) {
-            return;
-        }
-
-        Optional<User> senderOpt = userRepo.findById(senderUsername);
-        Optional<User> recipientOpt = userRepo.findById(recipientUsername);
-
-        if (senderOpt.isPresent() && recipientOpt.isPresent()) {
-            chatMessage.setSender(senderOpt.get());
-            chatMessage.setRecipient(recipientOpt.get());
-            chatMessage.setTimestamp(new Date());
-            chatMessage.setIsRead(false);
-
-            // Lưu tin nhắn vào CSDL
-            ChatMessage savedMessage = chatMessageRepo.save(chatMessage);
-
-            // Gửi tới người nhận thông qua kênh cá nhân của họ
-            messagingTemplate.convertAndSendToUser(
-                recipientUsername,
-                "/queue/messages",
-                savedMessage
-            );
-
-            // Gửi ngược lại cho chính người gửi (để đồng bộ tin nhắn trên nhiều tab nếu mở)
-            messagingTemplate.convertAndSendToUser(
-                senderUsername,
-                "/queue/messages",
-                savedMessage
-            );
-        }
+        messagingTemplate.convertAndSendToUser(
+            request.recipientUsername(), "/queue/messages", savedMessage);
+        messagingTemplate.convertAndSendToUser(
+            senderUsername, "/queue/messages", savedMessage);
     }
 }

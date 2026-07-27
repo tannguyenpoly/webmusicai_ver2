@@ -1,6 +1,5 @@
 package com.fpoly.webmusicai.controller;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.fpoly.webmusicai.config.JwtService;
+import com.fpoly.webmusicai.config.JwtCookieService;
 import com.fpoly.webmusicai.entity.Authority;
 import com.fpoly.webmusicai.entity.Role;
 import com.fpoly.webmusicai.entity.User;
@@ -28,8 +28,8 @@ import com.fpoly.webmusicai.repository.AuthorityRepository;
 import com.fpoly.webmusicai.repository.RoleRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 import com.fpoly.webmusicai.service.MailService;
+import com.fpoly.webmusicai.service.PresenceService;
 
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -55,6 +55,12 @@ public class AuthController {
 	@Autowired
 	JwtService jwtService;
 
+	@Autowired
+	JwtCookieService jwtCookieService;
+
+	@Autowired
+	PresenceService presenceService;
+
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, HttpServletResponse httpResponse) {
 		String username = loginData.get("username");
@@ -72,7 +78,7 @@ public class AuthController {
 			SecurityContextHolder.getContext().setAuthentication(auth);
 
 			User user = userRepo.findById(username).get();
-			String token = jwtService.generateToken(username);
+			String token = jwtService.generateToken(user);
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("message", "Đăng nhập thành công!");
@@ -85,11 +91,8 @@ public class AuthController {
 					.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equalsIgnoreCase("ADMIN"));
 			response.put("isAdmin", isAdmin);
 
-			Cookie cookie = new Cookie("jwt_token", token);
-			cookie.setPath("/");
-			cookie.setHttpOnly(false);
-			cookie.setMaxAge(86400);
-			httpResponse.addCookie(cookie);
+			jwtCookieService.write(httpResponse, token);
+			presenceService.heartbeat(user.getUsername());
 
 			return ResponseEntity.ok(response);
 
@@ -132,19 +135,26 @@ public class AuthController {
 		if (userRepo.existsById(username)) {
 			return ResponseEntity.badRequest().body("Username đã tồn tại!");
 		}
+		email = email.trim().toLowerCase();
+		if (userRepo.existsByEmailIgnoreCase(email)) {
+			return ResponseEntity.badRequest().body("Email đã được sử dụng cho một tài khoản khác!");
+		}
 
 		User user = new User();
-		user.setUsername(username);
+		user.setUsername(username.trim());
 		user.setPassword(passwordEncoder.encode(password));
-		user.setFullname(fullname);
+		user.setFullname(fullname.trim());
 		user.setEmail(email);
 		try {
 			user.setPhoto("https://ui-avatars.com/api/?name=" + URLEncoder.encode(fullname, StandardCharsets.UTF_8) + "&background=16a34a&color=fff&rounded=true");
 		} catch (Exception e) {
 			user.setPhoto(null);
 		}
-		user.setTokenBalance(5); 
+		user.setTokenBalance(15);
 		user.setEnabled(true);
+		user.setAuthProvider("LOCAL");
+		user.setAccountTier("FREE");
+		user.setTokenVersion(0);
 		userRepo.save(user);
 
 		Role role = roleRepo.findById("USER").orElseThrow();
@@ -157,6 +167,17 @@ public class AuthController {
 
 		return ResponseEntity
 				.ok(Map.of("message", "Đăng ký thành công! Kiểm tra email của bạn.", "username", username));
+	}
+
+	@PostMapping("/logout")
+	public ResponseEntity<?> logout(HttpServletResponse response) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication != null) {
+			presenceService.offline(authentication.getName());
+		}
+		jwtCookieService.clear(response);
+		SecurityContextHolder.clearContext();
+		return ResponseEntity.ok(Map.of("message", "Đăng xuất thành công"));
 	}
 
 	private static class OtpData {
@@ -178,7 +199,7 @@ public class AuthController {
 			return ResponseEntity.badRequest().body("Email không được để trống!");
 		}
 
-		List<User> users = userRepo.findByEmail(email.trim());
+		List<User> users = userRepo.findByEmailIgnoreCase(email.trim());
 		if (users.isEmpty()) {
 			return ResponseEntity.badRequest().body("Email không tồn tại trong hệ thống!");
 		}
@@ -221,7 +242,7 @@ public class AuthController {
 			return ResponseEntity.badRequest().body("Mã xác nhận (OTP) đã hết hạn! Vui lòng yêu cầu mã mới.");
 		}
 
-		List<User> users = userRepo.findByEmail(email.trim());
+		List<User> users = userRepo.findByEmailIgnoreCase(email.trim());
 		if (users.isEmpty()) {
 			return ResponseEntity.badRequest().body("Không tìm thấy tài khoản người dùng!");
 		}
@@ -229,6 +250,12 @@ public class AuthController {
 		String encodedPassword = passwordEncoder.encode(newPassword);
 		for (User user : users) {
 			user.setPassword(encodedPassword);
+			if ("GOOGLE".equalsIgnoreCase(user.getAuthProvider())) {
+				user.setAuthProvider("BOTH");
+			} else if (user.getAuthProvider() == null || user.getAuthProvider().isBlank()) {
+				user.setAuthProvider("LOCAL");
+			}
+			user.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
 			userRepo.save(user);
 		}
 

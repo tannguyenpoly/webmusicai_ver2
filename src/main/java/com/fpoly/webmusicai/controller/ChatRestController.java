@@ -12,9 +12,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,8 +24,12 @@ import com.fpoly.webmusicai.entity.ChatMessage;
 import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.ChatMessageRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
+import com.fpoly.webmusicai.dto.ChatMessageRequest;
+import com.fpoly.webmusicai.service.ChatMessageService;
+import com.fpoly.webmusicai.service.PresenceService;
 
-@CrossOrigin("*")
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/chat")
 public class ChatRestController {
@@ -34,6 +39,12 @@ public class ChatRestController {
 
     @Autowired
     private UserRepository userRepo;
+
+    @Autowired
+    private PresenceService presenceService;
+
+    @Autowired
+    private ChatMessageService chatMessageService;
 
     // Lấy lịch sử trò chuyện giữa người dùng hiện tại và đối tác
     @GetMapping("/history")
@@ -94,6 +105,8 @@ public class ChatRestController {
                         + "&background=16a34a&color=fff&rounded=true";
             }
             chatInfo.put("photo", photo);
+            chatInfo.put("online", presenceService.isOnline(partner));
+            chatInfo.put("lastSeenAt", partner.getLastSeenAt());
             chatInfo.put("lastMessage", msg.getContent());
             chatInfo.put("lastMessageSender", msg.getSender().getUsername());
             chatInfo.put("timestamp", msg.getTimestamp());
@@ -103,6 +116,20 @@ public class ChatRestController {
         }
 
         return ResponseEntity.ok(recentChats);
+    }
+
+    @PostMapping("/send")
+    public ResponseEntity<?> send(
+            @Valid @RequestBody ChatMessageRequest request,
+            Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "Chưa đăng nhập"));
+        }
+        try {
+            return ResponseEntity.ok(chatMessageService.send(principal.getName(), request));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     // Đánh dấu tất cả tin nhắn từ đối tác gửi cho người dùng hiện tại là ĐÃ ĐỌC
@@ -175,6 +202,8 @@ public class ChatRestController {
                         + "&background=16a34a&color=fff&rounded=true";
             }
             map.put("photo", photo);
+            map.put("online", presenceService.isOnline(u));
+            map.put("lastSeenAt", u.getLastSeenAt());
             result.add(map);
         }
 

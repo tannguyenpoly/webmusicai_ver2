@@ -33,7 +33,7 @@ public class MailService {
 			message.setSubject("🎵 Chào mừng bạn đến với WebMusicAI!");
 			message.setText(
 					"Xin chào " + fullname + ",\n\n" + "Tài khoản của bạn đã được tạo thành công!\n" + "Tên đăng nhập: "
-							+ username + "\n\n" + "Bạn nhận được 5 token miễn phí để bắt đầu tạo nhạc AI.\n\n"
+							+ username + "\n\n" + "Bạn nhận được 15 token miễn phí để bắt đầu tạo nhạc AI.\n\n"
 							+ "Trân trọng,\n" + "Chúc bạn dùng ứng dụng vui vẻ");
 
 			mailSender.send(message);
@@ -55,7 +55,7 @@ public class MailService {
 			SimpleMailMessage message = new SimpleMailMessage();
 			message.setFrom(fromEmail);
 			message.setTo(user.getEmail());
-			message.setSubject("Hóa đơn thanh toán cho đơn hàng #" + order.getOrderCode());
+			message.setSubject("🎉 Chúc mừng! Thanh toán thành công đơn #" + order.getOrderCode());
 
 			// Format price and date for email body
 			NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));

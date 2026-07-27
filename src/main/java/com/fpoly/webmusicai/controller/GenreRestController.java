@@ -13,7 +13,6 @@ import com.fpoly.webmusicai.repository.GenreRepository;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/genres")
 public class GenreRestController {

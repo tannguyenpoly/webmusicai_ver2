@@ -1,3 +1,11 @@
+/*
+  WEBMUSICAI - CÀI ĐẶT DATABASE MỚI
+
+  CẢNH BÁO: Script này XÓA toàn bộ MusicAI_DB hiện có rồi tạo lại từ đầu.
+  Chỉ chạy khi cài mới hoặc khi chắc chắn không cần giữ dữ liệu cũ.
+  Nếu database đang có dữ liệu cần giữ, hãy chạy upgrade-existing.sql thay thế.
+*/
+
 -- =============================================
 -- 0. XÓA DATABASE CŨ (NẾU CÓ) ĐỂ LÀM LẠI TỪ ĐẦU
 -- =============================================
@@ -47,7 +55,7 @@ ALTER ROLE db_datawriter ADD MEMBER dtbmusic;
 GO
 
 -- =============================================
--- 4. TẠO CÁC BẢNG (TABLES) - TỔNG 16 BẢNG
+-- 4. TẠO CÁC BẢNG (TABLES)
 -- =============================================
 
 -- [1] Users 
@@ -59,8 +67,11 @@ CREATE TABLE Users (
     photo VARCHAR(255) NULL,
     token_balance INT DEFAULT 0,
     enabled BIT DEFAULT 1,
-    account_tier VARCHAR(20) DEFAULT 'BASIC',
-    pro_expired_at DATETIME NULL
+    account_tier VARCHAR(20) DEFAULT 'FREE',
+    pro_expired_at DATETIME NULL,
+    token_version INT NOT NULL DEFAULT 0,
+    last_seen_at DATETIME NULL,
+    auth_provider VARCHAR(20) NOT NULL DEFAULT 'LOCAL'
 );
 GO
 
@@ -77,7 +88,8 @@ CREATE TABLE Authorities (
     username VARCHAR(50) NOT NULL,
     role_id VARCHAR(20) NOT NULL,
     FOREIGN KEY (username) REFERENCES Users(username),
-    FOREIGN KEY (role_id) REFERENCES Roles(id)
+    FOREIGN KEY (role_id) REFERENCES Roles(id),
+    CONSTRAINT UQ_Authorities_User_Role UNIQUE (username, role_id)
 );
 GO
 
@@ -121,7 +133,9 @@ CREATE TABLE Packages (
     price INT NOT NULL,
     old_price INT NULL,
     badge NVARCHAR(50) NULL,
-    description NVARCHAR(255) NULL
+    description NVARCHAR(255) NULL,
+    tier_code VARCHAR(20) NOT NULL DEFAULT 'CREATOR',
+    duration_days INT NOT NULL DEFAULT 30
 );
 GO
 
@@ -131,6 +145,7 @@ CREATE TABLE Orders (
     order_code VARCHAR(50) UNIQUE NOT NULL,
     total_price INT NOT NULL,
     status VARCHAR(20) NOT NULL,
+    payment_method VARCHAR(20) NOT NULL DEFAULT 'VNPAY',
     created_at DATETIME DEFAULT GETDATE(),
     username VARCHAR(50) NOT NULL,
     package_id INT NOT NULL,
@@ -144,7 +159,8 @@ CREATE TABLE Song_Tags (
     id INT IDENTITY(1,1) PRIMARY KEY,
     song_id INT NOT NULL,
     tag NVARCHAR(50) NOT NULL,
-    FOREIGN KEY (song_id) REFERENCES Songs(id)
+    FOREIGN KEY (song_id) REFERENCES Songs(id),
+    CONSTRAINT UQ_SongTags_Song_Tag UNIQUE (song_id, tag)
 );
 GO
 
@@ -166,7 +182,8 @@ CREATE TABLE Playlist_Songs (
     song_id INT NOT NULL,
     sort_order INT DEFAULT 0,
     FOREIGN KEY (playlist_id) REFERENCES Playlists(id),
-    FOREIGN KEY (song_id) REFERENCES Songs(id)
+    FOREIGN KEY (song_id) REFERENCES Songs(id),
+    CONSTRAINT UQ_PlaylistSongs_Playlist_Song UNIQUE (playlist_id, song_id)
 );
 GO
 
@@ -177,7 +194,8 @@ CREATE TABLE Favorites (
     song_id INT NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (username) REFERENCES Users(username),
-    FOREIGN KEY (song_id) REFERENCES Songs(id)
+    FOREIGN KEY (song_id) REFERENCES Songs(id),
+    CONSTRAINT UQ_Favorites_User_Song UNIQUE (username, song_id)
 );
 GO
 
@@ -202,7 +220,27 @@ CREATE TABLE Follows (
     following VARCHAR(50) NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (follower) REFERENCES Users(username),
-    FOREIGN KEY (following) REFERENCES Users(username)
+    FOREIGN KEY (following) REFERENCES Users(username),
+    CONSTRAINT UQ_Follows_Pair UNIQUE (follower, following),
+    CONSTRAINT CK_Follows_NotSelf CHECK (follower <> following)
+);
+GO
+
+-- [13b] Kết bạn hai chiều
+CREATE TABLE Friendships (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    requester VARCHAR(50) NOT NULL,
+    addressee VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    created_at DATETIME DEFAULT GETDATE(),
+    responded_at DATETIME NULL,
+    user_low AS (CASE WHEN requester < addressee THEN requester ELSE addressee END) PERSISTED,
+    user_high AS (CASE WHEN requester < addressee THEN addressee ELSE requester END) PERSISTED,
+    FOREIGN KEY (requester) REFERENCES Users(username),
+    FOREIGN KEY (addressee) REFERENCES Users(username),
+    CONSTRAINT CK_Friendships_NotSelf CHECK (requester <> addressee),
+    CONSTRAINT CK_Friendships_Status CHECK (status IN ('PENDING', 'ACCEPTED')),
+    CONSTRAINT UQ_Friendships_Pair UNIQUE (user_low, user_high)
 );
 GO
 
@@ -217,6 +255,10 @@ CREATE TABLE Notifications (
     created_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (username) REFERENCES Users(username)
 );
+GO
+CREATE UNIQUE INDEX UX_Notifications_UserTypeRef
+    ON Notifications(username, type, ref_id)
+    WHERE ref_id IS NOT NULL;
 GO
 
 -- [15] Genres
@@ -258,7 +300,34 @@ CREATE TABLE Album_Songs (
     song_id      INT NOT NULL,
     track_number INT DEFAULT 0,
     FOREIGN KEY (album_id) REFERENCES Albums(id),
-    FOREIGN KEY (song_id) REFERENCES Songs(id)
+    FOREIGN KEY (song_id) REFERENCES Songs(id),
+    CONSTRAINT UQ_AlbumSongs_Album_Song UNIQUE (album_id, song_id)
+);
+GO
+
+-- [19] Chat_Messages
+CREATE TABLE Chat_Messages (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    sender VARCHAR(50) NOT NULL,
+    recipient VARCHAR(50) NOT NULL,
+    content NVARCHAR(500) NOT NULL,
+    timestamp DATETIME DEFAULT GETDATE(),
+    is_read BIT DEFAULT 0,
+    FOREIGN KEY (sender) REFERENCES Users(username),
+    FOREIGN KEY (recipient) REFERENCES Users(username)
+);
+GO
+
+-- [20] Nhật ký thanh toán, dùng transaction_id để chống callback lặp
+CREATE TABLE Payment_Logs (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    order_code VARCHAR(50) NULL,
+    gateway_name VARCHAR(20) NULL,
+    transaction_id VARCHAR(100) NOT NULL,
+    amount INT NULL,
+    content NVARCHAR(MAX) NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT UQ_PaymentLogs_Transaction UNIQUE (transaction_id)
 );
 GO
 
@@ -275,34 +344,44 @@ GO
 
 -- [2] Khách hàng thực tế
 INSERT INTO Users (username, password, fullname, email, photo, token_balance, enabled, account_tier, pro_expired_at) VALUES
-('admin_core', '{noop}admin2026', N'System Admin', 'admin@musicai.vn', 'admin_avatar.png', 9999, 1, 'BASIC', NULL),
-('minh_travel', '{noop}123456', N'Minh Xê Dịch', 'minh.vlog@gmail.com', 'minh.png', 15, 1, 'BASIC', NULL),
+('admin_core', '{noop}admin2026', N'System Admin', 'admin@musicai.vn', 'admin_avatar.png', 9999, 1, 'FREE', NULL),
+('minh_travel', '{noop}123456', N'Minh Xê Dịch', 'minh.vlog@gmail.com', 'minh.png', 15, 1, 'FREE', NULL),
 ('lan_chill', '{noop}123456', N'Lan ASMR', 'lan.podcast@yahoo.com', 'lan.png', 50, 1, 'PRO', '2027-12-31'),
 ('zmedia_agency', '{noop}123456', N'Z-Media Agency', 'contact@zmedia.vn', 'zmedia.png', 850, 1, 'PRO', '2027-06-01'),
-('vy_expired', '{noop}123456', N'Hải Vy', 'haivy.kts@gmail.com', 'vy.png', 12, 1, 'BASIC', '2026-05-15');
+('vy_expired', '{noop}123456', N'Hải Vy', 'haivy.kts@gmail.com', 'vy.png', 15, 1, 'FREE', NULL),
+('nam_acoustic', '{noop}123456', N'Nam Acoustic', 'nam.acoustic@gmail.com', NULL, 30, 1, 'FREE', NULL),
+('mai_podcast', '{noop}123456', N'Mai Podcast', 'mai.podcast@gmail.com', NULL, 25, 1, 'FREE', NULL),
+('khoa_edm', '{noop}123456', N'Khoa EDM', 'khoa.edm@gmail.com', NULL, 40, 1, 'PRO', '2027-05-30'),
+('linh_piano', '{noop}123456', N'Linh Piano', 'linh.piano@gmail.com', NULL, 18, 1, 'FREE', NULL);
 GO
 
 -- [3] Gán quyền
 INSERT INTO Authorities (username, role_id) VALUES
 ('admin_core', 'ADMIN'), ('admin_core', 'USER'),
 ('minh_travel', 'USER'), ('lan_chill', 'USER'),
-('zmedia_agency', 'USER'), ('vy_expired', 'USER');
+('zmedia_agency', 'USER'), ('vy_expired', 'USER'),
+('nam_acoustic', 'USER'), ('mai_podcast', 'USER'),
+('khoa_edm', 'USER'), ('linh_piano', 'USER');
 GO
 
 -- [4] Gói cước kinh doanh
-INSERT INTO Packages (name, tokens, price, old_price, badge, description) VALUES
-(N'Gói Trải Nghiệm', 50, 29000, NULL, NULL, N'Dành cho người mới bắt đầu sáng tạo nội dung'),
-(N'Gói Creator (Bán chạy)', 200, 99000, 150000, N'🔥 Bán chạy nhất', N'Phù hợp cho Vlogger, Tiktoker ra video hàng tuần'),
-(N'Gói Agency Pro', 1000, 399000, 750000, N'💎 Tiết kiệm 45%', N'Dành cho doanh nghiệp, xuất file .WAV chất lượng cao');
+INSERT INTO Packages (name, tokens, price, old_price, badge, description, tier_code, duration_days) VALUES
+(N'Nhà sáng tạo', 45, 3000, NULL, NULL, N'45 token, tạo nhạc riêng tư và sử dụng đầy đủ thư viện trong 30 ngày', 'CREATOR', 30),
+(N'Chuyên nghiệp', 120, 5000, NULL, N'Phổ biến', N'120 token, phù hợp người sáng tạo nội dung thường xuyên trong 30 ngày', 'PRO', 30),
+(N'Phòng thu', 300, 10000, NULL, N'Nhiều token nhất', N'300 token, phù hợp nhóm sản xuất và trình diễn toàn bộ tính năng trong 30 ngày', 'STUDIO', 30);
 GO
 
 -- [5] Kho nhạc AI
 INSERT INTO Songs (title, prompt, audio_url, status, is_public, lyrics, model_ver, is_remix, parent_id, username) VALUES
-(N'Bình minh Tây Bắc', N'Nhạc cinematic hoành tráng', 'https://cdn.musicai.vn/audio/taybac-flycam.mp3', 'COMPLETED', 1, NULL, 'sonic-v4', 0, NULL, 'minh_travel'),
-(N'Đêm mưa Sài Gòn', N'Nhạc Lofi chill, chậm', 'https://cdn.musicai.vn/audio/lofi-rain.mp3', 'COMPLETED', 1, NULL, 'sonic-v3.5', 0, NULL, 'lan_chill'),
+(N'Bình minh Tây Bắc', N'Nhạc cinematic hoành tráng', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'minh_travel'),
+(N'Đêm mưa Sài Gòn', N'Nhạc Lofi chill, chậm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'lan_chill'),
 (N'Mega Sale 11.11', N'Nhạc EDM House giật beat', NULL, 'PENDING', 0, NULL, 'sonic-v4', 0, NULL, 'zmedia_agency'),
-(N'Bình minh Tây Bắc (Lofi Remix)', N'Phối lại Lofi', 'https://cdn.musicai.vn/audio/taybac-lofi-remix.mp3', 'COMPLETED', 1, NULL, 'sonic-v4', 1, 1, 'lan_chill'),
-(N'Kịch bản Tết', N'Nhạc vui tươi, hào hùng', 'https://cdn.musicai.vn/audio/tet-agency.mp3', 'COMPLETED', 0, NULL, 'sonic-v4', 0, NULL, 'vy_expired');
+(N'Bình minh Tây Bắc (Lofi Remix)', N'Phối lại Lofi', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 1, 1, 'lan_chill'),
+(N'Kịch bản Tết', N'Nhạc vui tươi, hào hùng', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', 'COMPLETED', 0, NULL, 'demo-audio', 0, NULL, 'vy_expired'),
+(N'Chiều bên hiên nhà', N'Acoustic guitar ấm áp, nhịp chậm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'nam_acoustic'),
+(N'Chuyện kể đêm khuya', N'Piano nhẹ cho podcast', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'mai_podcast'),
+(N'Neon City', N'EDM synthwave năng lượng cao', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'khoa_edm'),
+(N'Mưa trên phím đàn', N'Piano độc tấu thư giãn', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'linh_piano');
 GO
 
 -- [6] Gắn thẻ phân loại nhạc
@@ -333,18 +412,18 @@ INSERT INTO Transactions (username, amount, description) VALUES
 ('lan_chill', -1, N'Tạo nhạc: Đêm mưa Sài Gòn'),
 ('zmedia_agency', -1, N'Tạo nhạc: Mega Sale 11.11'),
 ('lan_chill', -1, N'Remix nhạc: Bình minh Tây Bắc (Lofi Remix)'),
-('zmedia_agency', 1000, N'Nạp thành công gói Agency Pro'),
-('minh_travel', 50, N'Nạp thành công gói Trải Nghiệm'),
-('vy_expired', 300, N'Mua gói Creator (Giao dịch cũ)'),
+('zmedia_agency', 300, N'Nạp thành công gói Phòng thu'),
+('minh_travel', 45, N'Nạp thành công gói Nhà sáng tạo'),
+('vy_expired', 120, N'Mua gói Chuyên nghiệp (Giao dịch cũ)'),
 ('vy_expired', -288, N'Đã tiêu hao token lúc còn hạn VIP');
 GO
 
 -- [10] Hóa đơn thanh toán thực tế (Orders)
 INSERT INTO Orders (order_code, total_price, status, username, package_id) VALUES
-('MOMO_987234XN', 399000, 'SUCCESS', 'zmedia_agency', 3),
-('VNPAY_459123BC', 29000, 'SUCCESS', 'minh_travel', 1),
-('ZALOPAY_7749PO', 99000, 'PENDING', 'lan_chill', 2),
-('MOMO_OLD_VY', 99000, 'SUCCESS', 'vy_expired', 2);
+('MOMO_987234XN', 10000, 'SUCCESS', 'zmedia_agency', 3),
+('VNPAY_459123BC', 3000, 'SUCCESS', 'minh_travel', 1),
+('ZALOPAY_7749PO', 5000, 'CANCELLED', 'lan_chill', 2),
+('MOMO_OLD_VY', 5000, 'SUCCESS', 'vy_expired', 2);
 GO
 
 -- [11] Tương tác xã hội: Bình luận
@@ -367,6 +446,13 @@ GO
 -- [14] Tương tác xã hội: Theo dõi (Follows)
 INSERT INTO Follows (follower, following) VALUES
 ('lan_chill', 'minh_travel'), ('zmedia_agency', 'lan_chill'), ('zmedia_agency', 'minh_travel');
+GO
+
+-- [14b] Quan hệ bạn bè mẫu
+INSERT INTO Friendships (requester, addressee, status, responded_at) VALUES
+('minh_travel', 'lan_chill', 'ACCEPTED', GETDATE()),
+('nam_acoustic', 'mai_podcast', 'ACCEPTED', GETDATE()),
+('khoa_edm', 'linh_piano', 'PENDING', NULL);
 GO
 
 -- [15] Hệ thống thông báo tự động
@@ -423,34 +509,4 @@ SELECT 'Orders' AS TableName, COUNT(*) AS TotalRows FROM Orders;
 SELECT 'Playlists' AS TableName, COUNT(*) AS TotalRows FROM Playlists;
 SELECT 'Genres' AS TableName, COUNT(*) AS TotalRows FROM Genres;
 SELECT 'Albums' AS TableName, COUNT(*) AS TotalRows FROM Albums;
-GO
-
--- [19] Chat_Messages (Bảng lưu tin nhắn chat giữa các người dùng)
-CREATE TABLE Chat_Messages (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    sender VARCHAR(50) NOT NULL,
-    recipient VARCHAR(50) NOT NULL,
-    content NVARCHAR(MAX) NULL,
-    timestamp DATETIME DEFAULT GETDATE(),
-    is_read BIT DEFAULT 0,
-    FOREIGN KEY (sender) REFERENCES Users(username),
-    FOREIGN KEY (recipient) REFERENCES Users(username)
-);
-GO
-
--- Sepay update database 20/7/2026
--- Cập nhật bảng Orders để hỗ trợ đa phương thức
-ALTER TABLE Orders ADD payment_method VARCHAR(20) DEFAULT 'VNPAY'; -- Giá trị: 'VNPAY', 'SEPAY'
-ALTER TABLE Orders ADD payment_status VARCHAR(20) DEFAULT 'PENDING'; -- Trạng thái: 'PENDING', 'SUCCESS', 'FAILED', 'CANCELLED'
-GO
-
-CREATE TABLE Payment_Logs (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    order_code VARCHAR(50),           -- Mã đơn hàng (để tìm kiếm nhanh)
-    gateway_name VARCHAR(20),         -- 'VNPAY' hoặc 'SEPAY'
-    transaction_id VARCHAR(100),      -- ID giao dịch phía cổng thanh toán
-    amount INT,                       -- Số tiền thực nhận
-    content NVARCHAR(MAX),            -- Nội dung chuyển khoản hoặc JSON trả về từ Gateway
-    created_at DATETIME DEFAULT GETDATE()
-);
 GO

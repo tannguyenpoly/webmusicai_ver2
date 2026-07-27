@@ -51,11 +51,11 @@
             <!-- LEFT PANEL: Generation Settings -->
             <div class="col-lg-5 col-md-6 pe-lg-4 border-end-md">
                 <div class="d-flex flex-column">
-                    <!-- Mode Toggles (Simple / Advanced) -->
+                    <!-- Chế độ tạo -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="d-flex gap-1" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 20px; padding: 2px;">
-                            <button class="btn btn-sm text-success fw-bold px-3 py-1 rounded-pill" style="font-size: 11px; background: rgba(22,163,74,0.12); border: 0; color: var(--brand-green) !important;">Simple</button>
-                            <button class="btn btn-sm px-3 py-1 rounded-pill" style="font-size: 11px; border: 0; color: var(--text-muted) !important;" disabled>Advanced</button>
+                            <button class="btn btn-sm text-success fw-bold px-3 py-1 rounded-pill" style="font-size: 11px; background: rgba(22,163,74,0.12); border: 0; color: var(--brand-green) !important;">Đơn giản</button>
+                            <button class="btn btn-sm px-3 py-1 rounded-pill" style="font-size: 11px; border: 0; color: var(--text-muted) !important;" disabled>Nâng cao</button>
                         </div>
                         <span class="badge border text-muted-sync px-2.5 py-1" style="font-size: 10px; border-radius: 20px; background: rgba(120,120,120,0.05) !important; border-color: var(--border-color) !important;">v4.5-all</span>
                     </div>
@@ -63,14 +63,30 @@
                     <!-- Input Mode Tabs -->
                     <div class="d-flex gap-2 mb-3">
                         <button class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-bold d-flex align-items-center shadow-sm" style="font-size: 12px; background: var(--brand-green) !important; border: 0; color: #fff !important;">
-                            <i class="ti ti-music me-1"></i> Audio
+                            <i class="ti ti-music me-1"></i> Nhạc
                         </button>
                         <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center" style="font-size: 12px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); color: var(--text-muted) !important; opacity: 0.6;" disabled>
-                            <i class="ti ti-microphone me-1"></i> Voice <span class="badge bg-danger ms-1" style="font-size: 8px; padding: 2px 4px;">New</span>
+                            <i class="ti ti-microphone me-1"></i> Giọng hát <span class="badge bg-danger ms-1" style="font-size: 8px; padding: 2px 4px;">Mới</span>
                         </button>
                         <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center" style="font-size: 12px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); color: var(--text-muted) !important; opacity: 0.6;" disabled>
-                            <i class="ti ti-bulb me-1"></i> Inspo
+                            <i class="ti ti-bulb me-1"></i> Cảm hứng
                         </button>
+                    </div>
+
+                    <div class="card p-3 mb-3"
+                        style="background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 14px;">
+                        <label class="form-label mb-2 fw-bold small text-success">THỂ LOẠI ÂM NHẠC</label>
+                        <select v-model="generationForm.genreId"
+                            class="form-select custom-theme-input"
+                            style="background-color: var(--card-bg) !important; color: var(--text-color) !important;">
+                            <option :value="null">AI tự xác định từ mô tả</option>
+                            <option v-for="genre in genres" :key="genre.id" :value="genre.id">
+                                {{ genre.name }}{{ genre.description ? ' — ' + genre.description : '' }}
+                            </option>
+                        </select>
+                        <div class="small text-muted-sync mt-2">
+                            Thể loại do quản trị viên quản lý và được thêm trực tiếp vào mô tả gửi sang mô hình AI.
+                        </div>
                     </div>
 
                     <!-- Prompt Input Area (Suno Style) -->
@@ -97,7 +113,7 @@
                     <!-- Instrumental Switch -->
                     <div class="mb-4">
                         <div class="form-check form-switch d-flex align-items-center justify-content-between p-0">
-                            <label class="form-check-label text-muted-sync" for="instrumentalSwitch" style="cursor: pointer; font-size: 13px;">Không lời (Instrumental)</label>
+                            <label class="form-check-label text-muted-sync" for="instrumentalSwitch" style="cursor: pointer; font-size: 13px;">Nhạc không lời</label>
                             <input class="form-check-input custom-switch m-0" type="checkbox" id="instrumentalSwitch" v-model="generationForm.instrumental" style="cursor: pointer;">
                         </div>
                     </div>
@@ -120,7 +136,7 @@
                     <!-- Workspace Header -->
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
                         <div>
-                            <h4 class="fw-bold mb-0" style="font-size: 18px; color: var(--text-color) !important;">Workspaces</h4>
+                            <h4 class="fw-bold mb-0" style="font-size: 18px; color: var(--text-color) !important;">Không gian sáng tác</h4>
                             <div class="small text-muted-sync mt-0.5">Không gian làm việc &gt; Bài hát của tôi</div>
                         </div>
                         
@@ -136,41 +152,41 @@
                         <div class="d-flex gap-2">
                             <div class="dropdown">
                                 <button class="btn btn-sm px-2.5 py-1 rounded-pill dropdown-toggle d-flex align-items-center gap-1.5" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="font-size: 11px; background: rgba(22, 163, 74, 0.08) !important; color: var(--brand-green) !important; border: 1px solid rgba(22, 163, 74, 0.15) !important;">
-                                    <i class="ti ti-filter"></i> Filters ({{ activeFiltersCount }})
+                                    <i class="ti ti-filter"></i> Bộ lọc ({{ activeFiltersCount }})
                                 </button>
                                 <ul class="dropdown-menu p-2 border-secondary shadow-lg rounded-4" style="background: var(--card-bg) !important; min-width: 240px; border: 1px solid var(--border-color) !important;">
                                     <!-- Liked Option -->
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('liked')">
                                         <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
-                                            <i class="ti ti-thumb-up"></i> Liked
+                                            <i class="ti ti-thumb-up"></i> Đã thích
                                         </span>
                                         <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.liked" style="cursor: pointer; border-color: var(--border-color) !important;">
                                     </li>
                                     <!-- Public Option -->
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('public')">
                                         <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
-                                            <i class="ti ti-world"></i> Public
+                                            <i class="ti ti-world"></i> Công khai
                                         </span>
                                         <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.public" style="cursor: pointer; border-color: var(--border-color) !important;">
                                     </li>
                                     <!-- Private Option -->
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('private')">
                                         <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
-                                            <i class="ti ti-lock"></i> Private
+                                            <i class="ti ti-lock"></i> Riêng tư
                                         </span>
                                         <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.private" style="cursor: pointer; border-color: var(--border-color) !important;">
                                     </li>
                                     <!-- Pending Option -->
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click.stop="toggleFilterOption('pending')">
                                         <span class="d-flex align-items-center gap-2" style="font-size: 13px;">
-                                            <i class="ti ti-loader-2"></i> Pending
+                                            <i class="ti ti-loader-2"></i> Đang xử lý
                                         </span>
                                         <input class="form-check-input custom-checkbox m-0" type="checkbox" :checked="workspaceFilters.pending" style="cursor: pointer; border-color: var(--border-color) !important;">
                                     </li>
                                     <li><hr class="dropdown-divider border-secondary" style="opacity: 0.1;"></li>
                                     <!-- Clear Option -->
                                     <li class="dropdown-item text-center py-1.5 rounded-3 fw-bold" style="cursor: pointer; font-size: 12px; color: var(--brand-green) !important; background: transparent;" @click.stop="resetWorkspaceFilters">
-                                        Clear filters
+                                        Xóa bộ lọc
                                     </li>
                                 </ul>
                             </div>
@@ -180,19 +196,19 @@
                                 </button>
                                 <ul class="dropdown-menu p-2 border-secondary shadow-lg rounded-4" style="background: var(--card-bg) !important; min-width: 160px; border: 1px solid var(--border-color) !important;">
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'newest'">
-                                        <span style="font-size: 13px;">Newest</span>
+                                        <span style="font-size: 13px;">Mới nhất</span>
                                         <i v-if="workspaceSortOption === 'newest'" class="ti ti-check text-success" style="font-size: 14px;"></i>
                                     </li>
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'oldest'">
-                                        <span style="font-size: 13px;">Oldest</span>
+                                        <span style="font-size: 13px;">Cũ nhất</span>
                                         <i v-if="workspaceSortOption === 'oldest'" class="ti ti-check text-success" style="font-size: 14px;"></i>
                                     </li>
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'most_liked'">
-                                        <span style="font-size: 13px;">Most Liked</span>
+                                        <span style="font-size: 13px;">Được thích nhiều nhất</span>
                                         <i v-if="workspaceSortOption === 'most_liked'" class="ti ti-check text-success" style="font-size: 14px;"></i>
                                     </li>
                                     <li class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-3" style="cursor: pointer; background: transparent; color: var(--text-color) !important;" @click="workspaceSortOption = 'least_liked'">
-                                        <span style="font-size: 13px;">Least Liked</span>
+                                        <span style="font-size: 13px;">Được thích ít nhất</span>
                                         <i v-if="workspaceSortOption === 'least_liked'" class="ti ti-check text-success" style="font-size: 14px;"></i>
                                     </li>
                                 </ul>
@@ -228,7 +244,7 @@
                                     <a :href="'/song/' + song.id" class="text-decoration-none fw-bold song-link-hover text-truncate" style="font-size: 13px; color: var(--text-color) !important;">
                                         {{ song.title }}
                                     </a>
-                                    <span v-if="song.visibility === 'PRIVATE'" class="badge bg-secondary py-0.5 px-1.5 text-uppercase" style="font-size: 8px; border-radius: 4px;">Private</span>
+                                    <span v-if="song.visibility === 'PRIVATE'" class="badge bg-secondary py-0.5 px-1.5 text-uppercase" style="font-size: 8px; border-radius: 4px;">Riêng tư</span>
                                 </div>
                                 <div class="small text-muted-sync text-truncate mt-0.5" style="font-size: 11px;">{{ song.prompt }}</div>
                             </div>
@@ -242,13 +258,17 @@
                                 <button v-if="song.status === 'COMPLETED'" @click="playTrack(song)" class="btn btn-sm btn-dark p-0 border-0 rounded-circle text-success d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(22, 163, 74, 0.1);">
                                     <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause-filled' : 'ti-player-play-filled']" style="font-size: 16px;"></i>
                                 </button>
+                                <button v-if="song.status === 'PENDING'" @click.stop="cancelMusicGeneration(song)"
+                                        class="btn btn-sm btn-outline-danger rounded-pill px-2" style="font-size: 10px;">
+                                    <i class="ti ti-player-stop me-1"></i>Dừng
+                                </button>
                             </div>
                         </div>
 
                         <!-- Empty workspace list -->
                         <div v-if="filteredProfileSongs.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
                             <i class="ti ti-music-off mb-2 text-muted" style="font-size: 28px; display: block;"></i>
-                            <span style="font-size: 12px;">Bạn chưa sinh giai điệu nào. Hãy nhập prompt ở panel bên trái để bắt đầu!</span>
+                            <span style="font-size: 12px;">Bạn chưa tạo giai điệu nào. Hãy nhập mô tả ở khung bên trái để bắt đầu!</span>
                         </div>
                     </div>
                 </div>

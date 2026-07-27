@@ -42,9 +42,10 @@
 
         <div class="mb-5">
             <div class="suno-hero-section">
-                <h1 class="suno-hero-title">Mind blowing<br>song quality</h1>
+                <h1 class="suno-hero-title">Chất lượng âm nhạc<br>đầy ấn tượng</h1>
                 <p class="suno-hero-subtitle">
-                    Whether you have a melody in your head, lyrics you've written, or just a feeling you want to hear—MusicAI makes high-quality music creation accessible to all.
+                    Dù bạn có một giai điệu, vài câu lời hay chỉ là cảm xúc muốn được lắng nghe,
+                    MusicAI giúp mọi người dễ dàng tạo nên một bản nhạc chất lượng.
                 </p>
 
                 <div class="suno-prompt-box">
@@ -80,7 +81,7 @@
             <div class="suno-grid mt-4">
                 <div v-for="song in filteredSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)" style="cursor: pointer;">
                     <div class="suno-cover-wrapper">
-                        <img :src="getSongCover(song)" class="suno-cover-img" alt="Song Artwork" />
+                        <img :src="getSongCover(song)" class="suno-cover-img" alt="Ảnh bìa bài hát" />
 
                         <div class="suno-top-play-btn" @click.stop="playTrack(song)">
                             <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
@@ -116,7 +117,7 @@
                     <h6 class="suno-card-title">{{ song.title }}</h6>
                     <a :href="'/profile?u=' + song.username" class="suno-card-author-row text-decoration-none" @click.stop>
                         <img :src="formatAvatarUrl(null, song.username)" class="suno-card-avatar" alt="User Avatar" />
-                        <span class="suno-card-author-name">{{ song.username || 'MusicAI Creator' }}</span>
+                        <span class="suno-card-author-name">{{ song.username || 'Nhà sáng tạo MusicAI' }}</span>
                     </a>
                 </div>
             </div>
