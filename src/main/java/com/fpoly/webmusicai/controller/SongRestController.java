@@ -3,6 +3,7 @@ package com.fpoly.webmusicai.controller;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.nio.file.StandardCopyOption;
 import java.net.URI;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,9 +50,12 @@ import com.fpoly.webmusicai.service.AudioStorageService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.core.task.TaskRejectedException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @Slf4j
 @RestController
@@ -870,5 +874,60 @@ public class SongRestController {
         songTagRepo.deleteBySongId(id);
         tags.forEach(tag -> songTagRepo.save(new SongTag(null, id, tag)));
         return ResponseEntity.ok(Map.of("message", "Đã cập nhật tag"));
+    }
+
+    @GetMapping("/admin/list")
+    public ResponseEntity<?> getSongsForAdmin(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "newest") String filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Yêu cầu quyền Quản trị viên."));
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Song> songPage;
+
+        LocalDateTime startDateTime = (startDate != null) ? startDate.atStartOfDay() : null;
+        LocalDateTime endDateTime = (endDate != null) ? endDate.plusDays(1).atStartOfDay().minusSeconds(1) : null;
+
+        switch (filter) {
+            case "top_listens":
+                songPage = songRepo.findFilteredByListenCount(startDateTime, endDateTime, pageable);
+                break;
+            case "top_likes":
+                Page<Object[]> likedPage = songRepo.findFilteredByLikes(startDateTime, endDateTime, pageable);
+                Page<Map<String, Object>> result = likedPage.map(obj -> {
+                    Song song = (Song) obj[0];
+                    Long likeCount = (Long) obj[1];
+                    Map<String, Object> songMap = song.toMap();
+                    songMap.put("total_likes", likeCount);
+                    return songMap;
+                });
+                return ResponseEntity.ok(result);
+            case "trending":
+                LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+                LocalDateTime trendStartDate = (startDateTime == null || startDateTime.isBefore(sevenDaysAgo)) ? sevenDaysAgo : startDateTime;
+                songPage = songRepo.findFilteredByListenCount(trendStartDate, endDateTime, pageable);
+                break;
+            case "oldest":
+                pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+                songPage = songRepo.findFiltered(startDateTime, endDateTime, pageable);
+                break;
+            case "newest":
+            default:
+                pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+                songPage = songRepo.findFiltered(startDateTime, endDateTime, pageable);
+                break;
+        }
+
+        return ResponseEntity.ok(songPage.map(Song::toMap));
     }
 }

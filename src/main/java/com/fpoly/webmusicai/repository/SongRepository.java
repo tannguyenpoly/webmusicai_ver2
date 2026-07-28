@@ -1,6 +1,7 @@
 package com.fpoly.webmusicai.repository;
 
 import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -67,4 +68,21 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
 	@Transactional
 	@Query("DELETE FROM Song s WHERE s.status = 'PENDING' AND s.createdAt < :cutoff")
 	void deleteStuckPendingSongs(@Param("cutoff") Date cutoff);
+	@Query("SELECT s FROM Song s WHERE " +
+           "(:startDate IS NULL OR s.createdAt >= :startDate) AND " +
+           "(:endDate IS NULL OR s.createdAt <= :endDate)")
+    Page<Song> findFiltered(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
+
+    @Query("SELECT s FROM Song s WHERE " +
+           "(:startDate IS NULL OR s.createdAt >= :startDate) AND " +
+           "(:endDate IS NULL OR s.createdAt <= :endDate) " +
+           "ORDER BY s.listenCount DESC")
+    Page<Song> findFilteredByListenCount(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
+
+    @Query("SELECT s, COUNT(f.id) as likeCount FROM Song s LEFT JOIN Favorite f ON s.id = f.song.id " +
+           "WHERE (:startDate IS NULL OR s.createdAt >= :startDate) AND " +
+           "(:endDate IS NULL OR s.createdAt <= :endDate) " +
+           "GROUP BY s.id, s.title, s.prompt, s.audioUrl, s.status, s.isPublic, s.lyrics, s.modelVer, s.isRemix, s.parentId, s.coverUrl, s.listenCount, s.createdAt, s.user " +
+           "ORDER BY COUNT(f.id) DESC")
+    Page<Object[]> findFilteredByLikes(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
 }

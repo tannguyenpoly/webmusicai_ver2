@@ -446,6 +446,10 @@
                     <i class="ti ti-coin"></i>
                     <span class="nav-label">Doanh thu</span>
                 </a>
+                <a class="nav-item" :class="{ active: activeTab === 'transactions' }" @click.prevent="activeTab = 'transactions'" href="#">
+                    <i class="ti ti-history"></i>
+                    <span class="nav-label">Lịch sử Giao dịch</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -599,49 +603,82 @@
             <div class="section-tab" :class="{ active: activeTab === 'songs' }">
                 <div class="page-header">
                     <h4><i class="ti ti-music text-success me-2"></i>Quản lý bài nhạc</h4>
-                    <div class="d-flex gap-2">
-                        <select v-model="songStatusFilter" @change="loadSongs(0)" class="form-select-custom">
-                            <option value="">Tất cả trạng thái</option>
-                            <option value="COMPLETED">Hoàn thành</option>
-                            <option value="PENDING">Đang xử lý</option>
-                            <option value="FAILED">Thất bại</option>
-                        </select>
+                </div>
+
+                <!-- Filter UI -->
+                <div class="card-custom mb-4">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted-sync">Sắp xếp theo</label>
+                                <select class="form-select-custom w-100" v-model="songFilters.filter" @change="loadSongs(0)">
+                                    <option value="newest">Mới nhất</option>
+                                    <option value="oldest">Cũ nhất</option>
+                                    <option value="top_likes">Yêu thích nhất</option>
+                                    <option value="top_listens">Nghe nhiều nhất</option>
+                                    <option value="trending">Xu hướng (7 ngày)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted-sync">Từ ngày</label>
+                                <input type="date" class="form-input-custom w-100" v-model="songFilters.startDate" @change="loadSongs(0)">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted-sync">Đến ngày</label>
+                                <input type="date" class="form-input-custom w-100" v-model="songFilters.endDate" @change="loadSongs(0)">
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button class="btn btn-admin-outline w-100" @click="resetSongFilters">
+                                    <i class="ti ti-refresh me-1"></i> Xóa lọc
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card-custom">
+                <div v-if="isLoadingSongs" class="text-center py-5">
+                    <div class="spinner-border text-success"></div>
+                    <p class="text-muted-sync mt-2">Đang tải dữ liệu bài hát...</p>
+                </div>
+                <div v-else-if="songsPage.content.length === 0" class="card-custom text-center py-5">
+                     <p>Không tìm thấy bài hát nào phù hợp.</p>
+                </div>
+                <div v-else class="card-custom">
                     <div class="card-body p-0">
                         <table class="table table-custom">
                             <thead><tr>
-                                <th>ID</th><th>Tên bài hát</th><th>Người dùng</th><th class="text-center">Trạng thái</th><th class="text-center">Hiển thị</th><th>Ngày tạo</th><th class="text-center">Thao tác</th>
+                                <th>Bài hát</th>
+                                <th>Người tạo</th>
+                                <th class="text-center">Lượt nghe</th>
+                                <th class="text-center">Lượt thích</th>
+                                <th>Ngày tạo</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-center">Thao tác</th>
                             </tr></thead>
                             <tbody>
                                 <tr v-for="s in songsPage.content" :key="s.id">
-                                    <td class="text-muted-sync">#{{ s.id }}</td>
-                                    <td class="fw-medium" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.title }}</td>
-                                    <td class="text-muted-sync">@{{ s.user?.username }}</td>
-                                    <td class="text-center">
-                                        <span class="badge-status" :class="'badge-' + (s.status ? s.status.toLowerCase() : 'pending')">{{ statusLabel(s.status) }}</span>
+                                    <td>
+                                        <div>
+                                            <a :href="'/song/' + s.id" target="_blank" class="fw-bold text-decoration-none" style="color: var(--text-color);">{{ s.title }}</a>
+                                            <p class="small text-muted-sync mb-0 text-truncate" style="max-width: 250px;">{{ s.prompt }}</p>
+                                        </div>
                                     </td>
+                                    <td>@{{ s.username }}</td>
+                                    <td class="text-center">{{ s.listenCount || 0 }}</td>
+                                    <td class="text-center">{{ s.total_likes != null ? s.total_likes : 'N/A' }}</td>
+                                    <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(s.createdAt || s.created_at) }}</td>
                                     <td class="text-center">
-                                        <span class="badge-status" :class="s.isPublic ? 'badge-completed' : 'badge-failed'">
-                                            {{ s.isPublic ? 'Công khai' : 'Riêng tư' }}
+                                        <span class="badge-status" :class="getSongStatusClass(s.status)">
+                                            {{ statusLabel(s.status) }}
                                         </span>
                                     </td>
-                                    <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(s.createdAt) }}</td>
                                     <td class="text-center">
                                         <div class="d-flex gap-1 justify-content-center">
-                                            <button @click="toggleSongPublic(s)" class="btn btn-admin-sm btn-admin-outline" title="Đổi trạng thái công khai/riêng tư">
-                                                <i :class="s.isPublic ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
-                                            </button>
                                             <button @click="deleteSong(s)" class="btn btn-admin-sm btn-admin-danger" title="Xóa bài nhạc">
                                                 <i class="ti ti-trash"></i>
                                             </button>
                                         </div>
                                     </td>
-                                </tr>
-                                <tr v-if="!songsPage.content || songsPage.content.length === 0">
-                                    <td colspan="7" class="text-center text-muted-sync py-4">Không tìm thấy bài nhạc.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -650,7 +687,7 @@
 
                 <div class="pagination-custom" v-if="songsPage.totalPages > 1">
                     <button class="page-btn" :disabled="songsPage.number === 0" @click="loadSongs(songsPage.number - 1)">Trước</button>
-                    <button class="page-btn" v-for="p in songsPage.totalPages" :key="p" :class="{ active: p-1 === songsPage.number }" @click="loadSongs(p-1)">{{ p }}</button>
+                    <button class="page-btn" v-for="p in songsPage.totalPages" :key="p" :class="{ active: p - 1 === songsPage.number }" @click="loadSongs(p - 1)">{{ p }}</button>
                     <button class="page-btn" :disabled="songsPage.number >= songsPage.totalPages - 1" @click="loadSongs(songsPage.number + 1)">Sau</button>
                 </div>
             </div>
@@ -903,6 +940,109 @@
                 </div>
             </div>
 
+            <!-- ========== TRANSACTION HISTORY ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'transactions' }">
+                <div class="page-header">
+                    <h4><i class="ti ti-history text-success me-2"></i>Lịch sử Giao dịch</h4>
+                </div>
+
+                <div class="d-flex border-bottom mb-4" style="border-color: var(--border-color) !important;">
+                    <button @click="transactionHistoryTab = 'tokens'" class="btn btn-admin-outline" :class="{'btn-admin-primary': transactionHistoryTab === 'tokens'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
+                        <i class="ti ti-arrows-exchange me-1"></i> Lịch sử Token
+                    </button>
+                    <button @click="transactionHistoryTab = 'payments'" class="btn btn-admin-outline" :class="{'btn-admin-primary': transactionHistoryTab === 'payments'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
+                        <i class="ti ti-receipt-2 me-1"></i> Lịch sử Thanh toán
+                    </button>
+                </div>
+
+                <!-- Sub-tab: Token History -->
+                <div v-if="transactionHistoryTab === 'tokens'">
+                    <div class="card-custom mb-4">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted-sync">Tìm theo Tên đăng nhập</label>
+                                    <input type="text" v-model="transactionFilters.username" @input="searchTransactions" class="form-input-custom w-100" placeholder="Để trống để xem tất cả...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted-sync">Loại giao dịch</label>
+                                    <select v-model="transactionFilters.type" @change="loadTransactions(0)" class="form-select-custom w-100">
+                                        <option value="ALL">Tất cả</option>
+                                        <option value="DEPOSIT">Cộng token (Nạp tiền)</option>
+                                        <option value="USAGE">Trừ token (Sử dụng)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="isLoadingTransactions" class="text-center py-5"><div class="spinner-border text-success"></div></div>
+                    <div v-else class="card-custom">
+                        <div class="card-body p-0">
+                            <table class="table table-custom">
+                                <thead><tr><th>ID</th><th>Người dùng</th><th class="text-center">Số lượng</th><th>Mô tả</th><th>Thời gian</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="t in transactionsPage.content" :key="t.id">
+                                        <td class="text-muted-sync">#{{ t.id }}</td>
+                                        <td>
+                                            <div class="fw-medium">@{{ t.username }}</div>
+                                            <small class="text-muted-sync">{{ t.fullname }}</small>
+                                        </td>
+                                        <td class="text-center fw-bold" :class="t.amount > 0 ? 'text-success' : 'text-danger'">
+                                            {{ t.amount > 0 ? '+' : '' }}{{ t.amount }}
+                                        </td>
+                                        <td class="text-muted-sync" style="max-width: 300px;">{{ t.description }}</td>
+                                        <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(t.createdAt) }}</td>
+                                    </tr>
+                                    <tr v-if="!transactionsPage.content || transactionsPage.content.length === 0">
+                                        <td colspan="5" class="text-center text-muted-sync py-4">Không có giao dịch nào.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination-custom" v-if="transactionsPage.totalPages > 1">
+                        <button class="page-btn" :disabled="transactionsPage.number === 0" @click="loadTransactions(transactionsPage.number - 1)">Trước</button>
+                        <button class="page-btn" v-for="p in transactionsPage.totalPages" :key="p" :class="{ active: p - 1 === transactionsPage.number }" @click="loadTransactions(p - 1)">{{ p }}</button>
+                        <button class="page-btn" :disabled="transactionsPage.number >= transactionsPage.totalPages - 1" @click="loadTransactions(transactionsPage.number + 1)">Sau</button>
+                    </div>
+                </div>
+
+                <!-- Sub-tab: Payment Logs -->
+                <div v-if="transactionHistoryTab === 'payments'">
+                    <div class="card-custom mb-4">
+                        <div class="card-body">
+                            <label class="form-label small text-muted-sync">Tìm theo Mã đơn hàng, Mã giao dịch NH, Nội dung</label>
+                            <input type="text" v-model="paymentLogFilters.keyword" @input="searchPaymentLogs" class="form-input-custom w-100" placeholder="Nhập từ khóa...">
+                        </div>
+                    </div>
+                    <div v-if="isLoadingPaymentLogs" class="text-center py-5"><div class="spinner-border text-success"></div></div>
+                    <div v-else class="card-custom">
+                        <div class="card-body p-0">
+                            <table class="table table-custom">
+                                <thead><tr><th>Mã GD Gateway</th><th>Cổng</th><th>Số tiền</th><th>Nội dung</th><th>Thời gian</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="log in paymentLogsPage.content" :key="log.id">
+                                        <td class="text-muted-sync" style="font-size: 12px;">{{ log.transactionId }}</td>
+                                        <td class="fw-medium">{{ log.gatewayName }}</td>
+                                        <td class="text-center">{{ formatPrice(log.amount) }}</td>
+                                        <td class="text-muted-sync" style="max-width: 300px;">{{ log.content }}</td>
+                                        <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(log.createdAt) }}</td>
+                                    </tr>
+                                    <tr v-if="!paymentLogsPage.content || paymentLogsPage.content.length === 0">
+                                        <td colspan="5" class="text-center text-muted-sync py-4">Không có nhật ký thanh toán nào.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="pagination-custom" v-if="paymentLogsPage.totalPages > 1">
+                        <button class="page-btn" :disabled="paymentLogsPage.number === 0" @click="loadPaymentLogs(paymentLogsPage.number - 1)">Trước</button>
+                        <button class="page-btn" v-for="p in paymentLogsPage.totalPages" :key="p" :class="{ active: p - 1 === paymentLogsPage.number }" @click="loadPaymentLogs(p - 1)">{{ p }}</button>
+                        <button class="page-btn" :disabled="paymentLogsPage.number >= paymentLogsPage.totalPages - 1" @click="loadPaymentLogs(paymentLogsPage.number + 1)">Sau</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- ===== USER SONGS MODAL ===== -->
             <div v-if="showUserSongsModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
                 <div class="card-custom" style="width: 660px; max-width:90%; padding: 24px; max-height: 80vh; overflow-y: auto;">
@@ -961,8 +1101,15 @@ new Vue({
         userSearch: '',
 
         // Songs
-        songsPage: { content: [], totalPages: 0, number: 0, size: 10 },
-        songStatusFilter: '',
+        songsPage: { content: [], totalPages: 0, number: 0, size: 15, first: true, last: true },
+        isLoadingSongs: false,
+        songFilters: {
+            filter: 'newest',
+            startDate: null,
+            endDate: null,
+        },
+        // This is the old filter, I'll keep it for now in case it's needed for another view, but the new one is songFilters
+        songStatusFilter: '', 
 
         // Genres
         genres: [],
@@ -983,6 +1130,19 @@ new Vue({
         revenueFrom: '',
         revenueTo: '',
 
+        // Transaction History
+        transactionHistoryTab: 'tokens', // 'tokens' or 'payments'
+        transactionsPage: { content: [], totalPages: 0, number: 0, size: 15 },
+        isLoadingTransactions: false,
+        transactionFilters: {
+            username: '',
+            type: 'ALL' // ALL, DEPOSIT, USAGE
+        },
+        paymentLogsPage: { content: [], totalPages: 0, number: 0, size: 15 },
+        isLoadingPaymentLogs: false,
+        paymentLogFilters: {
+            keyword: ''
+        },
         // User Songs Modal
         showUserSongsModal: false,
         selectedUser: null,
@@ -991,6 +1151,8 @@ new Vue({
 
         Toast: null,
         userSearchTimer: null,
+        transactionSearchTimer: null,
+        paymentLogSearchTimer: null,
     },
 
     mounted() {
@@ -1007,7 +1169,7 @@ new Vue({
                 this.loadSongs(0);
                 this.loadGenres();
                 this.loadPackages();
-                this.loadRevenue();
+                this.loadRevenue(); // This also loads orders
             })
             .catch(() => {
                 Swal.fire({
@@ -1016,6 +1178,19 @@ new Vue({
                     text: 'Vui lòng đăng nhập với quyền Admin.'
                 }).then(() => { window.location.href = '/'; });
             });
+    },
+
+    watch: {
+        activeTab(newTab, oldTab) {
+            if (newTab === 'transactions' && this.transactionsPage.content.length === 0) {
+                this.loadTransactions(0);
+            }
+        },
+        transactionHistoryTab(newTab, oldTab) {
+            if (newTab === 'payments' && this.paymentLogsPage.content.length === 0) {
+                this.loadPaymentLogs(0);
+            }
+        }
     },
 
     methods: {
@@ -1125,12 +1300,43 @@ new Vue({
         },
 
         // ===== SONGS =====
+        // Updated loadSongs to use new filtering logic
         loadSongs(page) {
-            const status = this.songStatusFilter;
-            const url = status
-                ? `/api/admin/songs?page=${page}&size=10&status=${status}`
-                : `/api/admin/songs?page=${page}&size=10`;
-            axios.get(url).then(r => { this.songsPage = r.data; }).catch(() => {});
+            this.isLoadingSongs = true;
+            let params = new URLSearchParams();
+            params.append('filter', this.songFilters.filter);
+            if (this.songFilters.startDate) params.append('startDate', this.songFilters.startDate);
+            if (this.songFilters.endDate) params.append('endDate', this.songFilters.endDate);
+            params.append('page', page);
+            params.append('size', this.songsPage.size);
+
+            axios.get('/api/songs/admin/list?' + params.toString())
+                .then(res => {
+                    this.songsPage = res.data;
+                })
+                .catch(err => {
+                    console.error("Lỗi tải danh sách bài hát cho admin:", err);
+                    this.Toast.fire({ icon: 'error', title: 'Không thể tải dữ liệu bài hát.' });
+                })
+                .finally(() => {
+                    this.isLoadingSongs = false;
+                });
+        },
+
+        resetSongFilters() {
+            this.songFilters = {
+                filter: 'newest',
+                startDate: null,
+                endDate: null,
+            };
+            this.loadSongs(0);
+        },
+        getSongStatusClass(status) {
+            const s = (status || '').toLowerCase();
+            if (s === 'completed') return 'badge-completed';
+            if (s === 'pending') return 'badge-pending';
+            if (s === 'failed' || s === 'cancelled') return 'badge-failed';
+            return 'badge-pending';
         },
 
         toggleSongPublic(s) {
@@ -1168,6 +1374,44 @@ new Vue({
                         .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
                 }
             });
+        },
+
+        // ===== TRANSACTION HISTORY =====
+        loadTransactions(page) {
+            this.isLoadingTransactions = true;
+            let params = new URLSearchParams();
+            params.append('page', page);
+            params.append('size', this.transactionsPage.size);
+            if (this.transactionFilters.username) params.append('username', this.transactionFilters.username);
+            if (this.transactionFilters.type) params.append('type', this.transactionFilters.type);
+
+            axios.get('/api/admin/transactions?' + params.toString())
+                .then(r => { this.transactionsPage = r.data; })
+                .catch(() => this.Toast.fire({ icon: 'error', title: 'Không thể tải lịch sử token.' }))
+                .finally(() => { this.isLoadingTransactions = false; });
+        },
+
+        searchTransactions() {
+            clearTimeout(this.transactionSearchTimer);
+            this.transactionSearchTimer = setTimeout(() => { this.loadTransactions(0); }, 400);
+        },
+
+        loadPaymentLogs(page) {
+            this.isLoadingPaymentLogs = true;
+            let params = new URLSearchParams();
+            params.append('page', page);
+            params.append('size', this.paymentLogsPage.size);
+            if (this.paymentLogFilters.keyword) params.append('keyword', this.paymentLogFilters.keyword);
+
+            axios.get('/api/admin/payment-logs?' + params.toString())
+                .then(r => { this.paymentLogsPage = r.data; })
+                .catch(() => this.Toast.fire({ icon: 'error', title: 'Không thể tải lịch sử thanh toán.' }))
+                .finally(() => { this.isLoadingPaymentLogs = false; });
+        },
+
+        searchPaymentLogs() {
+            clearTimeout(this.paymentLogSearchTimer);
+            this.paymentLogSearchTimer = setTimeout(() => { this.loadPaymentLogs(0); }, 400);
         },
 
         // ===== GENRES =====
