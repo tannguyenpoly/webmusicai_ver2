@@ -1,28 +1,14 @@
-# Bộ script SQL của WebMusicAI
+# WebMusicAI database
 
-Trong thư mục này chỉ có ba script cần quan tâm:
+Use only `setup-fresh.sql`.
 
-| File | Khi nào chạy | Có xóa dữ liệu không? |
-|---|---|---|
-| `setup-fresh.sql` | Cài database mới hoặc chủ động làm lại từ đầu | Có. Xóa rồi tạo lại `MusicAI_DB` |
-| `upgrade-existing.sql` | Database đã có và cần giữ tài khoản, bài hát, đơn hàng | Không |
-| `demo-data.sql` | Muốn bổ sung tài khoản và bài nhạc mẫu để trình diễn | Không |
+The script deletes and recreates `MusicAI_DB`, creates the complete schema, and inserts demo data. It is intentionally destructive and should be run only when existing data can be discarded.
 
-## Máy của bạn hiện tại
+## Run
 
-Vì `MusicAI_DB` đã tồn tại và ứng dụng đang chạy được, chỉ cần:
+1. Stop the Spring Boot application.
+2. Open `setup-fresh.sql` in SQL Server Management Studio.
+3. Connect using a SQL Server administrator account and execute the entire file from top to bottom.
+4. Start the Spring Boot application again.
 
-1. Sao lưu `MusicAI_DB` nếu có dữ liệu quan trọng.
-2. Chạy `upgrade-existing.sql` một lần bằng tài khoản có quyền `db_owner` hoặc `ALTER`.
-3. Chạy `demo-data.sql` nếu muốn thêm dữ liệu mẫu.
-4. Khởi động lại Spring Boot.
-
-Không chạy `setup-fresh.sql`, vì file này sẽ xóa toàn bộ `MusicAI_DB` hiện tại.
-
-## Máy thành viên cài mới
-
-1. Chạy `setup-fresh.sql`.
-2. Chạy `demo-data.sql` nếu cần thêm dữ liệu mẫu.
-3. Cấu hình `application.properties` hoặc biến môi trường rồi chạy Spring Boot.
-
-Không cần chạy `upgrade-existing.sql` sau `setup-fresh.sql`, vì script cài mới đã chứa cấu trúc mới nhất.
+Do not run individual fragments of the script.
