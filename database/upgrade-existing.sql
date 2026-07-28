@@ -56,16 +56,51 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('dbo.Tags', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Tags (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        name NVARCHAR(50) NOT NULL UNIQUE
+    );
+END
+GO
+
 IF OBJECT_ID('dbo.Song_Tags', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.Song_Tags (
         id INT IDENTITY(1,1) PRIMARY KEY,
         song_id INT NOT NULL,
-        tag NVARCHAR(50) NOT NULL,
+        tag_id INT NOT NULL,
         FOREIGN KEY (song_id) REFERENCES dbo.Songs(id),
-        CONSTRAINT UQ_SongTags_Song_Tag UNIQUE (song_id, tag)
+        FOREIGN KEY (tag_id) REFERENCES dbo.Tags(id),
+        CONSTRAINT UQ_SongTags_Song_Tag UNIQUE (song_id, tag_id)
     );
 END
+GO
+
+IF COL_LENGTH('dbo.Song_Tags', 'tag') IS NOT NULL
+BEGIN
+    INSERT INTO dbo.Tags (name)
+    SELECT DISTINCT st.tag
+    FROM dbo.Song_Tags st
+    WHERE st.tag IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM dbo.Tags t WHERE t.name = st.tag);
+
+    IF COL_LENGTH('dbo.Song_Tags', 'tag_id') IS NULL
+        ALTER TABLE dbo.Song_Tags ADD tag_id INT NULL;
+
+    UPDATE st
+    SET tag_id = t.id
+    FROM dbo.Song_Tags st
+    JOIN dbo.Tags t ON t.name = st.tag
+    WHERE st.tag_id IS NULL;
+
+    ALTER TABLE dbo.Song_Tags ALTER COLUMN tag NVARCHAR(50) NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_SongTags_Tag')
+    ALTER TABLE dbo.Song_Tags ADD CONSTRAINT FK_SongTags_Tag FOREIGN KEY (tag_id) REFERENCES dbo.Tags(id);
 GO
 
 IF OBJECT_ID('dbo.Playlist_Songs', 'U') IS NULL
@@ -100,8 +135,8 @@ IF NOT EXISTS (
 GO
 
 -- Bổ sung lại seed bị bỏ qua do hai bảng chưa tồn tại.
-INSERT INTO dbo.Song_Tags (song_id, tag)
-SELECT seed.song_id, seed.tag
+INSERT INTO dbo.Tags (name)
+SELECT DISTINCT seed.tag
 FROM (VALUES
     (1, N'Cinematic'), (1, N'Travel'),
     (2, N'Lofi'), (2, N'Podcast'),
@@ -109,10 +144,23 @@ FROM (VALUES
     (4, N'Lofi'), (4, N'Remix'),
     (5, N'Corporate')
 ) seed(song_id, tag)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Tags t WHERE t.name = seed.tag);
+GO
+
+INSERT INTO dbo.Song_Tags (song_id, tag_id)
+SELECT seed.song_id, t.id
+FROM (VALUES
+    (1, N'Cinematic'), (1, N'Travel'),
+    (2, N'Lofi'), (2, N'Podcast'),
+    (3, N'EDM'), (3, N'Commercial'),
+    (4, N'Lofi'), (4, N'Remix'),
+    (5, N'Corporate')
+) seed(song_id, tag)
+JOIN dbo.Tags t ON t.name = seed.tag
 WHERE EXISTS (SELECT 1 FROM dbo.Songs s WHERE s.id = seed.song_id)
   AND NOT EXISTS (
       SELECT 1 FROM dbo.Song_Tags st
-      WHERE st.song_id = seed.song_id AND st.tag = seed.tag
+      WHERE st.song_id = seed.song_id AND st.tag_id = t.id
   );
 GO
 

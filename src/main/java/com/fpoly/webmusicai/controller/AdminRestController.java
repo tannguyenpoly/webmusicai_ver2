@@ -11,14 +11,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.fpoly.webmusicai.entity.Authority;
 import com.fpoly.webmusicai.entity.Order;
 import com.fpoly.webmusicai.entity.Song;
+import com.fpoly.webmusicai.entity.Tag;
 import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.OrderRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
+import com.fpoly.webmusicai.repository.SongTagRepository;
+import com.fpoly.webmusicai.repository.TagRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 
 @RestController
@@ -33,6 +37,12 @@ public class AdminRestController {
 
     @Autowired
     private OrderRepository orderRepo;
+
+    @Autowired
+    private TagRepository tagRepo;
+
+    @Autowired
+    private SongTagRepository songTagRepo;
 
 
     // ============ QUẢN LÝ USER (đã có sẵn) ============
@@ -212,5 +222,35 @@ public class AdminRestController {
         stats.put("successRate", Math.round(successRate * 10) / 10.0); // 1 chữ số sau phẩy
 
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/tags")
+    public ResponseEntity<?> getAllTags() {
+        return ResponseEntity.ok(tagRepo.findAll());
+    }
+
+    @PostMapping("/tags")
+    public ResponseEntity<?> createTag(@RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        if (name == null || name.trim().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tên tag không được để trống"));
+        }
+        if (tagRepo.findByNameIgnoreCase(name.trim()).isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tag đã tồn tại"));
+        }
+        Tag tag = new Tag();
+        tag.setName(name.trim());
+        return ResponseEntity.ok(tagRepo.save(tag));
+    }
+
+    @DeleteMapping("/tags/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteTag(@PathVariable Integer id) {
+        if (!tagRepo.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        songTagRepo.deleteByTagId(id);
+        tagRepo.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -154,13 +154,20 @@ CREATE TABLE Orders (
 );
 GO
 
--- [8] Song_Tags
+-- [8] Tags and Song_Tags
+CREATE TABLE Tags (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(50) NOT NULL UNIQUE
+);
+GO
+
 CREATE TABLE Song_Tags (
     id INT IDENTITY(1,1) PRIMARY KEY,
     song_id INT NOT NULL,
-    tag NVARCHAR(50) NOT NULL,
+    tag_id INT NOT NULL,
     FOREIGN KEY (song_id) REFERENCES Songs(id),
-    CONSTRAINT UQ_SongTags_Song_Tag UNIQUE (song_id, tag)
+    FOREIGN KEY (tag_id) REFERENCES Tags(id),
+    CONSTRAINT UQ_SongTags_Song_Tag UNIQUE (song_id, tag_id)
 );
 GO
 
@@ -385,10 +392,18 @@ INSERT INTO Songs (title, prompt, audio_url, status, is_public, lyrics, model_ve
 GO
 
 -- [6] Gắn thẻ phân loại nhạc
-INSERT INTO Song_Tags (song_id, tag) VALUES
-(1, N'Cinematic'), (1, N'Travel'), (2, N'Lofi'), (2, N'Podcast'),
-(3, N'EDM'), (3, N'Commercial'), (4, N'Lofi'), (4, N'Remix'),
-(5, N'Corporate');
+INSERT INTO Tags (name) VALUES
+(N'Cinematic'), (N'Travel'), (N'Lofi'), (N'Podcast'), (N'EDM'),
+(N'Commercial'), (N'Remix'), (N'Corporate');
+
+INSERT INTO Song_Tags (song_id, tag_id)
+SELECT seed.song_id, t.id
+FROM (VALUES
+    (1, N'Cinematic'), (1, N'Travel'), (2, N'Lofi'), (2, N'Podcast'),
+    (3, N'EDM'), (3, N'Commercial'), (4, N'Lofi'), (4, N'Remix'),
+    (5, N'Corporate')
+) seed(song_id, tag_name)
+JOIN Tags t ON t.name = seed.tag_name;
 GO
 
 -- [7] Danh sách phát cá nhân

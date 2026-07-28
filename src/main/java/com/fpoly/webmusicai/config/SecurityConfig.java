@@ -102,9 +102,11 @@ public class SecurityConfig {
         }
         if ("GET".equals(method)) {
             if (path.equals("/api/songs/public")
+                    || path.equals("/api/songs/by-tag")
                     || path.matches("/api/songs/\\d+/status")
                     || path.matches("/api/songs/\\d+/likes")
-                    || path.matches("/api/songs/\\d+/comments")) {
+                    || path.matches("/api/songs/\\d+/comments")
+                    || path.matches("/api/songs/\\d+/tags")) {
                 return true;
             }
             if (path.equals("/api/users/search")
@@ -122,6 +124,9 @@ public class SecurityConfig {
                 return true;
             }
             if (path.startsWith("/api/genres/") && path.split("/").length == 4) {
+                return true;
+            }
+            if (path.equals("/api/tags") || path.equals("/api/tags/")) {
                 return true;
             }
             if (path.equals("/api/albums") || path.equals("/api/albums/")) {

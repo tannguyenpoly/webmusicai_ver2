@@ -70,6 +70,10 @@ new Vue({
         commentPagination: { content: [], number: 0, totalPages: 1, totalElements: 0 },
         isLoadingComments: false,
         isSubmittingComment: false,
+        songTags: [],
+        availableTags: [],
+        selectedCreateTagIds: [],
+        selectedDetailTagIds: [],
         newComment: { content: '' },
         newReply: { content: '' },
         replyingToCommentId: null,
@@ -289,6 +293,7 @@ new Vue({
         });
     },
     mounted() {
+        this.loadAvailableTags();
         this.isOnSongDetailPage = window.location.pathname.startsWith('/song/');
         if (this.isOnSongDetailPage) {
             const style = document.createElement('style');
@@ -1054,7 +1059,11 @@ new Vue({
                             created_at: new Date().toISOString()
                         });
                     }
+                    if (this.selectedCreateTagIds.length > 0) {
+                        this.saveSongTags(data.songId, this.selectedCreateTagIds);
+                    }
                     this.generationForm.prompt = '';
+                    this.selectedCreateTagIds = [];
                     this.isGenerating = false;
                     this.startPollingStatus(data.songId);
                 })
@@ -1175,11 +1184,52 @@ new Vue({
                     this.profileUsername = response.data.username;
                     this.loadFollowStatus();
                     this.loadComments(songId);
+                    this.loadSongTags(songId);
                 })
                 .catch(error => {
                     console.error("Không thể tải thông tin bài hát:", error);
                     Swal.fire('Lỗi', 'Không tìm thấy bài hát hoặc bạn không có quyền truy cập.', 'error');
                 });
+        },
+
+        loadAvailableTags() {
+            axios.get('/api/tags')
+                .then(response => { this.availableTags = response.data || []; })
+                .catch(error => console.error('Unable to load tags:', error));
+        },
+
+        loadSongTags(songId) {
+            axios.get(`/api/songs/${songId}/tags`)
+                .then(response => {
+                    this.songTags = response.data || [];
+                    this.selectedDetailTagIds = this.songTags.map(tag => tag.tagId);
+                })
+                .catch(error => console.error('Unable to load song tags:', error));
+        },
+
+        toggleCreateTag(tagId) {
+            const index = this.selectedCreateTagIds.indexOf(tagId);
+            if (index >= 0) this.selectedCreateTagIds.splice(index, 1);
+            else this.selectedCreateTagIds.push(tagId);
+        },
+
+        toggleDetailTag(tagId) {
+            const index = this.selectedDetailTagIds.indexOf(tagId);
+            if (index >= 0) this.selectedDetailTagIds.splice(index, 1);
+            else this.selectedDetailTagIds.push(tagId);
+        },
+
+        saveSongTags(songId, tagIds) {
+            return axios.post(`/api/songs/${songId}/tags`, { tagIds: tagIds })
+                .then(() => {
+                    if (this.currentTrack && this.currentTrack.id === songId) this.loadSongTags(songId);
+                });
+        },
+
+        saveDetailTags() {
+            this.saveSongTags(this.currentTrack.id, this.selectedDetailTagIds)
+                .then(() => this.Toast.fire({ icon: 'success', title: 'Đã cập nhật tag' }))
+                .catch(() => this.Toast.fire({ icon: 'error', title: 'Không thể cập nhật tag' }));
         },
 
         toggleLike(song) {
