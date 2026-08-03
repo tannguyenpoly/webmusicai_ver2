@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -95,9 +96,12 @@ public class UserRestController {
 	}
 
 	@GetMapping("/{username}/profile")
-	public ResponseEntity<?> getProfile(@PathVariable String username) {
+	public ResponseEntity<?> getProfile(@PathVariable String username,
+			@RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
 		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-		boolean isOwnerOrAdmin = username.equals(currentUsername) || SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+		boolean isOwnerOrAdmin = username.equals(currentUsername)
+				|| (username.startsWith("guest_") && username.equals(guestId))
+				|| SecurityContextHolder.getContext().getAuthentication().getAuthorities()
 				.stream().anyMatch(a -> a.getAuthority().contains("ADMIN"));
 
 		Optional<User> userOpt = userRepo.findById(username);
@@ -330,10 +334,13 @@ public class UserRestController {
 
 	@GetMapping("/{username}/songs")
 	public ResponseEntity<?> getMySongs(@PathVariable String username, @RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size) {
+			@RequestParam(defaultValue = "10") int size,
+			@RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
 
 		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-		boolean isOwnerOrAdmin = username.equals(currentUsername) || SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+		boolean isOwnerOrAdmin = username.equals(currentUsername)
+				|| (username.startsWith("guest_") && username.equals(guestId))
+				|| SecurityContextHolder.getContext().getAuthentication().getAuthorities()
 				.stream().anyMatch(a -> a.getAuthority().contains("ADMIN"));
 
 		Pageable pageable = PageRequest.of(page, size);

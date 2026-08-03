@@ -202,8 +202,41 @@ public class SongRestController {
     }
 
     @PostMapping("/generate")
-    public ResponseEntity<?> generateMusic(@Valid @RequestBody GenerateSongRequest requestData) {
+    public ResponseEntity<?> generateMusic(@Valid @RequestBody GenerateSongRequest requestData,
+                                           @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String finalUsername;
+        if (username != null && !"anonymousUser".equals(username)) {
+            finalUsername = username;
+        } else {
+            if (guestId == null || guestId.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Vui lòng đăng nhập hoặc cung cấp mã khách hàng!"));
+            }
+            String cleanedGuestId = guestId.trim();
+            if (!cleanedGuestId.startsWith("guest_")) {
+                cleanedGuestId = "guest_" + cleanedGuestId;
+            }
+            if (cleanedGuestId.length() > 50) {
+                cleanedGuestId = cleanedGuestId.substring(0, 50);
+            }
+            finalUsername = cleanedGuestId;
+
+            // Automatically create temporary user in DB if not exist
+            if (!userRepo.existsById(finalUsername)) {
+                User guestUser = new User();
+                guestUser.setUsername(finalUsername);
+                guestUser.setPassword("{noop}guest_nopass_" + UUID.randomUUID().toString().substring(0, 10));
+                guestUser.setFullname("Guest " + finalUsername.substring(Math.min(finalUsername.length(), 14)));
+                guestUser.setEnabled(true);
+                guestUser.setTokenBalance(5); // 5 free tokens
+                guestUser.setAccountTier("FREE");
+                guestUser.setAuthProvider("LOCAL");
+                guestUser.setTokenVersion(0);
+                userRepo.save(guestUser);
+            }
+        }
+
         try {
             Genre selectedGenre = null;
             String effectivePrompt = requestData.getPrompt().trim();
@@ -213,7 +246,7 @@ public class SongRestController {
                 effectivePrompt = "Thể loại " + selectedGenre.getName() + ". " + effectivePrompt;
             }
             SongGenerationTicket ticket = songGenerationService.createPendingSong(
-                    username, effectivePrompt, requestData.getTitle());
+                    finalUsername, effectivePrompt, requestData.getTitle());
             songGenerationService.assignGenre(ticket.songId(), selectedGenre);
             try {
                 musicJobService.submit(
@@ -232,17 +265,23 @@ public class SongRestController {
                     "songId", ticket.songId(),
                     "remaining_tokens", ticket.remainingTokens()));
         } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            String msg = e.getMessage();
+            if (finalUsername.startsWith("guest_") && "Bạn không đủ Token!".equals(msg)) {
+                msg = "Bạn đã dùng hết 5 lượt tạo nhạc miễn phí dành cho khách. Vui lòng đăng nhập hoặc đăng ký để tiếp tục tạo nhạc!";
+            }
+            return ResponseEntity.badRequest().body(Map.of("message", msg));
         }
     }
 
     @GetMapping("/{id}/status")
-    public ResponseEntity<?> getSongStatus(@PathVariable Integer id) {
+    public ResponseEntity<?> getSongStatus(@PathVariable Integer id,
+                                           @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUser = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
+        String finalUsername = currentUser != null ? currentUser : guestId;
 
         return songRepo.findById(id).map(song -> {
-            boolean isOwner = currentUser != null && song.getUser().getUsername().equals(currentUser);
+            boolean isOwner = finalUsername != null && song.getUser().getUsername().equals(finalUsername);
             boolean isPublic = Boolean.TRUE.equals(song.getIsPublic());
             boolean isAdmin = auth != null && auth.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -396,14 +435,17 @@ public class SongRestController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelGeneration(@PathVariable Integer id) {
+    public ResponseEntity<?> cancelGeneration(@PathVariable Integer id,
+                                              @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-        boolean isAdmin = auth.getAuthorities().stream()
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        
+        String finalUsername = (username != null && !"anonymousUser".equals(username)) ? username : guestId;
         try {
             SongCancellationResult result =
-                    songGenerationService.cancelAndRefund(id, username, isAdmin);
+                    songGenerationService.cancelAndRefund(id, finalUsername, isAdmin);
             boolean workerInterrupted = musicJobService.cancel(id);
             return ResponseEntity.ok(Map.of(
                     "message", "Đã dừng tạo nhạc và hoàn lại 1 token",
@@ -425,17 +467,20 @@ public class SongRestController {
 
     @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteSong(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteSong(@PathVariable Integer id,
+                                        @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+        String username = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
+        String finalUsername = username != null ? username : guestId;
+
+        if (finalUsername == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
         }
 
-        String username = auth.getName();
-        boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         return songRepo.findById(id).map(song -> {
-            boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(username);
+            boolean isOwner = song.getUser() != null && song.getUser().getUsername().equals(finalUsername);
             if (!isOwner && !isAdmin) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền xóa bài nhạc này!"));
             }
@@ -849,17 +894,21 @@ public class SongRestController {
 
     @PostMapping("/{id}/tags")
     @Transactional
-    public ResponseEntity<?> setTags(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> setTags(@PathVariable Integer id, @RequestBody Map<String, Object> body,
+                                     @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+        String username = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
+        String finalUsername = username != null ? username : guestId;
+
+        if (finalUsername == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
         }
         Song song = songRepo.findById(id).orElse(null);
         if (song == null) {
             return ResponseEntity.notFound().build();
         }
-        boolean admin = auth.getAuthorities().stream().anyMatch(role -> "ROLE_ADMIN".equals(role.getAuthority()));
-        if (!admin && (song.getUser() == null || !auth.getName().equals(song.getUser().getUsername()))) {
+        boolean admin = auth != null && auth.getAuthorities().stream().anyMatch(role -> "ROLE_ADMIN".equals(role.getAuthority()));
+        if (!admin && (song.getUser() == null || !finalUsername.equals(song.getUser().getUsername()))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Không có quyền cập nhật tag"));
         }
         Object rawTagIds = body.get("tagIds");

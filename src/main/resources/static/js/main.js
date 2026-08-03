@@ -1,9 +1,26 @@
+axios.interceptors.request.use(config => {
+    const guestId = localStorage.getItem('music_guest_id');
+    if (guestId) {
+        if (config.headers && typeof config.headers.set === 'function') {
+            config.headers.set('X-Guest-ID', guestId);
+        } else {
+            config.headers = config.headers || {};
+            config.headers['X-Guest-ID'] = guestId;
+        }
+    }
+    return config;
+}, error => {
+    return Promise.reject(error);
+});
+
 new Vue({
     el: '#app',
     data: {
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
         currentPage: window.location.pathname,
         currentUser: null,
+        isGuest: false,
+        guestUsername: null,
         userPhoto: null,
         isAdmin: false,
         userTokens: 0,
@@ -275,19 +292,23 @@ new Vue({
         axios.interceptors.response.use(response => {
             const contentType = response.headers['content-type'];
             if (contentType && contentType.includes('text/html') && response.config.url.includes('/api/')) {
-                localStorage.removeItem('jwt_token');
-                localStorage.removeItem('music_username');
-                localStorage.removeItem('music_is_admin');
-                window.location.href = '/login?error=expired';
+                if (localStorage.getItem('music_username')) {
+                    localStorage.removeItem('jwt_token');
+                    localStorage.removeItem('music_username');
+                    localStorage.removeItem('music_is_admin');
+                    window.location.href = '/login?error=expired';
+                }
                 return Promise.reject(new Error('Session expired'));
             }
             return response;
         }, error => {
             if (error.response && error.response.status === 401) {
-                localStorage.removeItem('jwt_token');
-                localStorage.removeItem('music_username');
-                localStorage.removeItem('music_is_admin');
-                window.location.href = '/login?error=expired';
+                if (localStorage.getItem('music_username')) {
+                    localStorage.removeItem('jwt_token');
+                    localStorage.removeItem('music_username');
+                    localStorage.removeItem('music_is_admin');
+                    window.location.href = '/login?error=expired';
+                }
             }
             return Promise.reject(error);
         });
@@ -331,6 +352,10 @@ new Vue({
         if (oauthStatus === 'success' && userParam) {
             localStorage.setItem('music_username', userParam);
             localStorage.setItem('music_is_admin', isAdminParam === 'true');
+            const guestId = localStorage.getItem('music_guest_id');
+            if (guestId) {
+                this.migrateGuestSongs(guestId, userParam);
+            }
             window.history.replaceState(null, null, window.location.pathname);
             this.Toast.fire({ icon: 'success', title: `Chào mừng ${userParam} đã đăng nhập!` });
         }
@@ -358,6 +383,19 @@ new Vue({
             localStorage.removeItem('music_username');
             localStorage.removeItem('jwt_token');
             localStorage.removeItem('music_is_admin');
+
+            // Setup Guest
+            let guestId = localStorage.getItem('music_guest_id');
+            if (!guestId) {
+                const randomHex = Math.random().toString(16).substring(2, 14);
+                guestId = 'guest_' + randomHex;
+                localStorage.setItem('music_guest_id', guestId);
+            }
+            this.isGuest = true;
+            this.guestUsername = guestId;
+            this.generationForm.username = guestId;
+            this.userTokens = 5; // Default tokens for guest
+            this.loadUserTokenBalance(guestId);
         }
 
         if (window.location.pathname === '/' || window.location.pathname === '/home') {
@@ -367,11 +405,13 @@ new Vue({
             this.loadPublicSongs();
         }
         else if (window.location.pathname === '/create') {
-            if (this.currentUser) {
+            if (this.currentUser || this.isGuest) {
                 this.loadGenres();
-                this.profileUsername = this.currentUser;
+                this.profileUsername = this.currentUser || this.guestUsername;
                 this.loadProfileGeneratedSongs();
-                this.loadProfileFavorites();
+                if (this.currentUser) {
+                    this.loadProfileFavorites();
+                }
                 const promptParam = urlParams.get('prompt');
                 if (promptParam) {
                     this.generationForm.prompt = promptParam;
@@ -420,6 +460,17 @@ new Vue({
         this.loadSessionPlaylist();
     },
     methods: {
+        migrateGuestSongs(guestId, username) {
+            if (!guestId || !username) return;
+            axios.post(`/api/auth/migrate?guestId=${guestId}&username=${username}`)
+                .then(response => {
+                    console.log("Đã chuyển quyền sở hữu nhạc:", response.data.message);
+                    localStorage.removeItem('music_guest_id');
+                })
+                .catch(error => {
+                    console.error("Lỗi chuyển quyền sở hữu nhạc:", error);
+                });
+        },
         randomizePrompt() {
             const prompts = [
                 "Một bản pop ballad buồn bằng tiếng piano du dương, kể về câu chuyện tình cũ dưới mưa...",
@@ -856,7 +907,10 @@ new Vue({
                     }
                 })
                 .catch(error => {
-                    if (error.response && (error.response.status === 401 || error.response.status === 403)) this.handleLogout(false);
+                    console.error("Lỗi tải thông tin số dư token:", error);
+                    if (this.isGuest) {
+                        this.userTokens = 5;
+                    }
                 });
         },
 
@@ -1040,22 +1094,22 @@ new Vue({
                 return;
             }
             this.isGenerating = true;
-            this.generationForm.username = this.currentUser;
+            this.generationForm.username = this.currentUser || this.guestUsername;
             axios.post('/api/songs/generate', this.generationForm)
                 .then(response => {
                     const data = response.data;
                     this.Toast.fire({ icon: 'success', title: 'AI đang xử lý giai điệu ngầm...' });
                     this.userTokens = data.remaining_tokens;
-                    this.currentTrack = { id: data.songId, title: "AI đang tiến hành xử lý bài hát...", prompt: this.generationForm.prompt, status: "PENDING", audioUrl: "", username: this.currentUser };
+                    this.currentTrack = { id: data.songId, title: "AI đang tiến hành xử lý bài hát...", prompt: this.generationForm.prompt, status: "PENDING", audioUrl: "", username: this.currentUser || this.guestUsername };
 
-                    if (window.location.pathname === '/' || window.location.pathname === '/profile') {
+                    if (window.location.pathname === '/' || window.location.pathname === '/profile' || window.location.pathname === '/create') {
                         this.profileGeneratedSongs.unshift({
                             id: data.songId,
                             title: "AI đang tiến hành xử lý bài hát...",
                             prompt: this.generationForm.prompt,
                             status: "PENDING",
                             audioUrl: "",
-                            username: this.currentUser,
+                            username: this.currentUser || this.guestUsername,
                             created_at: new Date().toISOString()
                         });
                     }
@@ -1069,7 +1123,8 @@ new Vue({
                 })
                 .catch(error => {
                     this.isGenerating = false;
-                    Swal.fire({ icon: 'error', title: 'Thất bại', text: error.response && error.response.data ? error.response.data : 'Lỗi kết nối lõi AI.', confirmButtonColor: '#dc3545' });
+                    const errorMsg = error.response && error.response.data ? (error.response.data.message || error.response.data) : 'Lỗi kết nối lõi AI.';
+                    Swal.fire({ icon: 'error', title: 'Thất bại', text: errorMsg, confirmButtonColor: '#dc3545' });
                 });
         },
 
@@ -1085,7 +1140,7 @@ new Vue({
                             this.currentTrack.title = statusData.title;
                             this.currentTrack.audioUrl = statusData.audioUrl;
                             this.loadPublicSongs();
-                            if (window.location.pathname === '/' || (window.location.pathname === '/profile' && this.profileTab === 'generated')) {
+                             if (window.location.pathname === '/' || window.location.pathname === '/create' || (window.location.pathname === '/profile' && this.profileTab === 'generated')) {
                                 this.loadProfileGeneratedSongs();
                             }
                             this.Toast.fire({ icon: 'success', title: `Sinh xong bài: ${statusData.title}!` });
@@ -1289,6 +1344,10 @@ new Vue({
             }
             axios.post('/api/auth/login', this.loginForm)
                 .then(response => {
+                    const guestId = localStorage.getItem('music_guest_id');
+                    if (guestId) {
+                        this.migrateGuestSongs(guestId, response.data.username);
+                    }
                     localStorage.setItem('music_username', response.data.username);
                     localStorage.setItem('music_is_admin', response.data.isAdmin);
                     if (btn) {
@@ -1335,7 +1394,8 @@ new Vue({
                 })
                 .catch(error => {
                     if (btn) { btn.innerHTML = '<i class="ti ti-user-plus"></i> Khởi tạo tài khoản'; btn.disabled = false; }
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: error.response?.data?.message || 'Đăng ký thất bại.' });
+                    const errorMsg = error.response && error.response.data ? (error.response.data.message || error.response.data) : 'Đăng ký thất bại.';
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: errorMsg });
                 });
         },
 

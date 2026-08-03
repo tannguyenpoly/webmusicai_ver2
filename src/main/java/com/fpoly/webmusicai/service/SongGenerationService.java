@@ -43,7 +43,7 @@ public class SongGenerationService {
         song.setTitle(title != null && !title.isBlank() ? title.trim() : "Đang tạo...");
         song.setPrompt(prompt.trim());
         song.setStatus("PENDING");
-        song.setIsPublic(isFreeTier(user));
+        song.setIsPublic(isFreeTier(user) && !username.startsWith("guest_"));
         song.setUser(user);
         songRepository.save(song);
 
@@ -78,7 +78,7 @@ public class SongGenerationService {
                 : original.getTitle() + " (Remix)");
         remix.setPrompt(prompt.trim());
         remix.setStatus("PENDING");
-        remix.setIsPublic(isFreeTier(user));
+        remix.setIsPublic(isFreeTier(user) && !username.startsWith("guest_"));
         remix.setIsRemix(true);
         remix.setParentId(original.getId());
         remix.setUser(user);
