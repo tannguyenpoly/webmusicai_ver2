@@ -48,19 +48,10 @@
                     MusicAI giúp mọi người dễ dàng tạo nên một bản nhạc chất lượng.
                 </p>
 
-                <div class="suno-prompt-box">
-                    <div v-if="currentUser === null" class="text-center py-3">
-                        <i class="ti ti-lock text-muted-sync mb-2" style="font-size: 26px; display: block;"></i>
-                        <span class="text-muted-sync" style="font-size: 13px;">
-                            Vui lòng <a href="/login" class="text-success fw-bold text-decoration-none">Đăng nhập</a> tài khoản để bắt đầu sáng tạo nhạc với AI.
-                        </span>
-                    </div>
-                    
-                    <div v-else class="text-center mt-4">
-                        <a href="/create" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill shadow-lg" style="background: var(--brand-green); border: 0; font-size: 14px;">
-                            <i class="ti ti-music me-1"></i> Bắt đầu sáng tạo nhạc ngay
-                        </a>
-                    </div>
+                <div class="suno-prompt-box text-center mt-4">
+                    <a href="/create" class="btn btn-success px-4 py-2.5 fw-bold rounded-pill shadow-lg" style="background: var(--brand-green); border: 0; font-size: 14px;">
+                        <i class="ti ti-music me-1"></i> Bắt đầu sáng tạo nhạc ngay
+                    </a>
                 </div>
             </div>
         </div>

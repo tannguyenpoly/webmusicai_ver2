@@ -319,6 +319,6 @@
     </div>
 </div>
 
-<script src="/js/main.js"></script>
+<script th:src="@{/js/main.js(v=${#dates.createNow().getTime()})}"></script>
 </body>
 </html>

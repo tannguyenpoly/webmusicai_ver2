@@ -57,6 +57,10 @@
 				</template>
 
 				<template v-if="currentUser === null">
+					<div v-if="isGuest" class="px-3 py-1.5 rounded-pill me-3 small d-flex align-items-center"
+						style="background: rgba(25, 135, 84, 0.1); border: 1px solid rgba(25, 135, 84, 0.3);">
+						<i class="ti ti-coin text-warning me-2"></i> <span class="fw-bold text-warning" title="Số lượt tạo nhạc miễn phí cho khách">{{ userTokens }} lượt miễn phí</span>
+					</div>
 					<a href="/register" class="btn btn-sm btn-register-sync px-3 py-1.5 me-2 text-decoration-none">Đăng
 						ký</a> <a href="/login" class="btn btn-sm btn-success px-3 py-1.5 fw-medium"
 						style="background: #16a34a; border: 0; border-radius: 10px;">Đăng

@@ -46,7 +46,7 @@
         </style>
 
         <!-- ================= LOGGED IN USER: SUNO-STYLE SPLIT DASHBOARD ================= -->
-        <div v-if="currentUser" class="row g-4 pt-2">
+        <div v-if="currentUser || isGuest" class="row g-4 pt-2">
             
             <!-- LEFT PANEL: Generation Settings -->
             <div class="col-lg-5 col-md-6 pe-lg-4 border-end-md">
@@ -135,8 +135,17 @@
                         </div>
                     </div>
 
+                    <!-- Guest warning if tokens are depleted -->
+                    <div v-if="isGuest && userTokens === 0" class="alert alert-warning border-0 p-3 mb-3 text-center" style="border-radius: 12px; background: rgba(234, 179, 8, 0.12); color: #f59e0b; border: 1px solid rgba(234, 179, 8, 0.2) !important;">
+                        <i class="ti ti-info-circle me-1" style="font-size: 18px; vertical-align: middle;"></i>
+                        <span>Bạn đã dùng hết 5 lượt tạo nhạc miễn phí cho khách. Vui lòng đăng nhập hoặc đăng ký để tiếp tục tạo nhạc!</span>
+                        <div class="d-flex gap-2 justify-content-center mt-2.5">
+                            <a href="/login" class="btn btn-sm btn-success px-3 py-1.5 fw-bold" style="background: var(--brand-green); border: 0; font-size: 11px; color: white !important;">Đăng nhập</a>
+                            <a href="/register" class="btn btn-sm btn-outline-warning px-3 py-1.5 fw-bold" style="font-size: 11px;">Đăng ký</a>
+                        </div>
+                    </div>
                     <!-- Create button -->
-                    <button @click="generateMusic" :disabled="isGenerating"
+                    <button v-else @click="generateMusic" :disabled="isGenerating"
                         class="btn btn-success w-100 py-2.5 fw-bold d-flex align-items-center justify-content-center shadow-lg" 
                         style="border-radius: 12px; background: var(--brand-green) !important; border: 0; font-size: 14px; color: #fff !important;">
                         <span v-if="isGenerating" class="spinner-border spinner-border-sm me-2"></span>
