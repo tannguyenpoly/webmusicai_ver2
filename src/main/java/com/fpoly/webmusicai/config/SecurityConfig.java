@@ -60,7 +60,7 @@ public class SecurityConfig {
     public AuthorizationManager<RequestAuthorizationContext> authorizationManager() {
         return (authentication, context) -> {
             HttpServletRequest request = context.getRequest();
-            String path = request.getRequestURI();
+            String path = request.getServletPath();
             String method = request.getMethod();
 
             if (isPublicPath(path, method)) {
@@ -100,16 +100,7 @@ public class SecurityConfig {
         if ("POST".equals(method) && path.equals("/api/songs/generate")) {
             return true;
         }
-        if ("POST".equals(method) && path.matches("/api/songs/\\d+/cancel")) {
-            return true;
-        }
-        if ("DELETE".equals(method) && path.matches("/api/songs/\\d+")) {
-            return true;
-        }
         if ("POST".equals(method) && path.matches("/api/songs/\\d+/play")) {
-            return true;
-        }
-        if ("POST".equals(method) && path.matches("/api/songs/\\d+/tags")) {
             return true;
         }
         if ("GET".equals(method)) {
@@ -141,29 +132,16 @@ public class SecurityConfig {
             if (path.equals("/api/tags") || path.equals("/api/tags/")) {
                 return true;
             }
-            if (path.equals("/api/albums") || path.equals("/api/albums/")) {
+            // Refined album paths
+            if (path.equals("/api/albums") || path.equals("/api/albums/") || path.matches("/api/albums/\\d+") || path.matches("/api/albums/user/[^/]+")) {
                 return true;
-            }
-            if (path.startsWith("/api/albums/")) {
-                String[] parts = path.split("/");
-                if (parts.length == 4) {
-                    return true;
-                }
-                if (parts.length >= 5 && "user".equals(parts[3])) {
-                    return true;
-                }
             }
             if (path.equals("/api/playlists/public")) {
                 return true;
             }
-            if (path.startsWith("/api/playlists/")) {
-                String[] parts = path.split("/");
-                if (parts.length == 4 && !"my".equals(parts[3])) {
-                    return true;
-                }
-                if (parts.length >= 5 && "user".equals(parts[3])) {
-                    return true;
-                }
+            // Refined playlist paths
+            if (path.matches("/api/playlists/\\d+") || path.matches("/api/playlists/user/[^/]+")) {
+                return true;
             }
         }
         return false;
