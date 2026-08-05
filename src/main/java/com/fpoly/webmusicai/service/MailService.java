@@ -24,8 +24,17 @@ public class MailService {
 	@Value("${spring.mail.username}")
 	private String fromEmail;
 
+	private boolean isMailConfigured() {
+		if (fromEmail == null || fromEmail.isBlank()) {
+			log.error("Dịch vụ mail chưa được cấu hình (thiếu spring.mail.username). Vui lòng thiết lập biến môi trường MAIL_USERNAME.");
+			return false;
+		}
+		return true;
+	}
+
 	@Async
 	public void sendWelcomeEmail(String toEmail, String fullname, String username) {
+		if (!isMailConfigured()) return;
 		try {
 			SimpleMailMessage message = new SimpleMailMessage();
 			message.setFrom(fromEmail);
@@ -46,6 +55,7 @@ public class MailService {
 
 	@Async
 	public void sendInvoiceEmail(User user, Order order) {
+		if (!isMailConfigured()) return;
 		if (user.getEmail() == null || user.getEmail().isEmpty()) {
 			log.warn("Không thể gửi hóa đơn cho user '{}' vì không có email.", user.getUsername());
 			return;
@@ -91,6 +101,7 @@ public class MailService {
 
 	@Async
 	public void sendResetPasswordOtp(String toEmail, String otp) {
+		if (!isMailConfigured()) return;
 		try {
 			SimpleMailMessage message = new SimpleMailMessage();
 			message.setFrom(fromEmail);

@@ -207,6 +207,9 @@ public class AuthController {
 		if (email == null || email.trim().isEmpty()) {
 			return ResponseEntity.badRequest().body("Email không được để trống!");
 		}
+		if (!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+			return ResponseEntity.badRequest().body("Email không đúng định dạng!");
+		}
 
 		List<User> users = userRepo.findByEmailIgnoreCase(email.trim());
 		if (users.isEmpty()) {
