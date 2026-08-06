@@ -304,6 +304,11 @@
                                 @click="acceptFriendRequest">
                                 <i class="ti ti-user-check me-1"></i> Chấp nhận
                             </button>
+                            <button v-if="friendStatus.status === 'PENDING_RECEIVED'"
+                                class="btn btn-outline-danger rounded-pill px-4 fw-medium shadow-sm"
+                                @click="declineFriendRequest">
+                                <i class="ti ti-user-x me-1"></i> Từ chối
+                            </button>
                             <button v-else-if="friendStatus.status === 'ACCEPTED'"
                                 class="btn btn-outline-primary rounded-pill px-4 fw-medium shadow-sm"
                                 @click="removeFriendship">

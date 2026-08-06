@@ -105,6 +105,7 @@ new Vue({
         currentTrack: { id: null, title: '', prompt: '', status: '', audioUrl: '' },
 
         loginForm: { username: '', password: '' },
+        loginError: '',
         registerForm: { username: '', fullname: '', email: '', password: '', confirmPassword: '' },
         forgotPasswordForm: { email: '', otp: '', newPassword: '', confirmPassword: '', step: 1, isSending: false },
         filters: { keyword: '' },
@@ -616,7 +617,7 @@ new Vue({
                 this.startPresenceHeartbeat();
                 this.loadFriends();
                 this.loadNotifications();
-                this.notificationPollingTimer = setInterval(() => this.loadNotifications(false), 30000);
+                this.notificationPollingTimer = setInterval(() => this.loadNotifications(false), 10000);
             }, 600);
         } else {
             this.currentUser = null;

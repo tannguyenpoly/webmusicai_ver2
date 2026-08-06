@@ -46,6 +46,7 @@ import com.fpoly.webmusicai.service.SongGenerationTicket;
 import com.fpoly.webmusicai.service.SongCancellationResult;
 import com.fpoly.webmusicai.service.SongNotificationService;
 import com.fpoly.webmusicai.service.AudioStorageService;
+import com.fpoly.webmusicai.service.SpamProtectionService;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -100,6 +101,9 @@ public class SongRestController {
 
     @Autowired
     TagRepository tagRepo;
+
+    @Autowired
+    SpamProtectionService spamProtectionService;
 
     @GetMapping("/public")
     public ResponseEntity<?> getPublicSongs() {
@@ -590,6 +594,12 @@ public class SongRestController {
         String content = (String) body.get("content");
         if (content == null || content.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Nội dung bình luận không được để trống!"));
+        }
+
+        long waitSeconds = spamProtectionService.remainingSeconds(username, "comment", 3000);
+        if (waitSeconds > 0) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("message", "Bạn thao tác quá nhanh. Vui lòng chờ " + waitSeconds + " giây rồi bình luận tiếp."));
         }
 
         return songRepo.findById(id).map(song -> {

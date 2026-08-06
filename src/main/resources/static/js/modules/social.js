@@ -176,8 +176,44 @@ window.MusicAIModules.social = {
             axios.put(`/api/friends/${this.friendStatus.id}/accept`)
                 .then(() => {
                     this.friendStatus.status = 'ACCEPTED';
+                    this.loadFriends();
                     this.Toast.fire({ icon: 'success', title: 'Đã trở thành bạn bè' });
+                })
+                .catch(err => Swal.fire('Không thể chấp nhận', err.response?.data?.message || 'Có lỗi xảy ra', 'error'));
+        },
+
+        declineFriendRequest() {
+            if (!this.friendStatus.id) return;
+            axios.put(`/api/friends/${this.friendStatus.id}/decline`)
+                .then(() => {
+                    this.friendStatus = { id: null, status: 'NONE' };
+                    this.loadFriends();
+                    this.Toast.fire({ icon: 'info', title: 'Đã từ chối lời mời kết bạn' });
+                })
+                .catch(err => Swal.fire('Không thể từ chối', err.response?.data?.message || 'Có lỗi xảy ra', 'error'));
+        },
+
+        respondFriendRequest(notification, accept) {
+            if (!notification.refId) return;
+            const request = accept
+                ? axios.put(`/api/friends/${notification.refId}/accept`)
+                : axios.put(`/api/friends/${notification.refId}/decline`);
+            request.then(() => {
+                this.notifications = this.notifications.filter(item => item.id !== notification.id);
+                if (!notification.read) {
+                    this.notificationUnreadCount = Math.max(0, this.notificationUnreadCount - 1);
+                }
+                this.loadFriends();
+                if (this.friendStatus.id === notification.refId) {
+                    this.friendStatus = accept
+                        ? { id: notification.refId, status: 'ACCEPTED' }
+                        : { id: null, status: 'NONE' };
+                }
+                this.Toast.fire({
+                    icon: accept ? 'success' : 'info',
+                    title: accept ? 'Đã đồng ý lời mời kết bạn' : 'Đã từ chối lời mời kết bạn'
                 });
+            }).catch(err => Swal.fire('Không thể cập nhật lời mời', err.response?.data?.message || 'Có lỗi xảy ra', 'error'));
         },
 
         cancelPaymentOrder(orderCode) {
@@ -350,6 +386,16 @@ window.MusicAIModules.social = {
         },
 
         openNotification(notification) {
+            if (notification.type === 'FRIEND_REQUEST' || notification.type === 'FRIEND_ACCEPTED') {
+                if (!notification.read) {
+                    axios.put(`/api/notifications/${notification.id}/read`)
+                        .then(() => {
+                            notification.read = true;
+                            this.notificationUnreadCount = Math.max(0, this.notificationUnreadCount - 1);
+                        });
+                }
+                return;
+            }
             const navigate = () => {
                 if (notification.refId) window.location.href = `/song/${notification.refId}`;
             };

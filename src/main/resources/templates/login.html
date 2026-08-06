@@ -418,7 +418,7 @@
                 </div>
                 <div class="input-wrap" style="margin-bottom: 4px !important;">
                     <i class="ti ti-user"></i>
-                    <input id="username" name="username" type="text" v-model="loginForm.username"
+                    <input id="username" name="username" type="text" v-model="loginForm.username" @input="loginError = ''"
                         placeholder="Nhập username của bạn..." required />
                 </div>
 
@@ -427,8 +427,12 @@
                 </div>
                 <div class="input-wrap" style="margin-bottom: 4px !important;">
                     <i class="ti ti-lock"></i>
-                    <input id="password" name="password" type="password" v-model="loginForm.password"
+                    <input id="password" name="password" type="password" v-model="loginForm.password" @input="loginError = ''"
                         placeholder="Nhập mật khẩu..." required />
+                </div>
+                <div v-if="loginError" class="mt-2 px-3 py-2 rounded-3"
+                    style="background: rgba(239, 68, 68, .12); border: 1px solid rgba(248, 113, 113, .42); color: #fecaca; font-size: 13px;">
+                    <i class="ti ti-alert-circle me-1"></i>{{ loginError }}
                 </div>
                 <div class="text-end mb-3" style="margin-top: 4px;">
                     <a href="#" @click.prevent="openForgotPasswordModal"

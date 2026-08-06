@@ -2,12 +2,15 @@ window.MusicAIModules = window.MusicAIModules || {};
 window.MusicAIModules.account = {
     methods: {
         handleLogin() {
+            this.loginError = '';
             if (this.loginForm && !this.loginForm.username.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập tên đăng nhập!' });
+                this.loginError = 'Vui lòng nhập tên đăng nhập.';
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: this.loginError });
                 return;
             }
             if (this.loginForm && !this.loginForm.password.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng nhập mật khẩu!' });
+                this.loginError = 'Vui lòng nhập mật khẩu.';
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: this.loginError });
                 return;
             }
             const btn = document.getElementById('submit-btn');
@@ -38,10 +41,11 @@ window.MusicAIModules.account = {
                         btn.innerHTML = '<i class="ti ti-bolt"></i> Kích hoạt hệ thống';
                         btn.disabled = false;
                     }
-                    let msg = 'Tài khoản hoặc mật khẩu không chính xác.';
+                    let msg = 'Không thể đăng nhập. Vui lòng thử lại.';
                     if (err.response && err.response.status === 403) msg = err.response.data || 'Tài khoản đã bị khóa!';
                     else if (err.response && err.response.data) msg = err.response.data.message || err.response.data || msg;
-                    Swal.fire({ icon: 'error', title: 'Đăng nhập thất bại', text: msg, confirmButtonColor: '#16a34a' });
+                    this.loginError = typeof msg === 'string' ? msg : 'Không thể đăng nhập. Vui lòng thử lại.';
+                    Swal.fire({ icon: 'error', title: 'Đăng nhập thất bại', text: this.loginError, confirmButtonColor: '#16a34a' });
                 });
         },
 

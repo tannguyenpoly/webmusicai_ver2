@@ -1728,6 +1728,9 @@
         #workspace-area .comment-composer { padding: 14px; border: 1px solid rgba(74,222,128,.16); border-radius: 17px; background: rgba(34,197,94,.045); }
         #workspace-area .comment-composer textarea, #workspace-area .comment-edit textarea { min-height: 76px; resize: vertical; }
         #workspace-area .comment-send-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+        #workspace-area .comment-send-row .btn-main-sync { opacity: .45; transition: background .18s ease, color .18s ease, opacity .18s ease, box-shadow .18s ease; }
+        #workspace-area .comment-send-row .btn-main-sync.is-ready { opacity: 1; background: #16a34a; color: #fff; box-shadow: 0 8px 18px rgba(22,163,74,.22); }
+        #workspace-area .comment-send-row .btn-main-sync:disabled { cursor: not-allowed; }
         #workspace-area .comment-item { display: flex; gap: 11px; margin-top: 22px; }
         #workspace-area .comment-avatar { flex: 0 0 auto; width: 40px; height: 40px; border: 2px solid rgba(74,222,128,.6); border-radius: 50%; object-fit: cover; background: #143021; }
         #workspace-area .comment-main { min-width: 0; flex: 1; }
@@ -1816,20 +1819,31 @@
                                 @click.stop="markAllNotificationsRead">Đọc tất cả</button>
                     </div>
                     <div style="max-height: 370px; overflow-y: auto;">
-                        <button v-for="notification in notifications" :key="notification.id"
+                        <div v-for="notification in notifications" :key="notification.id"
                                 class="dropdown-item text-wrap px-3 py-3 border-bottom"
                                 :class="{ 'fw-semibold': !notification.read }"
+                                role="button" tabindex="0"
                                 style="color: var(--text-color); border-color: var(--border-color) !important;"
-                                @click="openNotification(notification)">
+                                @click="openNotification(notification)" @keyup.enter="openNotification(notification)">
                             <div class="d-flex gap-2">
-                                <i class="ti ti-music text-success mt-1"></i>
+                                <i :class="notification.type === 'FRIEND_REQUEST' ? 'ti ti-user-plus text-success mt-1' : (notification.type === 'FRIEND_ACCEPTED' ? 'ti ti-users text-success mt-1' : 'ti ti-music text-success mt-1')"></i>
                                 <div class="min-w-0">
                                     <div style="font-size: 13px;">{{ notification.content }}</div>
                                     <small class="text-muted-sync">{{ formatRelativeTime(notification.createdAt) }}</small>
+                                    <div v-if="notification.type === 'FRIEND_REQUEST'" class="d-flex gap-2 mt-2">
+                                        <button type="button" class="btn btn-sm btn-success px-2 py-1"
+                                                @click.stop="respondFriendRequest(notification, true)">
+                                            <i class="ti ti-check me-1"></i>Đồng ý
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1"
+                                                @click.stop="respondFriendRequest(notification, false)">
+                                            <i class="ti ti-x me-1"></i>Từ chối
+                                        </button>
+                                    </div>
                                 </div>
                                 <span v-if="!notification.read" class="rounded-circle bg-success flex-shrink-0 mt-2" style="width: 7px; height: 7px;"></span>
                             </div>
-                        </button>
+                        </div>
                         <div v-if="notifications.length === 0" class="text-center text-muted-sync px-3 py-4 small">
                             Chưa có thông báo.
                         </div>
