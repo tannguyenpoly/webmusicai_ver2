@@ -76,7 +76,7 @@
         body {
             background: var(--bg-gradient) !important;
             color: var(--text-color) !important;
-            font-family: 'Inter', sans-serif;
+            font-family: "Segoe UI", Arial, sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -437,6 +437,28 @@
             background: #16a34a;
         }
 
+        /* Nút phát chỉ xuất hiện một lần ở tâm khi rê chuột; góc bìa dành cho thao tác. */
+        .suno-top-play-btn, .explore-top-play-btn { display: none !important; }
+
+        .song-card-like-btn {
+            position: absolute;
+            top: 12px;
+            right: 48px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,.16);
+            z-index: 12;
+            transition: .2s ease;
+        }
+        .song-card-like-btn:hover, .song-card-like-btn.is-liked { background: #e11d48; color: #fff; transform: scale(1.08); }
+
         .suno-top-share-btn {
             position: absolute;
             top: 12px;
@@ -478,9 +500,9 @@
             background: rgba(10, 10, 12, 0.65);
             backdrop-filter: blur(10px);
             color: #ffffff;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
-            padding: 4px 10px;
+            padding: 4px 7px;
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -1485,6 +1507,283 @@
             cursor: not-allowed;
             box-shadow: none;
         }
+
+        /* Create music Wizard: large, spacious controls for general users. */
+        #workspace-area .suno-list-item { transition: all .25s ease-in-out; }
+        #workspace-area .suno-list-item:hover { background: rgba(120,120,120,.05) !important; border-color: rgba(22,163,74,.25) !important; transform: translateX(4px); }
+        #workspace-area .suno-item-playing { background: rgba(22,163,74,.05) !important; border-color: rgba(22,163,74,.4) !important; box-shadow: inset 0 0 10px rgba(22,163,74,.05); }
+        #workspace-area .song-link-hover { transition: color .2s; }
+        #workspace-area .song-link-hover:hover { color: var(--brand-green) !important; }
+        #workspace-area textarea.form-control, #workspace-area input.form-control { color: var(--text-color) !important; }
+        #workspace-area textarea.form-control::placeholder, #workspace-area input.form-control::placeholder { color: var(--text-muted) !important; opacity: .85; }
+        #workspace-area input.custom-checkbox:checked { background-color: var(--brand-green) !important; border-color: var(--brand-green) !important; }
+        #workspace-area .dropdown-item:hover { background: rgba(22,163,74,.06) !important; }
+        #workspace-area .music-wizard-card {
+            background: linear-gradient(155deg, rgba(22,163,74,.09), rgba(255,255,255,.01) 36%), var(--card-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 26px;
+            box-shadow: 0 18px 45px rgba(0,0,0,.10);
+        }
+        #workspace-area .wizard-brand-eyebrow { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 999px; background: rgba(22,163,74,.12); color: var(--brand-green); font-size: 12px; font-weight: 800; letter-spacing: .45px; }
+        #workspace-area .wizard-hero-title { font-size: clamp(25px,2vw,31px) !important; line-height: 1.15; }
+        #workspace-area .wizard-hero-subtitle { font-size: 15px; line-height: 1.55; max-width: 570px; }
+        #workspace-area .wizard-status-badge { font-size: 12px !important; padding: 8px 12px !important; }
+        #workspace-area .wizard-progress-step { min-width: 68px; color: var(--text-muted); cursor: default; }
+        #workspace-area .wizard-progress-step.is-available { cursor: pointer; }
+        #workspace-area .wizard-progress-dot { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border-color); background: rgba(120,120,120,.06); display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; }
+        #workspace-area .wizard-progress-step.is-active, #workspace-area .wizard-progress-step.is-complete { color: var(--brand-green); }
+        #workspace-area .wizard-progress-step.is-active .wizard-progress-dot, #workspace-area .wizard-progress-step.is-complete .wizard-progress-dot { background: var(--brand-green); border-color: var(--brand-green); color: #fff; }
+        #workspace-area .wizard-choice { border: 1px solid var(--border-color) !important; background: rgba(120,120,120,.045) !important; border-radius: 18px; padding: 18px; min-height: 88px; color: var(--text-color) !important; cursor: pointer; transition: transform .18s ease,border-color .18s ease,background .18s ease; text-align: left; }
+        #workspace-area .wizard-choice:hover { transform: translateY(-2px); border-color: rgba(22,163,74,.5) !important; }
+        #workspace-area .wizard-choice.is-selected { border-color: var(--brand-green) !important; background: rgba(22,163,74,.11) !important; box-shadow: 0 0 0 1px rgba(22,163,74,.16); }
+        #workspace-area .wizard-choice .fw-bold { font-size: 16px !important; }
+        #workspace-area .wizard-choice .text-muted-sync { color: var(--text-muted) !important; font-size: 13px !important; line-height: 1.45; }
+        #workspace-area .wizard-pill { border: 1px solid var(--border-color) !important; background: transparent !important; color: var(--text-muted) !important; border-radius: 999px; padding: 10px 15px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        #workspace-area .wizard-pill.is-selected { border-color: var(--brand-green) !important; background: rgba(22,163,74,.12) !important; color: var(--brand-green) !important; font-weight: 700; }
+        #workspace-area .wizard-preview-box { background: rgba(22,163,74,.055); border: 1px dashed rgba(22,163,74,.42); border-radius: 14px; }
+        #workspace-area .wizard-section-title { font-size: 21px; line-height: 1.25; color: var(--text-color); }
+        #workspace-area .wizard-section-help { font-size: 14px; line-height: 1.55; }
+        #workspace-area .music-wizard-card .form-control { min-height: 50px; font-size: 15px; border-radius: 14px; }
+        #workspace-area .music-wizard-card textarea.form-control { min-height: 108px; }
+        #workspace-area .wizard-primary-action { min-height: 54px; font-size: 16px !important; border-radius: 15px !important; }
+        #workspace-area .wizard-secondary-action { min-height: 54px; font-size: 15px !important; border-radius: 15px !important; }
+        #workspace-area .studio-library { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 26px; padding: 24px; min-height: 100%; }
+        #workspace-area .studio-library-title { font-size: 23px; }
+        #workspace-area .studio-library-subtitle { font-size: 14px; }
+        #workspace-area .studio-search { max-width: 300px !important; min-height: 44px; border-radius: 14px !important; }
+        #workspace-area .studio-library .btn { min-height: 38px; font-size: 13px !important; }
+        #workspace-area .studio-song-list { max-height: 590px !important; }
+        #workspace-area .studio-song-item { padding: 14px !important; border-radius: 18px !important; }
+        #workspace-area .studio-song-item .song-link-hover { font-size: 15px !important; }
+        #workspace-area .studio-song-item .song-prompt { font-size: 12px !important; }
+        #workspace-area .studio-song-art { width: 58px !important; height: 58px !important; border-radius: 13px !important; }
+        #workspace-area .studio-empty { font-size: 14px; }
+        @media (min-width: 768px) { #workspace-area .border-end-md { border-right: 1px solid var(--border-color) !important; } }
+        @media (max-width: 991.98px) { #workspace-area .studio-library { margin-top: 2px; padding: 18px; } }
+        @media (max-width: 575.98px) {
+            #workspace-area .music-wizard-card, #workspace-area .studio-library { border-radius: 20px; }
+            #workspace-area .wizard-progress-step { min-width: 59px; }
+            #workspace-area .wizard-progress-dot { width: 34px; height: 34px; }
+            #workspace-area .wizard-hero-title { font-size: 24px !important; }
+            #workspace-area .wizard-choice { padding: 15px; }
+        }
+
+        /* Shared user-facing visual system. */
+        #workspace-area .app-surface-card {
+            background: linear-gradient(155deg, rgba(22,163,74,.055), rgba(255,255,255,.008) 42%), var(--card-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 24px !important;
+            box-shadow: 0 16px 38px rgba(0,0,0,.08) !important;
+        }
+        #workspace-area .app-surface-card > .card-header { padding: 20px 24px 14px !important; }
+        #workspace-area .app-surface-card > .card-body { padding: 20px 24px 24px !important; }
+        #workspace-area .app-page-title { font-size: clamp(24px, 2.2vw, 32px); font-weight: 700; letter-spacing: -.35px; color: var(--text-color); }
+        #workspace-area .app-page-subtitle { color: var(--text-muted); font-size: 15px; line-height: 1.55; }
+        #workspace-area .app-large-action { min-height: 48px; border-radius: 14px !important; font-size: 15px !important; font-weight: 700; }
+        #workspace-area .app-empty-state { padding: 46px 24px; border: 1px dashed var(--border-color); border-radius: 20px; background: rgba(255,255,255,.012); text-align: center; color: var(--text-muted); font-size: 14px; }
+        #workspace-area .profile-container { max-width: 1080px; margin: 0 auto; padding: 18px 8px 80px; }
+        #workspace-area .profile-cover { border-radius: 26px !important; box-shadow: 0 16px 38px rgba(0,0,0,.10); }
+        #workspace-area .profile-info-section { padding: 0 28px !important; }
+        #workspace-area .profile-container .song-card { border-radius: 18px; background: var(--card-bg); border-color: var(--border-color) !important; }
+        #workspace-area .profile-container .btn { min-height: 40px; font-size: 13px; }
+
+        /* Home landing page and optional promotional video. */
+        #workspace-area .home-hero-shell { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(340px,.95fr); gap: 28px; align-items: stretch; margin-bottom: 52px; }
+        #workspace-area .home-hero-copy, #workspace-area .home-video-card { border: 1px solid var(--border-color); border-radius: 28px; overflow: hidden; }
+        #workspace-area .home-hero-copy { padding: clamp(30px,5vw,60px); background: radial-gradient(circle at 82% 18%, rgba(34,197,94,.20), transparent 33%), linear-gradient(135deg, rgba(22,163,74,.11), rgba(255,255,255,.012) 60%), var(--card-bg); }
+        #workspace-area .home-eyebrow { display: inline-flex; gap: 7px; align-items: center; padding: 8px 12px; border-radius: 999px; color: var(--brand-green); background: rgba(22,163,74,.12); font-size: 12px; font-weight: 800; letter-spacing: .45px; }
+        #workspace-area .home-title { margin: 18px 0 14px; color: var(--text-color); font-size: clamp(34px,4vw,56px); line-height: 1.12; letter-spacing: -.7px; font-weight: 700; }
+        #workspace-area .home-subtitle { max-width: 590px; color: var(--text-muted); font-size: 17px; line-height: 1.65; }
+        #workspace-area .home-feature-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 25px 0; }
+        #workspace-area .home-feature-chip { display: inline-flex; align-items: center; gap: 7px; padding: 10px 13px; border-radius: 12px; color: var(--text-color); background: rgba(255,255,255,.045); border: 1px solid var(--border-color); font-size: 13px; font-weight: 600; }
+        #workspace-area .home-proof-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 28px; }
+        #workspace-area .home-proof-item { display: flex; flex-direction: column; gap: 8px; min-height: 92px; padding: 14px; border: 1px solid var(--border-color); border-radius: 15px; color: var(--text-color); background: rgba(255,255,255,.032); font-size: 13px; font-weight: 750; line-height: 1.25; }
+        #workspace-area .home-proof-item i { color: #4ade80; font-size: 20px; }
+        #workspace-area .home-cta-note { margin: 15px 0 0; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+        #workspace-area .home-cta-note i { color: #4ade80; }
+        #workspace-area .home-community-kicker { color: #4ade80; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+        #workspace-area .home-community-title { margin: 5px 0 0; color: var(--text-color); font-size: clamp(24px, 2.2vw, 30px); font-weight: 700; letter-spacing: -.3px; }
+        #workspace-area .home-song-play { position: absolute; z-index: 12; bottom: 12px; left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 0; border-radius: 50%; background: #22c55e; color: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.28); font-size: 18px; }
+        #workspace-area .home-community-song-row { margin-bottom: 0; }
+
+        /* Explore: three clear discovery streams. */
+        #workspace-area .explore-page-hero { padding: clamp(24px, 3vw, 32px); text-align: center; }
+        #workspace-area .explore-page-hero h1 { margin: 0 0 18px; color: var(--text-color); font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-spacing: -.5px; line-height: 1.16; }
+        #workspace-area .explore-page-hero p { display: none; }
+        #workspace-area .explore-search { max-width: 660px; margin: 0 auto; padding: 5px 8px 5px 16px; border: 1px solid var(--border-color); border-radius: 999px; background: rgba(255,255,255,.035); }
+        #workspace-area .explore-search input { min-height: 42px; box-shadow: none !important; color: var(--text-color) !important; }
+        #workspace-area .explore-search-count { flex: 0 0 auto; padding: 8px 13px; border-radius: 999px; background: rgba(34,197,94,.13); color: #4ade80; font-size: 12px; font-weight: 800; }
+        #workspace-area .explore-genre-filter { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 18px 0 40px; }
+        #workspace-area .explore-filter-panel { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; margin: 18px 0 40px; }
+        #workspace-area .explore-filter-panel-inline { margin: 14px auto 0; max-width: 900px; }
+        #workspace-area .explore-filter-group { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
+        #workspace-area .explore-genre-filter-label { margin-right: 4px; color: var(--text-muted); font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+        #workspace-area .explore-genre-chip { border: 1px solid var(--border-color); border-radius: 999px; padding: 8px 13px; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 700; }
+        #workspace-area .explore-genre-chip:hover, #workspace-area .explore-genre-chip.active { border-color: rgba(34,197,94,.6); background: rgba(34,197,94,.12); color: #4ade80; }
+        #workspace-area .explore-filter-reset { border: 0; background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 800; }
+        #workspace-area .explore-filter-reset:hover { color: #4ade80; }
+        #workspace-area .explore-filter-loading { color: var(--text-muted); font-size: 12px; font-weight: 700; }
+        #workspace-area .payment-history-filter-card { background: rgba(255,255,255,.018); border: 1px solid var(--border-color); }
+        #workspace-area .payment-history-filter-card .form-label { color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+        #workspace-area .payment-history-select { min-height: 44px; background-color: #101713 !important; border: 1px solid rgba(148, 163, 184, .24) !important; color: var(--text-color) !important; border-radius: 8px; box-shadow: none !important; }
+        #workspace-area .payment-history-select:focus { border-color: rgba(34,197,94,.7) !important; box-shadow: 0 0 0 .18rem rgba(34,197,94,.12) !important; }
+        #workspace-area .payment-history-select option { background: #101a13; color: #f8fafc; }
+        #workspace-area .payment-history-reset { min-height: 44px; border: 1px solid rgba(148,163,184,.28); color: var(--text-muted); background: rgba(255,255,255,.025); }
+        #workspace-area .payment-history-reset:hover { border-color: rgba(34,197,94,.65); color: #4ade80; background: rgba(34,197,94,.09); }
+        #workspace-area .payment-history-table-wrap { border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+        #workspace-area .payment-history-table { --bs-table-bg: transparent; --bs-table-color: var(--text-color); --bs-table-border-color: var(--border-color); margin-bottom: 0; }
+        #workspace-area .payment-history-table thead, #workspace-area .payment-history-table thead tr, #workspace-area .payment-history-table thead th { background: #101713 !important; color: var(--text-muted) !important; }
+        #workspace-area .payment-history-table th { padding: 13px 14px; border: 0 !important; font-size: 11px; font-weight: 800; letter-spacing: .045em; text-transform: uppercase; white-space: nowrap; }
+        #workspace-area .payment-history-table td { padding: 14px; background: transparent !important; border-color: var(--border-color) !important; }
+        #workspace-area .payment-history-table tbody tr:hover td { background: rgba(255,255,255,.025) !important; }
+        #workspace-area .payment-status { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+        #workspace-area .payment-status.is-success { color: #6ee7a0; border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.1); }
+        #workspace-area .payment-status.is-pending, #workspace-area .payment-status.is-review { color: #f4ce75; border-color: rgba(234,179,8,.25); background: rgba(234,179,8,.09); }
+        #workspace-area .payment-status.is-failed { color: #fca5a5; border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.08); }
+        #workspace-area .payment-status.is-cancelled, #workspace-area .payment-status.is-expired, #workspace-area .payment-status.is-unknown { color: #b6c0cb; border-color: rgba(148,163,184,.22); background: rgba(148,163,184,.08); }
+        #workspace-area .explore-section { margin: 0 0 48px; }
+        #workspace-area .explore-section-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+        #workspace-area .explore-section-kicker { color: #4ade80; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+        #workspace-area .explore-section-title { margin: 5px 0 0; color: var(--text-color); font-size: clamp(23px, 2.2vw, 29px); font-weight: 700; letter-spacing: -.25px; }
+        #workspace-area .explore-song-row, #workspace-area .explore-song-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 17px; padding: 3px 2px 12px; }
+        #workspace-area .explore-song-grid { padding-bottom: 4px; }
+        #workspace-area .explore-song-card { min-width: 0; cursor: pointer; }
+        #workspace-area .explore-song-art { position: relative; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--border-color); border-radius: 19px; background: #101712; }
+        #workspace-area .explore-song-art img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
+        #workspace-area .explore-song-card:hover .explore-song-art img { transform: scale(1.05); }
+        #workspace-area .explore-song-art::after { position: absolute; inset: 35% 0 0; content: ''; background: linear-gradient(transparent, rgba(0,0,0,.75)); pointer-events: none; }
+        #workspace-area .explore-song-play { position: absolute; z-index: 2; bottom: 14px; left: 14px; display: inline-flex; align-items: center; justify-content: center; width: 43px; height: 43px; border: 0; border-radius: 50%; background: #22c55e; color: #fff; font-size: 19px; box-shadow: 0 8px 18px rgba(0,0,0,.28); }
+        #workspace-area .explore-song-like { position: absolute; z-index: 2; top: 12px; right: 12px; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; background: rgba(8,14,10,.65); color: #fff; }
+        #workspace-area .explore-song-like.is-liked { color: #fb4c5c; }
+        #workspace-area .explore-song-stat { position: absolute; z-index: 2; right: 12px; bottom: 13px; color: rgba(255,255,255,.92); font-size: 11px; font-weight: 700; }
+        #workspace-area .explore-song-title { overflow: hidden; margin: 11px 0 3px; color: var(--text-color); font-size: 15px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .explore-song-author { overflow: hidden; color: var(--text-muted); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .creator-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(205px, 1fr); grid-template-columns: repeat(5, minmax(205px, 1fr)); gap: 17px; overflow-x: auto; padding: 3px 2px 12px; }
+        #workspace-area .creator-card { min-width: 0; padding: 22px 18px 18px; border: 1px solid var(--border-color); border-radius: 20px; background: linear-gradient(145deg, rgba(34,197,94,.11), rgba(255,255,255,.012) 60%); text-align: center; transition: transform .2s ease, border-color .2s ease; }
+        #workspace-area .creator-card:hover { border-color: rgba(34,197,94,.55); transform: translateY(-3px); }
+        #workspace-area .creator-avatar { width: 94px; height: 94px; margin: 0 auto 13px; border: 3px solid rgba(74,222,128,.72); border-radius: 50%; object-fit: cover; background: #143021; box-shadow: 0 10px 24px rgba(0,0,0,.2); }
+        #workspace-area .creator-name { overflow: hidden; margin: 0; color: var(--text-color); font-size: 16px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .creator-handle { overflow: hidden; margin: 4px 0 12px; color: var(--text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .creator-metrics { display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; color: var(--text-muted); font-size: 11px; font-weight: 700; }
+        #workspace-area .creator-profile-link { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 38px; border: 1px solid rgba(34,197,94,.45); border-radius: 11px; color: #4ade80; font-size: 12px; font-weight: 800; text-decoration: none; }
+        #workspace-area .creator-profile-link:hover { color: #fff; background: #16a34a; }
+        #workspace-area .creator-search-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+        #workspace-area .explore-result-card { padding: 20px; border: 1px solid var(--border-color); border-radius: 18px; background: var(--card-bg); text-align: center; }
+        #workspace-area .explore-result-card .creator-avatar { width: 72px; height: 72px; }
+        #workspace-area .community-collection-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        #workspace-area .community-collection-card { display: grid; grid-template-columns: 48px minmax(0, 1fr) 20px; align-items: center; gap: 12px; min-height: 96px; padding: 16px; border: 1px solid var(--border-color); border-radius: 18px; background: linear-gradient(145deg, rgba(34,197,94,.1), rgba(255,255,255,.018)); cursor: pointer; transition: .2s ease; }
+        #workspace-area .community-collection-card:hover { border-color: rgba(74,222,128,.55); transform: translateY(-2px); }
+        #workspace-area .community-collection-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 14px; background: rgba(34,197,94,.16); color: #4ade80; font-size: 25px; }
+        #workspace-area .community-collection-icon.album { background: rgba(168,85,247,.16); color: #c084fc; }
+        #workspace-area .community-collection-type { color: #4ade80; font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+        #workspace-area .community-collection-card h3, #workspace-area .community-collection-card h4 { overflow: hidden; margin: 3px 0 3px; color: var(--text-color); font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .community-collection-card p { overflow: hidden; margin: 0; color: var(--text-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .collection-arrow { color: #4ade80; font-size: 18px; }
+        #workspace-area .profile-public-collections { padding: 20px; }
+        #workspace-area .profile-collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        #workspace-area .collection-detail-hero { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 24px; align-items: center; padding: clamp(20px, 4vw, 36px); }
+        #workspace-area .collection-detail-cover { width: 170px; aspect-ratio: 1; border-radius: 20px; object-fit: cover; background: #102217; box-shadow: 0 16px 32px rgba(0,0,0,.24); }
+        #workspace-area .collection-detail-meta { color: var(--text-muted); font-size: 14px; }
+        #workspace-area .collection-detail-title { margin: 5px 0 10px; color: var(--text-color); font-size: clamp(28px, 4vw, 42px); font-weight: 700; letter-spacing: -.45px; }
+        #workspace-area .home-video-card { position: relative; min-height: 390px; background: radial-gradient(circle at 72% 18%, rgba(34,197,94,.34), transparent 28%), linear-gradient(145deg, #0c2416, #07120c 72%); box-shadow: 0 18px 45px rgba(0,0,0,.18); }
+        #workspace-area .home-video-card video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .72; }
+        #workspace-area .home-video-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.72)); }
+        #workspace-area .home-video-copy { position: absolute; right: 26px; bottom: 25px; left: 26px; color: #fff; }
+        #workspace-area .home-video-play { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; margin-bottom: 16px; border-radius: 50%; color: #fff; background: rgba(34,197,94,.92); box-shadow: 0 10px 25px rgba(0,0,0,.25); font-size: 22px; }
+        #workspace-area .home-video-copy h2 { margin: 0 0 7px; font-size: 25px; font-weight: 800; }
+        #workspace-area .home-video-copy p { margin: 0; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.55; }
+        /* Hoạt ảnh giới thiệu 10 giây trên Trang chủ: không có media nặng để thuận tiện demo/Git. */
+        #workspace-area .home-intro-demo { isolation: isolate; }
+        #workspace-area .intro-demo-scene { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(circle at 25% 22%, rgba(74,222,128,.18), transparent 25%), radial-gradient(circle at 78% 46%, rgba(59,130,246,.18), transparent 28%), linear-gradient(135deg, #07160d, #10241a 55%, #08140d); }
+        #workspace-area .intro-demo-orb { position: absolute; border-radius: 50%; filter: blur(1px); opacity: .78; animation: introOrbFloat 10s ease-in-out infinite; }
+        #workspace-area .intro-demo-orb-one { width: 220px; height: 220px; top: -70px; right: -45px; background: radial-gradient(circle, rgba(34,197,94,.55), rgba(34,197,94,0)); }
+        #workspace-area .intro-demo-orb-two { width: 180px; height: 180px; bottom: 34px; left: -65px; background: radial-gradient(circle, rgba(59,130,246,.42), rgba(59,130,246,0)); animation-delay: -4s; }
+        #workspace-area .intro-demo-brand { position: absolute; top: 28px; left: 30px; color: rgba(255,255,255,.92); font-size: 17px; font-weight: 800; letter-spacing: -.3px; z-index: 1; }
+        #workspace-area .intro-demo-brand i { color: #4ade80; margin-right: 5px; }
+        #workspace-area .intro-demo-wave { position: absolute; top: 82px; right: 28px; display: flex; align-items: center; height: 42px; gap: 4px; opacity: .85; }
+        #workspace-area .intro-demo-wave span { display: block; width: 4px; height: 12px; border-radius: 4px; background: #4ade80; animation: introWave 1.1s ease-in-out infinite; }
+        #workspace-area .intro-demo-wave span:nth-child(2n) { animation-delay: -.45s; } #workspace-area .intro-demo-wave span:nth-child(3n) { animation-delay: -.75s; }
+        #workspace-area .intro-demo-step { position: absolute; left: 50%; display: flex; align-items: center; gap: 10px; min-width: 246px; padding: 14px 16px; color: #eaffef; border: 1px solid rgba(134,239,172,.28); border-radius: 16px; background: rgba(7,25,14,.68); box-shadow: 0 14px 28px rgba(0,0,0,.18); backdrop-filter: blur(10px); transform: translate(-50%, 20px); opacity: 0; }
+        #workspace-area .intro-demo-step b { color: #4ade80; font-size: 13px; } #workspace-area .intro-demo-step i { color: #86efac; font-size: 21px; } #workspace-area .intro-demo-step span { font-size: 14px; font-weight: 700; }
+        #workspace-area .intro-demo-step-one { top: 142px; animation: introStepOne 10s ease-in-out infinite; }
+        #workspace-area .intro-demo-step-two { top: 200px; animation: introStepTwo 10s ease-in-out infinite; }
+        #workspace-area .intro-demo-step-three { top: 258px; animation: introStepThree 10s ease-in-out infinite; }
+        #workspace-area .intro-demo-progress { position: absolute; right: 30px; bottom: 24px; left: 30px; height: 3px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.16); }
+        #workspace-area .intro-demo-progress span { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #22c55e, #86efac); animation: introProgress 10s linear infinite; }
+        @keyframes introOrbFloat { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-25px,35px,0) scale(1.12); } }
+        @keyframes introWave { 0%,100% { height: 9px; opacity: .45; } 50% { height: 38px; opacity: 1; } }
+        @keyframes introStepOne { 0%,7% { opacity: 0; transform: translate(-50%,20px); } 12%,31% { opacity: 1; transform: translate(-50%,0); } 37%,100% { opacity: 0; transform: translate(-50%,-20px); } }
+        @keyframes introStepTwo { 0%,32% { opacity: 0; transform: translate(-50%,20px); } 39%,62% { opacity: 1; transform: translate(-50%,0); } 68%,100% { opacity: 0; transform: translate(-50%,-20px); } }
+        @keyframes introStepThree { 0%,63% { opacity: 0; transform: translate(-50%,20px); } 70%,93% { opacity: 1; transform: translate(-50%,0); } 100% { opacity: 0; transform: translate(-50%,-20px); } }
+        @keyframes introProgress { from { width: 0; } to { width: 100%; } }
+        #workspace-area .section-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+        #workspace-area .section-title-wrapper { display: flex; align-items: center; min-width: 0; }
+        #workspace-area .title-glow-dot { flex: 0 0 auto; width: 10px; height: 10px; margin-right: 11px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 5px rgba(34,197,94,.13); }
+        #workspace-area .section-title { color: var(--text-color); font-size: clamp(20px, 2vw, 26px); font-weight: 700; line-height: 1.25; letter-spacing: -.01em; }
+        #workspace-area .explore-see-all { flex: 0 0 auto; border: 0; border-radius: 999px; padding: 10px 15px; background: rgba(34,197,94,.1); color: #22c55e; font-size: 14px; font-weight: 700; transition: .2s ease; }
+        #workspace-area .explore-see-all:hover { background: #16a34a; color: #fff; transform: translateY(-1px); }
+        #workspace-area .explore-back-button { border: 1px solid rgba(74,222,128,.38); background: transparent; }
+        #workspace-area .comment-section { margin-top: 24px; padding: clamp(20px, 3vw, 30px); border: 1px solid var(--border-color); border-radius: 20px; background: var(--card-bg); }
+        #workspace-area .comment-heading { margin: 0 0 20px; color: var(--text-color); font-size: 20px; font-weight: 800; }
+        #workspace-area .comment-composer { padding: 14px; border: 1px solid rgba(74,222,128,.16); border-radius: 17px; background: rgba(34,197,94,.045); }
+        #workspace-area .comment-composer textarea, #workspace-area .comment-edit textarea { min-height: 76px; resize: vertical; }
+        #workspace-area .comment-send-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+        #workspace-area .comment-item { display: flex; gap: 11px; margin-top: 22px; }
+        #workspace-area .comment-avatar { flex: 0 0 auto; width: 40px; height: 40px; border: 2px solid rgba(74,222,128,.6); border-radius: 50%; object-fit: cover; background: #143021; }
+        #workspace-area .comment-main { min-width: 0; flex: 1; }
+        #workspace-area .comment-bubble { display: inline-block; max-width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,.055); border-radius: 6px 17px 17px; background: rgba(255,255,255,.045); }
+        #workspace-area .comment-author { color: var(--text-color); font-size: 13px; font-weight: 800; text-decoration: none; }
+        #workspace-area .comment-time { margin-left: 6px; color: var(--text-muted); font-size: 11px; }
+        #workspace-area .comment-body { margin: 5px 0 0; color: var(--text-color); font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+        #workspace-area .comment-actions { display: flex; gap: 5px; margin-top: 4px; }
+        #workspace-area .comment-action-btn { border: 0; padding: 3px 7px; background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 700; }
+        #workspace-area .comment-action-btn:hover { color: #4ade80; }
+        #workspace-area .comment-replies { margin: 13px 0 0 12px; padding-left: 14px; border-left: 2px solid rgba(74,222,128,.22); }
+        #workspace-area .comment-replies .comment-item { margin-top: 14px; }
+        #workspace-area .comment-replies .comment-avatar { width: 34px; height: 34px; }
+        #workspace-area .comment-reply-form, #workspace-area .comment-edit { margin-top: 10px; }
+        #workspace-area .comment-guest { margin-top: 18px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.035); color: var(--text-muted); text-align: center; }
+        #workspace-area .suggested-track-list { display: grid; gap: 4px; }
+        #workspace-area .suggested-track { display: grid; grid-template-columns: 44px minmax(0, 1fr) 34px; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+        #workspace-area .suggested-track:last-child { border-bottom: 0; }
+        #workspace-area .suggested-track img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
+        #workspace-area .suggested-track-title { display: block; width: 100%; overflow: hidden; padding: 0; border: 0; background: transparent; color: var(--text-color); font-size: 13px; font-weight: 750; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .suggested-track > div span { display: block; overflow: hidden; margin-top: 2px; color: var(--text-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .suggested-track-play { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: rgba(34,197,94,.14); color: #4ade80; }
+        #workspace-area .suggested-track-play:hover { background: #16a34a; color: #fff; }
+        #playlistManagerModal .modal-content { background: #101712 !important; color: var(--text-color); border-color: rgba(74,222,128,.25) !important; }
+        #playlistManagerModal .modal-header { background: linear-gradient(135deg, rgba(34,197,94,.12), transparent); }
+        #playlistManagerModal .playlist-create-box { padding: 16px; border: 1px solid rgba(74,222,128,.18); border-radius: 16px; background: rgba(34,197,94,.055); }
+        #playlistManagerModal .playlist-row { border: 1px solid var(--border-color); border-radius: 13px; background: rgba(255,255,255,.025); }
+        #workspace-area .library-hero { padding: 28px; background: linear-gradient(135deg, rgba(22,163,74,.17), rgba(9,40,25,.35)); }
+        #workspace-area .library-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 24px; }
+        #workspace-area .library-tab { border: 1px solid var(--border-color); border-radius: 999px; padding: 11px 18px; background: transparent; color: var(--text-muted); font-weight: 700; }
+        #workspace-area .library-tab.active, #workspace-area .library-tab:hover { border-color: #16a34a; background: #16a34a; color: #fff; }
+        #workspace-area .library-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+        #workspace-area .library-filter button { border: 1px solid var(--border-color); border-radius: 999px; padding: 8px 13px; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 700; }
+        #workspace-area .library-filter button.active { border-color: rgba(34,197,94,.55); background: rgba(34,197,94,.14); color: #22c55e; }
+        #workspace-area .library-song-row { display: grid; grid-template-columns: 56px minmax(0,1fr) auto; align-items: center; gap: 16px; padding: 13px; border: 1px solid var(--border-color); border-radius: 18px; background: color-mix(in srgb, var(--card-bg) 90%, transparent); transition: .2s ease; cursor: pointer; }
+        #workspace-area .library-song-row:hover { border-color: rgba(34,197,94,.48); transform: translateY(-2px); }
+        #workspace-area .library-song-cover { width: 56px; height: 56px; border-radius: 13px; object-fit: cover; }
+        #workspace-area .library-item-title { overflow: hidden; color: var(--text-color); font-size: 16px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .library-item-meta { overflow: hidden; margin-top: 4px; color: var(--text-muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .library-collection-card { min-height: 228px; padding: 20px; border: 1px solid var(--border-color); border-radius: 16px; background: rgba(255,255,255,.018); display: flex; flex-direction: column; }
+        #workspace-area .library-collection-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 14px; margin-bottom: 18px; background: rgba(34,197,94,.15); color: #22c55e; font-size: 24px; }
+        #workspace-area .library-collection-title { min-height: 48px; margin: 0 0 6px; color: var(--text-color); font-size: 18px; font-weight: 750; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        #workspace-area .library-collection-description { min-height: 42px; margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.55; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        #workspace-area .library-collection-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 14px; }
+        #workspace-area .library-row-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; }
+        #workspace-area .library-status, #workspace-area .library-visibility { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 4px 8px; border: 1px solid rgba(148,163,184,.2); border-radius: 7px; color: var(--text-muted); background: rgba(255,255,255,.02); font-size: 11px; font-weight: 750; white-space: nowrap; }
+        #workspace-area .library-status.is-completed { color: #71df9d; border-color: rgba(34,197,94,.22); background: rgba(34,197,94,.08); }
+        #workspace-area .library-status.is-processing { color: #f2cc74; border-color: rgba(234,179,8,.22); background: rgba(234,179,8,.07); }
+        #workspace-area .library-status.is-closed { color: #b6c0cb; }
+        #workspace-area .library-action-btn, #workspace-area .library-delete-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; padding: 5px 9px; border: 1px solid rgba(148,163,184,.24); border-radius: 7px; color: var(--text-muted); background: transparent; font-size: 11px; font-weight: 750; text-decoration: none; }
+        #workspace-area .library-action-btn:hover { border-color: rgba(34,197,94,.6); color: #6ee7a0; background: rgba(34,197,94,.07); }
+        #workspace-area .library-delete-btn { color: #d5a2a2; border-color: rgba(239,68,68,.28); }
+        #workspace-area .library-delete-btn:hover { color: #fca5a5; border-color: rgba(239,68,68,.55); background: rgba(239,68,68,.07); }
+        @media (max-width: 991.98px) { #workspace-area .home-hero-shell { grid-template-columns: 1fr; } #workspace-area .home-video-card { min-height: 320px; } }
+        @media (max-width: 767px) { #workspace-area .explore-section-head { align-items: start; } #workspace-area .explore-page-hero p { white-space: normal; } #workspace-area .explore-song-row, #workspace-area .explore-song-grid, #workspace-area .community-collection-grid, #workspace-area .profile-collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; } #workspace-area .creator-row { grid-auto-columns: minmax(180px, 1fr); grid-template-columns: repeat(5, minmax(180px, 1fr)); gap: 13px; } #workspace-area .collection-detail-hero { grid-template-columns: 1fr; } #workspace-area .collection-detail-cover { width: 130px; } }
+        @media (max-width: 575.98px) { #workspace-area .home-hero-copy, #workspace-area .home-video-card { border-radius: 22px; } #workspace-area .home-hero-copy { padding: 28px 22px; } #workspace-area .home-title { font-size: 35px; } #workspace-area .home-proof-row { grid-template-columns: 1fr; } #workspace-area .home-proof-item { min-height: auto; flex-direction: row; align-items: center; } #workspace-area .section-heading-row { align-items: flex-start; } #workspace-area .explore-see-all { padding: 9px 11px; font-size: 12px; } #workspace-area .library-song-row { grid-template-columns: 48px minmax(0,1fr); gap: 12px; } #workspace-area .library-song-cover { width: 48px; height: 48px; } #workspace-area .library-song-row > :last-child { grid-column: 2; justify-self: start; } }
     </style>
 
     <script>
@@ -1547,8 +1846,8 @@
                 </div>
 
                 <div v-if="currentUser !== null" class="p-3 rounded-4 mb-3 d-flex align-items-center justify-content-between" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color);">
-                    <div class="d-flex align-items-center gap-2.5 min-w-0 overflow-hidden" @click="openProfileModal" style="cursor: pointer; min-width: 0;">
-                        <img :src="formatAvatarUrl(userPhoto, currentUser)" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--brand-green);" alt="Avatar">
+                    <div class="d-flex align-items-center min-w-0 overflow-hidden" @click="openProfileModal" style="cursor: pointer; min-width: 0; gap: 10px;">
+                        <img :src="formatAvatarUrl(userPhoto, currentUser)" @error="onImageError($event)" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--brand-green);" alt="Avatar">
                         <div class="text-truncate" style="min-width: 0;">
                             <div class="fw-bold small text-truncate" :title="currentUser" style="color: var(--text-color);">{{ currentUser }}</div>
                             <div class="text-muted-sync" style="font-size: 10px;">
@@ -1587,10 +1886,16 @@
                         <i class="ti ti-music fs-5"></i> <span>Tạo nhạc</span>
                     </a>
                     <a href="/profile" class="suno-nav-link" :class="{ active: currentPage === '/profile' }">
+                        <i class="ti ti-user-circle fs-5"></i> <span>Hồ sơ</span>
+                    </a>
+                    <a href="/library" class="suno-nav-link" :class="{ active: currentPage === '/library' }">
                         <i class="ti ti-books fs-5"></i> <span>Thư viện</span>
                     </a>
                     <a href="/favorites" class="suno-nav-link" :class="{ active: currentPage === '/favorites' }">
                         <i class="ti ti-heart fs-5"></i> <span>Yêu thích</span>
+                    </a>
+                    <a href="/payment-history" class="suno-nav-link" :class="{ active: currentPage === '/payment-history' }">
+                        <i class="ti ti-receipt-2 fs-5"></i> <span>Lịch sử thanh toán</span>
                     </a>
                     <a v-if="isAdmin" href="/admin" class="suno-nav-link" :class="{ active: currentPage === '/admin' }">
                         <i class="ti ti-shield-lock fs-5 text-danger"></i> <span class="text-danger fw-bold">Quản trị</span>
@@ -1691,7 +1996,7 @@
                         <div class="mb-4">
                             <label class="form-label small fw-medium text-muted-sync mb-2 d-block">Ảnh đại diện</label>
                             <div class="d-flex align-items-center gap-3">
-                                <img :src="formatAvatarUrl(profileForm.photo, profileForm.fullname || currentUser)" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #16a34a;" alt="avatar preview">
+                                <img :src="formatAvatarUrl(profileForm.photo, profileForm.fullname || currentUser)" @error="onImageError($event)" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #16a34a;" alt="avatar preview">
                                 <div>
                                     <button type="button" @click="triggerAvatarUpload" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1.5 fw-medium">
                                         <i class="ti ti-upload me-1"></i> Tải ảnh từ máy tính
@@ -1820,7 +2125,7 @@
                         <div class="mb-3">
                             <label class="form-label small fw-semibold text-white-50 d-block mb-2">Ảnh bìa bài viết</label>
                             <div class="d-flex align-items-center gap-3">
-                                <img :src="getSongCover(editingSongForm)" class="rounded border border-secondary" style="width: 70px; height: 70px; object-fit: cover;" alt="Cover Art">
+                            <img :src="getSongCover(editingSongForm)" @error="onImageError($event, 'cover')" class="rounded border border-secondary" style="width: 70px; height: 70px; object-fit: cover;" alt="Cover Art">
                                 <button type="button" @click="triggerSongEditCoverUpload" class="btn btn-sm btn-outline-success px-3 py-2 fw-medium rounded-pill">
                                     <i class="ti ti-upload me-1"></i> Tải ảnh mới
                                 </button>
@@ -1854,7 +2159,7 @@
                     <div class="modal-body p-4">
                         <!-- Preview Song Header -->
                         <div v-if="shareModalData.song" class="d-flex align-items-center gap-3 p-3 rounded-4 mb-3" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color);">
-                            <img :src="getSongCover(shareModalData.song)" class="rounded-3 shadow-sm flex-shrink-0" style="width: 52px; height: 52px; object-fit: cover;" alt="Cover">
+                            <img :src="getSongCover(shareModalData.song)" @error="onImageError($event, 'cover')" class="rounded-3 shadow-sm flex-shrink-0" style="width: 52px; height: 52px; object-fit: cover;" alt="Cover">
                             <div class="overflow-hidden flex-grow-1">
                                 <h6 class="fw-bold text-white mb-0.5 text-truncate" style="font-size: 14px;">{{ shareModalData.song.title }}</h6>
                                 <p class="small text-muted-sync mb-0 text-truncate" style="font-size: 12px;">
@@ -1892,7 +2197,7 @@
                             <div class="custom-scrollbar overflow-y-auto pe-1" style="max-height: 220px;">
                                 <div v-for="contact in shareModalData.chatHistoryContacts" :key="contact.username" class="d-flex align-items-center justify-content-between p-2 mb-2 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
                                     <div class="d-flex align-items-center gap-2.5 overflow-hidden me-2">
-                                        <img :src="formatAvatarUrl(contact.photo, contact.username)" class="rounded-circle flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover; border: 1.5px solid var(--brand-green);" alt="Avatar">
+                                        <img :src="formatAvatarUrl(contact.photo, contact.username)" @error="onImageError($event)" class="rounded-circle flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover; border: 1.5px solid var(--brand-green);" alt="Avatar">
                                         <div class="overflow-hidden">
                                             <h6 class="fw-bold text-white mb-0 text-truncate" style="font-size: 13px;">{{ contact.fullname || contact.username }}</h6>
                                             <span class="small text-muted-sync text-truncate d-block" style="font-size: 11px;">@{{ contact.username }}</span>
@@ -1923,7 +2228,7 @@
                 <div class="modal-content custom-theme-modal border border-secondary shadow-lg" style="border-radius: 20px;">
                     <div class="modal-header border-bottom border-secondary-subtle px-4 py-3">
                         <div class="min-w-0">
-                        <h5 class="modal-title fw-bold fs-6 mb-0">Thêm vào danh sách phát</h5>
+                        <h5 class="modal-title fw-bold fs-6 mb-0">Lưu vào Playlist</h5>
                             <small v-if="playlistTargetSong" class="text-muted-sync d-block text-truncate" style="max-width: 340px;">
                                 {{ playlistTargetSong.title }}
                             </small>
@@ -1931,7 +2236,7 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
                     </div>
                     <div class="modal-body p-4">
-                        <form @submit.prevent="createPersistentPlaylist" class="p-3 rounded-4 mb-3" style="background: rgba(120,120,120,.08); border: 1px solid var(--border-color);">
+                        <form @submit.prevent="createPersistentPlaylist" class="playlist-create-box mb-3">
                                 <label class="form-label small fw-semibold">Tạo danh sách phát mới</label>
                             <div class="input-group mb-2">
                                 <input v-model.trim="newPlaylistForm.name" maxlength="100" class="form-control custom-theme-input" placeholder="Tên danh sách phát" required>
@@ -1949,7 +2254,7 @@
                             <span class="spinner-border spinner-border-sm text-success"></span>
                         </div>
                         <div v-else class="d-flex flex-column gap-2 overflow-y-auto pe-1" style="max-height: 300px;">
-                            <div v-for="playlist in myPlaylists" :key="playlist.id" class="d-flex align-items-center gap-2 p-2 rounded-3" style="border: 1px solid var(--border-color);">
+                            <div v-for="playlist in myPlaylists" :key="playlist.id" class="playlist-row d-flex align-items-center gap-2 p-2">
                                 <button type="button" @click="addSongToPersistentPlaylist(playlist)" class="btn btn-sm flex-grow-1 text-start border-0 min-w-0">
                                     <span class="d-block fw-semibold text-truncate">{{ playlist.name }}</span>
                                     <small :class="playlist.isPublic ? 'text-success' : 'text-muted-sync'">
@@ -1976,7 +2281,7 @@
 
         <div v-if="currentTrack.id && !isOnSongDetailPage" class="suno-sticky-player" v-cloak>
             <div class="suno-player-left">
-                <img :src="getSongCover(currentTrack)" class="suno-player-cover" alt="Song Cover" />
+            <img :src="getSongCover(currentTrack)" @error="onImageError($event, 'cover')" class="suno-player-cover" alt="Song Cover" />
                 <div class="overflow-hidden flex-grow-1">
                     <div class="d-flex align-items-center gap-2">
                         <h6 class="suno-player-title mb-0 text-truncate" :title="currentTrack.title" style="max-width: 185px;">{{ currentTrack.title }}</h6>
@@ -2067,7 +2372,7 @@
                         <button @click="backToContacts" class="chat-btn-icon me-1" title="Quay lại">
                             <i class="ti ti-arrow-left"></i>
                         </button>
-                        <img :src="activeChatUser.photo" class="chat-header-avatar" alt="Avatar">
+                        <img :src="formatAvatarUrl(activeChatUser.photo, activeChatUser.fullname || activeChatUser.username)" class="chat-header-avatar" alt="Avatar">
                         <div class="chat-header-info">
                             <span class="chat-header-name">{{ activeChatUser.fullname || activeChatUser.username }}</span>
                             <span class="chat-header-status" :class="{ 'text-success': activeChatUser.online }">{{ formatPresenceStatus(activeChatUser) }}</span>
@@ -2099,7 +2404,7 @@
                             <div class="small text-success px-2 mb-2 fw-semibold">Kết quả tìm kiếm</div>
                             <div v-for="user in chatSearchResults" :key="user.username" @click="startChatWithUser(user)" class="chat-contact-item">
                                 <div class="chat-contact-avatar-wrapper">
-                                    <img :src="user.photo" class="chat-contact-avatar" alt="Avatar">
+                                    <img :src="formatAvatarUrl(user.photo, user.fullname || user.username)" class="chat-contact-avatar" alt="Avatar">
                                     <span v-if="user.online" class="chat-online-dot" title="Trực tuyến"></span>
                                 </div>
                                 <div class="chat-contact-info">
@@ -2117,7 +2422,7 @@
                             <div class="small text-muted px-2 mb-2 fw-semibold">Gần đây</div>
                             <div v-for="contact in chatContacts" :key="contact.username" @click="openChatRoom(contact)" class="chat-contact-item" :class="{ 'unread': contact.unreadCount > 0 }">
                                 <div class="chat-contact-avatar-wrapper">
-                                    <img :src="contact.photo" class="chat-contact-avatar" alt="Avatar">
+                                    <img :src="formatAvatarUrl(contact.photo, contact.fullname || contact.username)" class="chat-contact-avatar" alt="Avatar">
                                     <span v-if="contact.online" class="chat-online-dot" title="Trực tuyến"></span>
                                 </div>
                                 <div class="chat-contact-info">
@@ -2144,7 +2449,7 @@
                     <!-- Case 2: Chat Room Messages -->
                     <div v-else class="chat-messages-container">
                         <div v-for="(msg, index) in chatMessages" :key="msg.id || index" class="chat-msg-row" :class="isMyMessage(msg) ? 'sent' : 'received'">
-                            <img v-if="!isMyMessage(msg)" :src="activeChatUser ? activeChatUser.photo : ''" class="chat-msg-avatar" alt="Avatar">
+                            <img v-if="!isMyMessage(msg)" :src="formatAvatarUrl(activeChatUser ? activeChatUser.photo : '', activeChatUser ? (activeChatUser.fullname || activeChatUser.username) : '')" class="chat-msg-avatar" alt="Avatar">
                             <div class="chat-msg-bubble">
                                 <div style="white-space: pre-wrap; word-break: break-word;">{{ msg.content }}</div>
                                 <div v-if="getSongIdFromMessage(msg.content)" class="mt-2 pt-2 border-top" style="border-color: rgba(255,255,255,0.15) !important;">
@@ -2182,6 +2487,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/modules/wizard.js(v=${#dates.createNow().getTime()})}"></script>
+    <script th:src="@{/js/modules/navigation.js(v=${#dates.createNow().getTime()})}"></script>
+    <script th:src="@{/js/modules/library.js(v=${#dates.createNow().getTime()})}"></script>
+    <script th:src="@{/js/modules/music.js(v=${#dates.createNow().getTime()})}"></script>
+    <script th:src="@{/js/modules/account.js(v=${#dates.createNow().getTime()})}"></script>
+    <script th:src="@{/js/modules/social.js(v=${#dates.createNow().getTime()})}"></script>
+    <script th:src="@{/js/modules/chat.js(v=${#dates.createNow().getTime()})}"></script>
     <script th:src="@{/js/main.js(v=${#dates.createNow().getTime()})}"></script>
 </body>
 

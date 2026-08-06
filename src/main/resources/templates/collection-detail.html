@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
+<body>
+    <main id="workspace-area" class="container py-4" v-cloak>
+        <button @click="goBack" class="explore-see-all explore-back-button mb-4"><i class="ti ti-arrow-left me-1"></i>Quay lại</button>
+        <div v-if="isLoadingCollectionDetail" class="text-center py-5"><span class="spinner-border text-success"></span></div>
+        <template v-else-if="collectionDetail.collection">
+            <section class="app-surface-card collection-detail-hero mb-4">
+                <img :src="getCollectionCover(collectionDetail.collection)" @error="onImageError($event, 'cover')" class="collection-detail-cover" alt="Ảnh bìa bộ sưu tập">
+                <div><span class="home-eyebrow"><i :class="collectionDetail.type === 'ALBUM' ? 'ti ti-disc' : 'ti ti-playlist'"></i>{{ collectionDetail.type === 'ALBUM' ? 'Album công khai' : 'Playlist công khai' }}</span><h1 class="collection-detail-title">{{ collectionDetail.collection.title }}</h1><p class="collection-detail-meta mb-2">{{ collectionDetail.collection.description || 'Tuyển chọn nhạc công khai từ cộng đồng MusicAI.' }}</p><p class="collection-detail-meta mb-0"><i class="ti ti-user-circle me-1"></i>{{ collectionDetail.collection.authorName || collectionDetail.collection.username }} <span class="mx-2">•</span><i class="ti ti-music me-1"></i>{{ collectionDetail.songs.length }} bài công khai</p></div>
+            </section>
+            <section class="app-surface-card p-3 p-md-4"><div class="section-heading-row"><div class="section-title-wrapper"><div class="title-glow-dot"></div><h2 class="section-title mb-0">Danh sách bài hát</h2></div></div><div v-if="collectionDetail.songs.length" class="d-grid gap-2"><article v-for="song in collectionDetail.songs" :key="song.id" class="library-song-row" @click="goToSongDetail(song.id)"><img :src="getSongCover(song)" @error="onImageError($event, 'cover')" class="library-song-cover" alt="Ảnh bìa"><div class="min-w-0"><div class="library-item-title">{{ song.title }}</div><div class="library-item-meta">{{ song.authorName || song.username }}</div></div><button @click.stop="playTrack(song)" class="btn btn-success rounded-circle"><i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play-filled']"></i></button></article></div><div v-else class="app-empty-state text-center"><i class="ti ti-lock-music mb-2 d-block fs-3"></i>Chưa có bài nhạc công khai trong bộ sưu tập này.</div></section>
+        </template>
+        <div v-else class="app-empty-state text-center">Không tìm thấy bộ sưu tập.</div>
+    </main>
+</body>
+</html>

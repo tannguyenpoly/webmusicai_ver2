@@ -38,136 +38,280 @@
             .dropdown-item:hover {
                 background: rgba(22, 163, 74, 0.06) !important;
             }
+            .music-wizard-card {
+                background: linear-gradient(155deg, rgba(22,163,74,.09), rgba(255,255,255,.01) 36%), var(--card-bg) !important;
+                border: 1px solid var(--border-color) !important;
+                border-radius: 26px;
+                box-shadow: 0 18px 45px rgba(0,0,0,.10);
+            }
+            .wizard-brand-eyebrow {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 7px 11px;
+                border-radius: 999px;
+                background: rgba(22,163,74,.12);
+                color: var(--brand-green);
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: .45px;
+            }
+            .wizard-hero-title { font-size: clamp(25px, 2vw, 31px) !important; line-height: 1.15; }
+            .wizard-hero-subtitle { font-size: 15px; line-height: 1.55; max-width: 570px; }
+            .wizard-status-badge { font-size: 12px !important; padding: 8px 12px !important; }
+            .wizard-progress-step {
+                min-width: 68px;
+                color: var(--text-muted);
+                cursor: default;
+            }
+            .wizard-progress-step.is-available { cursor: pointer; }
+            .wizard-progress-dot {
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                border: 1px solid var(--border-color);
+                background: rgba(120, 120, 120, 0.06);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                font-weight: 800;
+            }
+            .wizard-progress-step.is-active,
+            .wizard-progress-step.is-complete { color: var(--brand-green); }
+            .wizard-progress-step.is-active .wizard-progress-dot,
+            .wizard-progress-step.is-complete .wizard-progress-dot {
+                background: var(--brand-green);
+                border-color: var(--brand-green);
+                color: #fff;
+            }
+            .wizard-choice {
+                border: 1px solid var(--border-color);
+                background: rgba(120, 120, 120, 0.045) !important;
+                border-radius: 18px;
+                padding: 18px;
+                min-height: 88px;
+                color: var(--text-color) !important;
+                cursor: pointer;
+                transition: transform .18s ease, border-color .18s ease, background .18s ease;
+                text-align: left;
+            }
+            .wizard-choice:hover { transform: translateY(-2px); border-color: rgba(22,163,74,.5); }
+            .wizard-choice.is-selected {
+                border-color: var(--brand-green) !important;
+                background: rgba(22,163,74,.11) !important;
+                box-shadow: 0 0 0 1px rgba(22,163,74,.16);
+            }
+            .wizard-choice .fw-bold { font-size: 16px !important; }
+            .wizard-choice .text-muted-sync { color: var(--text-muted) !important; font-size: 13px !important; line-height: 1.45; }
+            .wizard-pill {
+                border: 1px solid var(--border-color);
+                background: transparent !important;
+                color: var(--text-muted) !important;
+                border-radius: 999px;
+                padding: 10px 15px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            .wizard-pill.is-selected {
+                border-color: var(--brand-green) !important;
+                background: rgba(22,163,74,.12) !important;
+                color: var(--brand-green) !important;
+                font-weight: 700;
+            }
+            .wizard-preview-box {
+                background: rgba(22,163,74,.055);
+                border: 1px dashed rgba(22,163,74,.42);
+                border-radius: 14px;
+            }
+            .wizard-section-title { font-size: 21px; line-height: 1.25; color: var(--text-color); }
+            .wizard-section-help { font-size: 14px; line-height: 1.55; }
+            .music-wizard-card .form-control { min-height: 50px; font-size: 15px; border-radius: 14px; }
+            .music-wizard-card textarea.form-control { min-height: 108px; }
+            .wizard-primary-action { min-height: 54px; font-size: 16px !important; border-radius: 15px !important; }
+            .wizard-secondary-action { min-height: 54px; font-size: 15px !important; border-radius: 15px !important; }
+            .studio-library { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 26px; padding: 24px; min-height: 100%; }
+            .studio-library-title { font-size: 23px; }
+            .studio-library-subtitle { font-size: 14px; }
+            .studio-search { max-width: 300px !important; min-height: 44px; border-radius: 14px !important; }
+            .studio-library .btn { min-height: 38px; font-size: 13px !important; }
+            .studio-song-list { max-height: 590px !important; }
+            .studio-song-item { padding: 14px !important; border-radius: 18px !important; }
+            .studio-song-item .song-link-hover { font-size: 15px !important; }
+            .studio-song-item .song-prompt { font-size: 12px !important; }
+            .studio-song-art { width: 58px !important; height: 58px !important; border-radius: 13px !important; }
+            .studio-empty { font-size: 14px; }
             @media (min-width: 768px) {
                 .border-end-md {
                     border-right: 1px solid var(--border-color) !important;
                 }
             }
+            @media (max-width: 991.98px) {
+                .studio-library { margin-top: 2px; padding: 18px; }
+            }
+            @media (max-width: 575.98px) {
+                .music-wizard-card { border-radius: 20px; }
+                .wizard-progress-step { min-width: 59px; }
+                .wizard-progress-dot { width: 34px; height: 34px; }
+                .wizard-hero-title { font-size: 24px !important; }
+                .wizard-choice { padding: 15px; }
+                .studio-library { border-radius: 20px; }
+            }
         </style>
 
         <!-- ================= LOGGED IN USER: SUNO-STYLE SPLIT DASHBOARD ================= -->
-        <div v-if="currentUser || isGuest" class="row g-4 pt-2">
+        <div v-if="currentUser || isGuest" class="row g-4 g-xl-5 pt-2">
             
             <!-- LEFT PANEL: Generation Settings -->
-            <div class="col-lg-5 col-md-6 pe-lg-4 border-end-md">
-                <div class="d-flex flex-column">
-                    <!-- Chế độ tạo -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="d-flex gap-1" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 20px; padding: 2px;">
-                            <button class="btn btn-sm text-success fw-bold px-3 py-1 rounded-pill" style="font-size: 11px; background: rgba(22,163,74,0.12); border: 0; color: var(--brand-green) !important;">Đơn giản</button>
-                            <button class="btn btn-sm px-3 py-1 rounded-pill" style="font-size: 11px; border: 0; color: var(--text-muted) !important;" disabled>Nâng cao</button>
+            <div class="col-xl-7 col-lg-6 pe-xl-5 border-end-md">
+                <div class="music-wizard-card p-3 p-md-4 p-xl-5">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                        <div>
+                            <div class="wizard-brand-eyebrow mb-2"><i class="ti ti-sparkles"></i> MusicAI Studio</div>
+                            <h4 class="wizard-hero-title fw-bold mb-0" style="color: var(--text-color);">Tạo bản nhạc theo ý bạn</h4>
                         </div>
-                        <span class="badge border text-muted-sync px-2.5 py-1" style="font-size: 10px; border-radius: 20px; background: rgba(120,120,120,0.05) !important; border-color: var(--border-color) !important;">v4.5-all</span>
+                        <span class="wizard-status-badge badge" style="border-radius: 20px; background: rgba(22,163,74,.13); color: #15803d;">Tạo nhạc thử nghiệm</span>
                     </div>
 
-                    <!-- Input Mode Tabs -->
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-sm btn-success rounded-pill px-3 py-1.5 fw-bold d-flex align-items-center shadow-sm" style="font-size: 12px; background: var(--brand-green) !important; border: 0; color: #fff !important;">
-                            <i class="ti ti-music me-1"></i> Nhạc
-                        </button>
-                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center" style="font-size: 12px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); color: var(--text-muted) !important; opacity: 0.6;" disabled>
-                            <i class="ti ti-microphone me-1"></i> Giọng hát <span class="badge bg-danger ms-1" style="font-size: 8px; padding: 2px 4px;">Mới</span>
-                        </button>
-                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center" style="font-size: 12px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); color: var(--text-muted) !important; opacity: 0.6;" disabled>
-                            <i class="ti ti-bulb me-1"></i> Cảm hứng
-                        </button>
-                    </div>
-
-                    <div class="card p-3 mb-3"
-                        style="background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 14px;">
-                        <label class="form-label mb-2 fw-bold small text-success">THỂ LOẠI ÂM NHẠC</label>
-                        <select v-model="generationForm.genreId"
-                            class="form-select custom-theme-input"
-                            style="background-color: var(--card-bg) !important; color: var(--text-color) !important;">
-                            <option :value="null">AI tự xác định từ mô tả</option>
-                            <option v-for="genre in genres" :key="genre.id" :value="genre.id">
-                                {{ genre.name }}{{ genre.description ? ' — ' + genre.description : '' }}
-                            </option>
-                        </select>
-                        <div class="small text-muted-sync mt-2">
-                            Thể loại do quản trị viên quản lý và được thêm trực tiếp vào mô tả gửi sang mô hình AI.
+                    <div class="d-flex justify-content-between align-items-start gap-1 mb-4 overflow-auto pb-1">
+                        <div v-for="(step, index) in wizardSteps" :key="step.label"
+                            @click="goToWizardStep(index + 1)"
+                            class="wizard-progress-step text-center"
+                            :class="{ 'is-active': wizardStep === index + 1, 'is-complete': wizardStep > index + 1, 'is-available': wizardStep >= index + 1 }">
+                            <span class="wizard-progress-dot"><i v-if="wizardStep > index + 1" class="ti ti-check"></i><span v-else>{{ index + 1 }}</span></span>
+                            <div class="mt-2 text-nowrap fw-semibold" style="font-size: 12px;">{{ step.label }}</div>
                         </div>
                     </div>
 
-                    <!-- Prompt Input Area (Suno Style) -->
-                    <div class="card p-3 mb-3" style="background: var(--card-bg) !important; border: 1px solid var(--border-color) !important; border-radius: 16px;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label mb-0 fw-bold small" style="font-size: 11px; letter-spacing: 0.6px; font-family: 'Inter', sans-serif; color: var(--brand-green) !important;">Ý TƯỞNG ÂM NHẠC (PROMPT)</label>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm p-0 text-muted-sync" title="Undo"><i class="ti ti-arrow-back-up" style="font-size: 14px;"></i></button>
-                                <button class="btn btn-sm p-0 text-muted-sync" title="Redo"><i class="ti ti-arrow-forward-up" style="font-size: 14px;"></i></button>
+                    <div v-if="wizardEditingSongId" class="d-flex align-items-center gap-2 mb-3 px-3 py-2 rounded-3" style="background:rgba(59,130,246,.09);border:1px solid rgba(59,130,246,.18);">
+                        <i class="ti ti-adjustments text-primary"></i>
+                        <span class="small flex-grow-1 text-truncate" style="color:var(--text-color);">Đang tạo phiên bản mới từ: <strong>{{ wizardEditingSongTitle }}</strong></span>
+                        <button @click="resetWizardForNewSong" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size:11px;">Tạo bài mới</button>
+                    </div>
+
+                    <div v-if="wizardStep === 1">
+                        <div class="wizard-section-title fw-bold mb-4">Bạn tạo nhạc cho ai?</div>
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <button @click="selectWizardAudience('creator')" class="wizard-choice w-100"
+                                    :class="{ 'is-selected': musicBrief.audience === 'creator' }">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="d-flex align-items-center justify-content-center rounded-3" style="width:42px;height:42px;background:rgba(22,163,74,.13);color:var(--brand-green);"><i class="ti ti-video" style="font-size:22px;"></i></span>
+                                        <span><span class="d-block fw-bold" style="font-size:14px;">Nhà sáng tạo nội dung</span><span class="small text-muted-sync">TikTok, YouTube, podcast, quảng cáo và vlog</span></span>
+                                        <i v-if="musicBrief.audience === 'creator'" class="ti ti-circle-check ms-auto text-success" style="font-size:20px;"></i>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="col-12">
+                                <button @click="selectWizardAudience('cafe')" class="wizard-choice w-100"
+                                    :class="{ 'is-selected': musicBrief.audience === 'cafe' }">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="d-flex align-items-center justify-content-center rounded-3" style="width:42px;height:42px;background:rgba(139,92,246,.13);color:#8b5cf6;"><i class="ti ti-coffee" style="font-size:22px;"></i></span>
+                                        <span><span class="d-block fw-bold" style="font-size:14px;">Không gian quán</span><span class="small text-muted-sync">Nhạc nền riêng cho cà phê, sách, rooftop, nhà hàng</span></span>
+                                        <i v-if="musicBrief.audience === 'cafe'" class="ti ti-circle-check ms-auto text-success" style="font-size:20px;"></i>
+                                    </div>
+                                </button>
                             </div>
                         </div>
-                        
-                        <textarea v-model="generationForm.prompt" class="form-control border-0 bg-transparent p-0 fs-6 shadow-none"
-                            rows="5" style="resize: none; color: var(--text-color) !important;"
-                            placeholder="Hãy miêu tả phong cách nhạc bạn muốn tạo... Ví dụ: Nhạc lofi chill nhẹ nhàng, có tiếng mưa rơi tí tách, thích hợp cho học bài..."></textarea>
-                        
-                        <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top" style="border-color: var(--border-color) !important;">
-                            <button class="btn btn-sm d-flex align-items-center gap-1 py-1 px-2.5 rounded-pill" style="font-size: 11px; background: rgba(22, 163, 74, 0.08) !important; color: var(--brand-green) !important; border: 1px solid rgba(22, 163, 74, 0.15) !important;">
-                                <i class="ti ti-wand"></i> Gợi ý viết lời
-                            </button>
+                    </div>
+
+                    <div v-else-if="wizardStep === 2">
+                        <div class="wizard-section-title fw-bold mb-4">{{ musicBrief.audience === 'cafe' ? 'Không gian và thời điểm phát nhạc' : 'Âm nhạc này dùng cho việc gì?' }}</div>
+                        <div v-if="musicBrief.audience === 'creator'" class="row g-2 mb-3">
+                            <div v-for="item in wizardCreatorUseCases" :key="item.id" class="col-6">
+                                <button @click="musicBrief.useCase = item.id" class="wizard-choice w-100 h-100"
+                                    :class="{ 'is-selected': musicBrief.useCase === item.id }">
+                                    <i :class="'ti ' + item.icon + ' d-block mb-2 text-success'" style="font-size:20px;"></i>
+                                    <span class="d-block fw-bold" style="font-size:12px;">{{ item.id }}</span>
+                                    <span class="d-block text-muted-sync mt-1" style="font-size:10px;">{{ item.description }}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div v-else class="row g-2 mb-3">
+                            <div v-for="item in wizardVenueStyles" :key="item.id" class="col-6">
+                                <button @click="musicBrief.venueStyle = item.id" class="wizard-choice w-100 h-100"
+                                    :class="{ 'is-selected': musicBrief.venueStyle === item.id }">
+                                    <i :class="'ti ' + item.icon + ' d-block mb-2'" style="font-size:20px;color:#8b5cf6;"></i>
+                                    <span class="d-block fw-bold" style="font-size:12px;">{{ item.id }}</span>
+                                    <span class="d-block text-muted-sync mt-1" style="font-size:10px;">{{ item.description }}</span>
+                                </button>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <label class="small fw-semibold text-muted-sync mb-2">THỜI ĐIỂM PHÁT</label>
+                                <div class="d-flex flex-wrap gap-2"><button v-for="time in wizardTimes" :key="time" @click="musicBrief.timeOfDay = time" class="wizard-pill" :class="{ 'is-selected': musicBrief.timeOfDay === time }">{{ time }}</button></div>
+                            </div>
+                        </div>
+                        <label class="small fw-semibold text-muted-sync mb-2">THỜI LƯỢNG MONG MUỐN</label>
+                        <div class="d-flex flex-wrap gap-2"><button v-for="duration in wizardDurations" :key="duration" @click="musicBrief.duration = duration" class="wizard-pill" :class="{ 'is-selected': musicBrief.duration === duration }">{{ duration }}</button></div>
+                    </div>
+
+                    <div v-else-if="wizardStep === 3">
+                        <div class="wizard-section-title fw-bold mb-4">Thiết kế âm thanh</div>
+                        <label class="small fw-semibold text-muted-sync mb-2">THỂ LOẠI</label>
+                        <div class="d-flex flex-wrap gap-2 mb-3"><button v-for="genre in wizardGenreOptions" :key="genre.id || genre.name" @click="selectWizardGenre(genre)" class="wizard-pill" :class="{ 'is-selected': musicBrief.genreName === genre.name }">{{ genre.name }}</button></div>
+                        <label class="small fw-semibold text-muted-sync mb-2">CẢM XÚC</label>
+                        <div class="d-flex flex-wrap gap-2 mb-3"><button v-for="mood in wizardMoods" :key="mood" @click="musicBrief.mood = mood" class="wizard-pill" :class="{ 'is-selected': musicBrief.mood === mood }">{{ mood }}</button></div>
+                        <label class="small fw-semibold text-muted-sync mb-2">MỨC NĂNG LƯỢNG</label>
+                        <div class="d-flex flex-wrap gap-2 mb-3"><button v-for="energy in wizardEnergies" :key="energy" @click="musicBrief.energy = energy" class="wizard-pill" :class="{ 'is-selected': musicBrief.energy === energy }">{{ energy }}</button></div>
+                        <label class="small fw-semibold text-muted-sync mb-2">NHẠC CỤ GỢI Ý</label>
+                        <div class="d-flex flex-wrap gap-2"><button v-for="instrument in wizardInstruments" :key="instrument" @click="toggleWizardInstrument(instrument)" class="wizard-pill" :class="{ 'is-selected': musicBrief.instruments.includes(instrument) }">{{ instrument }}</button></div>
+                    </div>
+
+                    <div v-else-if="wizardStep === 4">
+                        <div class="wizard-section-title fw-bold mb-4">Giọng hát và lời nhạc</div>
+                        <div class="d-grid gap-2 mb-3">
+                            <button @click="selectWizardVocalMode('instrumental')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'instrumental' }"><i class="ti ti-music-off me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Nhạc không lời</span><span class="d-block text-muted-sync ms-4" style="font-size:11px;">Phù hợp làm nhạc nền và không gian quán</span></button>
+                            <button @click="selectWizardVocalMode('ai-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'ai-lyrics' }"><i class="ti ti-sparkles me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">AI gợi ý lời</span><span class="d-block text-muted-sync ms-4" style="font-size:11px;">Sẽ tích hợp cùng ACE-Step ở giai đoạn sau</span></button>
+                            <button @click="selectWizardVocalMode('own-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'own-lyrics' }"><i class="ti ti-pencil me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Tôi tự nhập lời</span><span class="d-block text-muted-sync ms-4" style="font-size:11px;">Chủ động nội dung và thông điệp bài hát</span></button>
+                        </div>
+                        <div v-if="musicBrief.vocalMode !== 'instrumental'" class="mb-3">
+                            <label class="small fw-semibold text-muted-sync mb-2">NGÔN NGỮ GIỌNG HÁT</label>
+                            <div class="d-flex gap-2"><button v-for="language in ['Tiếng Việt', 'Tiếng Anh']" :key="language" @click="musicBrief.vocalLanguage = language" class="wizard-pill" :class="{ 'is-selected': musicBrief.vocalLanguage === language }">{{ language }}</button></div>
+                        </div>
+                        <div v-if="musicBrief.vocalMode === 'own-lyrics'">
+                            <label class="small fw-semibold text-muted-sync mb-2">LỜI NHẠC CỦA BẠN</label>
+                            <textarea v-model="musicBrief.lyrics" rows="4" class="form-control custom-theme-input" placeholder="[Verse] ...&#10;[Chorus] ..." style="resize:none;"></textarea>
                         </div>
                     </div>
 
-                    <!-- Instrumental Switch -->
-                    <div class="mb-4">
-                        <div class="form-check form-switch d-flex align-items-center justify-content-between p-0">
-                            <label class="form-check-label text-muted-sync" for="instrumentalSwitch" style="cursor: pointer; font-size: 13px;">Nhạc không lời</label>
-                            <input class="form-check-input custom-switch m-0" type="checkbox" id="instrumentalSwitch" v-model="generationForm.instrumental" style="cursor: pointer;">
+                    <div v-else>
+                        <div class="wizard-section-title fw-bold mb-4">Kiểm tra bản yêu cầu</div>
+                        <label class="small fw-semibold text-muted-sync mb-2">TÊN BÀI NHẠC <span class="fw-normal">(không bắt buộc)</span></label>
+                        <input v-model="musicBrief.title" class="form-control custom-theme-input mb-3" placeholder="Ví dụ: Mưa chiều ở quán nhỏ">
+                        <label class="small fw-semibold text-muted-sync mb-2">GHI CHÚ THÊM CHO AI</label>
+                        <textarea v-model="musicBrief.note" rows="3" class="form-control custom-theme-input mb-3" placeholder="Ví dụ: Không quá buồn, mở đầu nhẹ trong 3 giây đầu..." style="resize:none;"></textarea>
+                        <div class="wizard-preview-box p-3">
+                            <div class="d-flex align-items-center gap-2 mb-2"><i class="ti ti-sparkles text-success"></i><span class="fw-bold" style="font-size:12px;color:var(--text-color);">MÔ TẢ SẼ GỬI CHO AI</span></div>
+                            <div style="font-size:12px;line-height:1.65;color:var(--text-color);">{{ wizardGeneratedPrompt }}</div>
                         </div>
+                        <div v-if="musicBrief.vocalMode === 'own-lyrics' && musicBrief.lyrics" class="mt-2 small text-muted-sync"><i class="ti ti-note me-1"></i>Đã có lời nhạc tự nhập.</div>
                     </div>
 
-                    <!-- Tag Selector -->
-                    <div class="mb-4">
-                        <label class="form-label small fw-semibold mb-2" style="color: var(--text-muted);">
-                            <i class="ti ti-tags me-1"></i> Gắn tag (chọn phong cách nhạc)
-                        </label>
-                        <div class="d-flex flex-wrap gap-1.5">
-                            <span v-for="t in availableTags" :key="t.id"
-                                @click="toggleCreateTag(t.id)"
-                                class="badge rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1"
-                                style="cursor: pointer; font-size: 11px; transition: all 0.15s; user-select: none;"
-                                :style="selectedCreateTagIds.includes(t.id) ? 'background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.5);' : 'background: rgba(120, 120, 120, 0.08); color: var(--text-muted); border: 1px solid var(--border-color);'">
-                                <i v-if="selectedCreateTagIds.includes(t.id)" class="ti ti-check" style="font-size: 10px;"></i>
-                                {{ t.name }}
-                            </span>
-                        </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button v-if="wizardStep > 1" @click="previousWizardStep" class="wizard-secondary-action btn btn-outline-secondary flex-fill py-2 fw-semibold"><i class="ti ti-arrow-left me-1"></i>Quay lại</button>
+                        <button v-if="wizardStep < wizardSteps.length" @click="nextWizardStep" class="wizard-primary-action btn btn-success flex-fill py-2 fw-bold" style="background:var(--brand-green);border:0;color:#fff !important;">Tiếp theo <i class="ti ti-arrow-right ms-1"></i></button>
+                        <button v-else @click="submitWizardMusic" :disabled="isGenerating" class="wizard-primary-action btn btn-success flex-fill py-2 fw-bold" style="background:var(--brand-green);border:0;color:#fff !important;">
+                            <span v-if="isGenerating" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else :class="wizardEditingSongId && currentUser ? 'ti ti-git-branch me-1' : 'ti ti-wand me-1'"></i>
+                            {{ wizardEditingSongId && currentUser ? 'Tạo phiên bản chỉnh sửa (-1 Token)' : 'Tạo nhạc (-1 Token)' }}
+                        </button>
                     </div>
-
-                    <!-- Guest warning if tokens are depleted -->
-                    <div v-if="isGuest && userTokens === 0" class="alert alert-warning border-0 p-3 mb-3 text-center" style="border-radius: 12px; background: rgba(234, 179, 8, 0.12); color: #f59e0b; border: 1px solid rgba(234, 179, 8, 0.2) !important;">
-                        <i class="ti ti-info-circle me-1" style="font-size: 18px; vertical-align: middle;"></i>
-                        <span>Bạn đã dùng hết 5 lượt tạo nhạc miễn phí cho khách. Vui lòng đăng nhập hoặc đăng ký để tiếp tục tạo nhạc!</span>
-                        <div class="d-flex gap-2 justify-content-center mt-2.5">
-                            <a href="/login" class="btn btn-sm btn-success px-3 py-1.5 fw-bold" style="background: var(--brand-green); border: 0; font-size: 11px; color: white !important;">Đăng nhập</a>
-                            <a href="/register" class="btn btn-sm btn-outline-warning px-3 py-1.5 fw-bold" style="font-size: 11px;">Đăng ký</a>
-                        </div>
-                    </div>
-                    <!-- Create button -->
-                    <button v-else @click="generateMusic" :disabled="isGenerating"
-                        class="btn btn-success w-100 py-2.5 fw-bold d-flex align-items-center justify-content-center shadow-lg" 
-                        style="border-radius: 12px; background: var(--brand-green) !important; border: 0; font-size: 14px; color: #fff !important;">
-                        <span v-if="isGenerating" class="spinner-border spinner-border-sm me-2"></span>
-                        <i v-else class="ti ti-music me-2" style="font-size: 18px;"></i>
-                        {{ isGenerating ? 'AI đang tạo giai điệu...' : 'Bắt đầu sinh nhạc (-1 Token)' }}
-                    </button>
                 </div>
             </div>
 
             <!-- RIGHT PANEL: Workspaces & My Generated Songs -->
-            <div class="col-lg-7 col-md-6 ps-lg-4">
-                <div class="d-flex flex-column h-100">
+            <div class="col-xl-5 col-lg-6 ps-xl-4">
+                <div class="studio-library d-flex flex-column h-100">
                     
                     <!-- Workspace Header -->
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
                         <div>
-                            <h4 class="fw-bold mb-0" style="font-size: 18px; color: var(--text-color) !important;">Không gian sáng tác</h4>
-                            <div class="small text-muted-sync mt-0.5">Không gian làm việc &gt; Bài hát của tôi</div>
+                            <h4 class="studio-library-title fw-bold mb-1" style="color: var(--text-color) !important;">Không gian sáng tác</h4>
                         </div>
                         
                         <!-- Search workspace songs -->
-                        <div class="input-group input-group-sm" style="max-width: 250px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; padding: 2px 10px;">
+                        <div class="studio-search input-group" style="background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); overflow: hidden; padding: 2px 12px;">
                             <span class="input-group-text border-0 bg-transparent text-muted-sync p-0"><i class="ti ti-search" style="font-size: 14px;"></i></span>
                             <input type="text" v-model="filters.keyword" class="form-control border-0 bg-transparent py-1 ps-2" placeholder="Tìm kiếm bài hát..." style="box-shadow: none; font-size: 12px; color: var(--text-color) !important;">
                         </div>
@@ -244,15 +388,15 @@
                     </div>
 
                     <!-- Workspace Song List -->
-                    <div style="max-height: 480px; overflow-y: auto; padding-right: 4px;" class="custom-scrollbar">
+                    <div style="overflow-y: auto; padding-right: 4px;" class="studio-song-list custom-scrollbar">
                         <div v-for="song in filteredProfileSongs" :key="song.id" 
-                            class="d-flex align-items-center gap-3 p-2.5 mb-2 rounded-4 suno-list-item"
+                            class="studio-song-item d-flex align-items-center gap-3 mb-3 suno-list-item"
                             :class="{ 'suno-item-playing': isTrackPlaying(song.id) }"
                             style="background: rgba(120, 120, 120, 0.02); border: 1px solid var(--border-color); transition: all 0.2s;">
                             
                             <!-- Cover Art Thumbnail -->
-                            <div class="position-relative flex-shrink-0" style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                                <img :src="getSongCover(song)" class="w-100 h-100 object-fit-cover" alt="Cover">
+                            <div class="studio-song-art position-relative flex-shrink-0" style="overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                                <img :src="getSongCover(song)" @error="onImageError($event, 'cover')" class="w-100 h-100 object-fit-cover" alt="Cover">
                                 
                                 <!-- Pending animation -->
                                 <div v-if="song.status === 'PENDING'" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-70">
@@ -267,12 +411,12 @@
                             <!-- Metadata -->
                             <div class="flex-grow-1 text-truncate" style="min-width: 0;">
                                 <div class="d-flex align-items-center gap-2">
-                                    <a :href="'/song/' + song.id" class="text-decoration-none fw-bold song-link-hover text-truncate" style="font-size: 13px; color: var(--text-color) !important;">
+                                    <a :href="'/song/' + song.id" class="text-decoration-none fw-bold song-link-hover text-truncate" style="color: var(--text-color) !important;">
                                         {{ song.title }}
                                     </a>
                                     <span v-if="song.visibility === 'PRIVATE'" class="badge bg-secondary py-0.5 px-1.5 text-uppercase" style="font-size: 8px; border-radius: 4px;">Riêng tư</span>
                                 </div>
-                                <div class="small text-muted-sync text-truncate mt-0.5" style="font-size: 11px;">{{ song.prompt }}</div>
+                                <div class="song-prompt small text-muted-sync text-truncate mt-1">{{ song.prompt }}</div>
                             </div>
 
                             <!-- Actions & Time -->
@@ -284,6 +428,10 @@
                                 <button v-if="song.status === 'COMPLETED'" @click="playTrack(song)" class="btn btn-sm btn-dark p-0 border-0 rounded-circle text-success d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(22, 163, 74, 0.1);">
                                     <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause-filled' : 'ti-player-play-filled']" style="font-size: 16px;"></i>
                                 </button>
+                                <button v-if="song.status === 'COMPLETED' && currentUser" @click.stop="editSongWithWizard(song)"
+                                        class="btn btn-sm btn-outline-primary rounded-pill px-2" style="font-size: 10px;">
+                                    <i class="ti ti-adjustments me-1"></i>Tinh chỉnh
+                                </button>
                                 <button v-if="song.status === 'PENDING'" @click.stop="cancelMusicGeneration(song)"
                                         class="btn btn-sm btn-outline-danger rounded-pill px-2" style="font-size: 10px;">
                                     <i class="ti ti-player-stop me-1"></i>Dừng
@@ -292,7 +440,7 @@
                         </div>
 
                         <!-- Empty workspace list -->
-                        <div v-if="filteredProfileSongs.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+                        <div v-if="filteredProfileSongs.length === 0" class="studio-empty text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
                             <i class="ti ti-music-off mb-2 text-muted" style="font-size: 28px; display: block;"></i>
                             <span style="font-size: 12px;">Bạn chưa tạo giai điệu nào. Hãy nhập mô tả ở khung bên trái để bắt đầu!</span>
                         </div>

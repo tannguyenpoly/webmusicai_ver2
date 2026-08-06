@@ -14,5 +14,9 @@ public interface AlbumRepository extends JpaRepository<Album, Integer> {
 
     Page<Album> findByUserUsernameOrderByCreatedAtDesc(String username, Pageable pageable);
 
+    Page<Album> findByUserUsernameAndIsPublicTrueOrderByCreatedAtDesc(String username, Pageable pageable);
+
+    List<Album> findByIsPublicTrueOrderByCreatedAtDesc();
+
     List<Album> findByTitleContainingIgnoreCase(String keyword);
 }

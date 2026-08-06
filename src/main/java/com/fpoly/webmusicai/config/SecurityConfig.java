@@ -89,8 +89,9 @@ public class SecurityConfig {
             return true;
         }
 
-        if (path.equals("/") || path.equals("/explore") || path.equals("/create") || path.equals("/login") || path.equals("/register") || path.equals("/favorites") || path.equals("/profile") || path.equals("/orders")
+        if (path.equals("/") || path.equals("/explore") || path.equals("/create") || path.equals("/login") || path.equals("/register") || path.equals("/favorites") || path.equals("/profile") || path.equals("/orders") || path.equals("/payment-history")
                 || path.startsWith("/js/") || path.startsWith("/css/") || path.startsWith("/images/") || path.startsWith("/media/audio/") || path.startsWith("/song/")|| path.startsWith("/orders/")
+                || path.startsWith("/playlists/") || path.startsWith("/albums/")
                 || path.equals("/favicon.ico")) {
             return true;
         }

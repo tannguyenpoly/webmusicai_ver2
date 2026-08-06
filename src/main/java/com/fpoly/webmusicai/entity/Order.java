@@ -22,7 +22,7 @@ public class Order implements Serializable {
 	@Column(name = "total_price")
 	private Integer totalPrice;
 
-	private String status; // PENDING, SUCCESS, FAILED, CANCELLED, EXPIRED
+	private String status; // PENDING, SUCCESS, REVIEW, FAILED, CANCELLED, EXPIRED
 
 	@Column(name = "payment_method")
 	private String paymentMethod = "VNPAY";

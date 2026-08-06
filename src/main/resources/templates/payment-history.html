@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
+
+<body>
+    <div id="workspace-area">
+        <section class="app-surface-card card shadow-lg border-0">
+            <div class="card-body p-4 p-lg-5">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                    <h1 class="app-page-title mb-0">Lịch sử thanh toán</h1>
+                    <a href="/orders" class="btn btn-success px-3 py-2 rounded-pill fw-semibold">
+                        <i class="ti ti-sparkles me-1"></i> Nâng cấp gói
+                    </a>
+                </div>
+
+                <div v-if="!currentUser" class="text-center py-5">
+                    <i class="ti ti-lock text-muted-sync d-block mb-3" style="font-size: 34px;"></i>
+                    <h2 class="h5 fw-bold">Đăng nhập để xem lịch sử</h2>
+                    <p class="text-muted-sync mb-3">Lịch sử thanh toán được bảo vệ theo từng tài khoản.</p>
+                    <a href="/login" class="btn btn-success rounded-pill px-4">Đăng nhập</a>
+                </div>
+
+                <template v-else>
+                    <div class="payment-history-filter-card rounded-4 p-3 p-lg-4 mb-4">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-sm-6 col-lg-3">
+                                <label class="form-label small fw-semibold">Trạng thái</label>
+                                <select v-model="paymentHistoryFilters.status" @change="resetPaymentHistoryPage" class="form-select payment-history-select">
+                                    <option value="ALL">Tất cả trạng thái</option>
+                                    <option value="SUCCESS">Thành công</option>
+                                    <option value="PENDING">Chờ thanh toán</option>
+                                    <option value="REVIEW">Cần đối soát</option>
+                                    <option value="CANCELLED">Đã hủy</option>
+                                    <option value="EXPIRED">Hết hạn</option>
+                                    <option value="FAILED">Thất bại</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-3 col-lg-2">
+                                <label class="form-label small fw-semibold">Năm</label>
+                                <select v-model="paymentHistoryFilters.year" @change="resetPaymentHistoryPage" class="form-select payment-history-select">
+                                    <option value="ALL">Tất cả năm</option>
+                                    <option v-for="year in paymentHistoryYears" :key="year" :value="String(year)">{{ year }}</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-3 col-lg-3">
+                                <label class="form-label small fw-semibold">Tháng</label>
+                                <select v-model="paymentHistoryFilters.month" @change="resetPaymentHistoryPage" class="form-select payment-history-select">
+                                    <option value="ALL">Tất cả tháng</option>
+                                    <option v-for="month in 12" :key="month" :value="String(month)">Tháng {{ month }}</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-4 d-flex gap-2">
+                                <button @click="resetPaymentHistoryFilters" class="btn payment-history-reset px-3 py-2">
+                                    <i class="ti ti-refresh me-1"></i> Đặt lại
+                                </button>
+                                <div class="small text-muted-sync align-self-center ms-auto text-end">
+                                    {{ filteredPaymentHistoryOrders.length }} giao dịch
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="isLoadingOrders" class="text-center py-5">
+                        <div class="spinner-border text-success"></div>
+                        <p class="text-muted-sync small mt-3 mb-0">Đang tải lịch sử thanh toán...</p>
+                    </div>
+
+                    <div v-else-if="filteredPaymentHistoryOrders.length === 0" class="text-center py-5 rounded-4" style="border:1px dashed var(--border-color);">
+                        <i class="ti ti-receipt-off text-muted-sync d-block mb-3" style="font-size: 34px;"></i>
+                        <h2 class="h5 fw-bold">Chưa có giao dịch phù hợp</h2>
+                        <p class="text-muted-sync mb-3">Hãy đổi bộ lọc hoặc chọn gói để bắt đầu nạp token.</p>
+                        <a href="/orders" class="btn btn-success rounded-pill px-4">Xem các gói</a>
+                    </div>
+
+                    <template v-else>
+                        <div class="table-responsive payment-history-table-wrap">
+                            <table class="table align-middle mb-0 custom-sync-table payment-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã đơn</th>
+                                        <th>Gói token</th>
+                                        <th>Phương thức</th>
+                                        <th class="text-center">Token</th>
+                                        <th class="text-end">Số tiền</th>
+                                        <th class="text-center">Trạng thái</th>
+                                        <th>Thời gian tạo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="order in paginatedPaymentHistoryOrders" :key="order.id">
+                                        <td><code class="text-success">{{ order.orderCode }}</code></td>
+                                        <td>{{ order.pkg ? order.pkg.name : '—' }}</td>
+                                        <td><span class="text-muted-sync small">{{ order.paymentMethod || '—' }}</span></td>
+                                        <td class="text-center"><span v-if="order.status === 'SUCCESS'" class="fw-bold text-success">+{{ order.pkg ? order.pkg.tokens : 0 }}</span><span v-else class="text-muted-sync">—</span></td>
+                                        <td class="text-end fw-semibold">{{ formatPrice(order.totalPrice) }}đ</td>
+                                        <td class="text-center"><span class="badge rounded-pill" :class="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</span></td>
+                                        <td class="text-muted-sync small">{{ formatDate(order.createdAt) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-if="paymentHistoryTotalPages > 1" class="d-flex justify-content-between align-items-center mt-4">
+                            <span class="small text-muted-sync">Trang {{ paymentHistoryPage }} / {{ paymentHistoryTotalPages }}</span>
+                            <div class="btn-group">
+                                <button @click="changePaymentHistoryPage(-1)" :disabled="paymentHistoryPage === 1" class="btn btn-outline-secondary btn-sm"><i class="ti ti-chevron-left"></i> Trước</button>
+                                <button @click="changePaymentHistoryPage(1)" :disabled="paymentHistoryPage === paymentHistoryTotalPages" class="btn btn-outline-secondary btn-sm">Sau <i class="ti ti-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </section>
+    </div>
+</body>
+
+</html>

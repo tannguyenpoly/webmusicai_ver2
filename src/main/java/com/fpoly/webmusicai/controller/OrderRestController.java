@@ -20,6 +20,7 @@ import com.fpoly.webmusicai.entity.Package;
 import com.fpoly.webmusicai.repository.*;
 import com.fpoly.webmusicai.config.VNPayConfig;
 import com.fpoly.webmusicai.service.PaymentService;
+import com.fpoly.webmusicai.service.PaymentCompletionResult;
 import com.fpoly.webmusicai.service.OrderLifecycleService;
 import lombok.extern.slf4j.Slf4j;
 
@@ -191,8 +192,12 @@ public class OrderRestController {
             String transactionId = String.valueOf(
                     payload.getOrDefault("id", payload.getOrDefault("referenceCode", "")));
 
-            paymentService.complete(orderCode, "SEPAY", transactionId, amount, payload.toString());
-            return ResponseEntity.ok(Map.of("success", true));
+            PaymentCompletionResult result = paymentService.complete(
+                    orderCode, "SEPAY", transactionId, amount, payload.toString());
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "status", result.status(),
+                    "message", result.message()));
         } catch (Exception e) {
             log.error("Lỗi xác thực SePay IPN", e);
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
@@ -236,8 +241,8 @@ public class OrderRestController {
 
     @GetMapping("/my-orders")
     public ResponseEntity<?> getMyOrders() {
-        return ResponseEntity.ok(orderRepo.findByUserUsernameAndStatusOrderByCreatedAtDesc(
-                SecurityContextHolder.getContext().getAuthentication().getName(), "SUCCESS"));
+        return ResponseEntity.ok(orderRepo.findByUserUsernameOrderByCreatedAtDesc(
+                SecurityContextHolder.getContext().getAuthentication().getName()));
     }
 
     @PostMapping("/{orderCode}/cancel")

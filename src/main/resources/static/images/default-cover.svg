@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-label="Ảnh bìa MusicAI">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#103a24"/><stop offset="1" stop-color="#07130d"/></linearGradient>
+    <radialGradient id="glow" cx="50%" cy="38%" r="52%"><stop stop-color="#42d978" stop-opacity=".55"/><stop offset="1" stop-color="#42d978" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="600" height="600" rx="58" fill="url(#bg)"/>
+  <rect width="600" height="600" rx="58" fill="url(#glow)"/>
+  <circle cx="300" cy="300" r="137" fill="none" stroke="#86efac" stroke-opacity=".28" stroke-width="9"/>
+  <path d="M340 158v234.5a72 72 0 1 1-28-56.6V213l122-33v177.5a72 72 0 1 1-28-56.6V143z" fill="#d7ffe5"/>
+  <text x="300" y="525" text-anchor="middle" fill="#a7f3c4" font-family="Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="3">MUSICAI</text>
+</svg>

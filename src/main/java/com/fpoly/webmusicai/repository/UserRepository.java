@@ -17,6 +17,19 @@ import java.util.Date;
 
 public interface UserRepository extends JpaRepository<User, String> {
     Page<User> findByUsernameContainingIgnoreCaseOrFullnameContainingIgnoreCase(String username, String fullname, Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE "
+            + "(:keyword IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+            + "OR LOWER(u.fullname) LIKE LOWER(CONCAT('%', :keyword, '%'))) "
+            + "AND (:tier IS NULL OR u.accountTier = :tier) "
+            + "AND (:createdFrom IS NULL OR u.createdAt >= :createdFrom) "
+            + "AND (:createdTo IS NULL OR u.createdAt <= :createdTo) "
+            + "AND (:roleFilter = 'ALL' "
+            + "OR (:roleFilter = 'ADMIN' AND EXISTS (SELECT a FROM Authority a WHERE a.user = u AND a.role.id = 'ADMIN')) "
+            + "OR (:roleFilter = 'USER' AND NOT EXISTS (SELECT a FROM Authority a WHERE a.user = u AND a.role.id = 'ADMIN')))")
+    Page<User> findForAdmin(@Param("keyword") String keyword, @Param("tier") String tier,
+            @Param("createdFrom") Date createdFrom, @Param("createdTo") Date createdTo,
+            @Param("roleFilter") String roleFilter, Pageable pageable);
     List<User> findByEmail(String email);
     Optional<User> findFirstByEmail(String email);
     List<User> findByEmailIgnoreCase(String email);

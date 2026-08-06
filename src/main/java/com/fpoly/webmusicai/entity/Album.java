@@ -29,6 +29,9 @@ public class Album implements Serializable {
     @Column(name = "cover_url")
     private String coverUrl;
 
+    @Column(name = "is_public")
+    private Boolean isPublic = false;
+
     @Temporal(TemporalType.DATE)
     @Column(name = "release_date")
     private Date releaseDate;

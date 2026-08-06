@@ -2,6 +2,7 @@ package com.fpoly.webmusicai.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -66,8 +67,9 @@ public class PlaylistRestController {
     }
 
     @GetMapping("/public")
-    public ResponseEntity<List<Playlist>> getPublicPlaylists() {
-        return ResponseEntity.ok(playlistRepo.findByIsPublicTrueOrderByCreatedAtDesc());
+    public ResponseEntity<List<Map<String, Object>>> getPublicPlaylists() {
+        return ResponseEntity.ok(playlistRepo.findByIsPublicTrueOrderByCreatedAtDesc().stream()
+                .map(this::toPlaylistSummary).toList());
     }
 
     @GetMapping("/{id}")
@@ -83,8 +85,12 @@ public class PlaylistRestController {
                 return ResponseEntity.status(403)
                         .body(Map.of("message", "Playlist này đang ở chế độ riêng tư"));
             }
-            List<PlaylistSong> songs = playlistSongRepo.findByPlaylistIdOrderBySortOrderAsc(id);
-            return ResponseEntity.ok(Map.of("playlist", playlist, "songs", songs));
+            List<Map<String, Object>> songs = playlistSongRepo.findByPlaylistIdOrderBySortOrderAsc(id).stream()
+                    .map(PlaylistSong::getSong)
+                    .filter(song -> isOwner || isAdmin || Boolean.TRUE.equals(song.getIsPublic()))
+                    .map(Song::toMap)
+                    .toList();
+            return ResponseEntity.ok(Map.of("playlist", toPlaylistSummary(playlist), "songs", songs));
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -100,7 +106,7 @@ public class PlaylistRestController {
     }
 
     @GetMapping("/user/{username}")
-    public ResponseEntity<List<Playlist>> getPlaylistsByUser(@PathVariable String username) {
+    public ResponseEntity<List<Map<String, Object>>> getPlaylistsByUser(@PathVariable String username) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = auth != null ? auth.getName() : "anonymousUser";
         boolean canSeePrivate = username.equals(currentUsername)
@@ -109,7 +115,7 @@ public class PlaylistRestController {
         List<Playlist> playlists = canSeePrivate
                 ? playlistRepo.findByUserUsernameOrderByCreatedAtDesc(username)
                 : playlistRepo.findByUserUsernameAndIsPublicTrueOrderByCreatedAtDesc(username);
-        return ResponseEntity.ok(playlists);
+        return ResponseEntity.ok(playlists.stream().map(this::toPlaylistSummary).toList());
     }
 
     @PutMapping("/{id}")
@@ -214,5 +220,22 @@ public class PlaylistRestController {
             log.info("Xóa bài #{} khỏi playlist #{}", songId, playlistId);
             return ResponseEntity.ok(Map.of("message", "Đã xóa bài hát khỏi playlist"));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private Map<String, Object> toPlaylistSummary(Playlist playlist) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", playlist.getId());
+        result.put("type", "PLAYLIST");
+        result.put("name", playlist.getName());
+        result.put("title", playlist.getName());
+        result.put("isPublic", Boolean.TRUE.equals(playlist.getIsPublic()));
+        result.put("createdAt", playlist.getCreatedAt());
+        result.put("songCount", playlistSongRepo.countByPlaylistId(playlist.getId()));
+        if (playlist.getUser() != null) {
+            result.put("username", playlist.getUser().getUsername());
+            result.put("authorName", playlist.getUser().getFullname());
+            result.put("authorPhoto", playlist.getUser().getPhoto());
+        }
+        return result;
     }
 }

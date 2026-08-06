@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Ảnh đại diện mặc định MusicAI</title>
+  <desc id="desc">Biểu tượng nốt nhạc trên nền xanh đậm</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1fd16b"/>
+      <stop offset="100%" stop-color="#0b4327"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="80" fill="url(#background)"/>
+  <circle cx="80" cy="80" r="57" fill="none" stroke="#eaffef" stroke-opacity=".22" stroke-width="2"/>
+  <path d="M103 42v54.5a20.5 20.5 0 1 1-8-16.2V58.4l-31 7.7v39.4a20.5 20.5 0 1 1-8-16.2V59.8L103 48z" fill="#fff"/>
+</svg>

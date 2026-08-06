@@ -2,6 +2,8 @@ package com.fpoly.webmusicai.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -57,6 +59,8 @@ public class AlbumRestController {
         album.setTitle(title.trim());
         album.setDescription((String) body.get("description"));
         album.setCoverUrl((String) body.get("cover_url"));
+        Object visibility = body.containsKey("isPublic") ? body.get("isPublic") : body.get("is_public");
+        album.setIsPublic(Boolean.TRUE.equals(visibility));
         album.setUser(user);
 
         albumRepo.save(album);
@@ -66,15 +70,33 @@ public class AlbumRestController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Album>> getAllAlbums() {
-        return ResponseEntity.ok(albumRepo.findAll());
+    public ResponseEntity<List<Map<String, Object>>> getAllAlbums() {
+        return ResponseEntity.ok(albumRepo.findByIsPublicTrueOrderByCreatedAtDesc().stream()
+                .map(this::toAlbumSummary).toList());
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<Map<String, Object>>> getPublicAlbums() {
+        return ResponseEntity.ok(albumRepo.findByIsPublicTrueOrderByCreatedAtDesc().stream()
+                .map(this::toAlbumSummary).toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getAlbumById(@PathVariable Integer id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = isAuthenticated(auth) ? auth.getName() : "anonymousUser";
+        boolean isAdmin = isAdmin(auth);
         return albumRepo.findById(id).map(album -> {
-            List<AlbumSong> songs = albumSongRepo.findByAlbumIdOrderByTrackNumberAsc(id);
-            return ResponseEntity.ok(Map.of("album", album, "songs", songs));
+            boolean isOwner = album.getUser() != null && username.equals(album.getUser().getUsername());
+            if (!Boolean.TRUE.equals(album.getIsPublic()) && !isOwner && !isAdmin) {
+                return ResponseEntity.status(403).body(Map.of("message", "Album này đang ở chế độ riêng tư"));
+            }
+            List<Map<String, Object>> songs = albumSongRepo.findByAlbumIdOrderByTrackNumberAsc(id).stream()
+                    .map(AlbumSong::getSong)
+                    .filter(song -> isOwner || isAdmin || Boolean.TRUE.equals(song.getIsPublic()))
+                    .map(Song::toMap)
+                    .toList();
+            return ResponseEntity.ok(Map.of("album", toAlbumSummary(album), "songs", songs));
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -82,8 +104,12 @@ public class AlbumRestController {
     public ResponseEntity<?> getAlbumsByUser(@PathVariable String username,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean canSeePrivate = isAuthenticated(auth) && (username.equals(auth.getName()) || isAdmin(auth));
         Pageable pageable = PageRequest.of(page, size);
-        Page<Album> albums = albumRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable);
+        Page<Album> albums = canSeePrivate
+                ? albumRepo.findByUserUsernameOrderByCreatedAtDesc(username, pageable)
+                : albumRepo.findByUserUsernameAndIsPublicTrueOrderByCreatedAtDesc(username, pageable);
         return ResponseEntity.ok(albums);
     }
 
@@ -110,6 +136,10 @@ public class AlbumRestController {
             }
             if (body.containsKey("cover_url")) {
                 album.setCoverUrl((String) body.get("cover_url"));
+            }
+            if (body.containsKey("is_public") || body.containsKey("isPublic")) {
+                Object visibility = body.containsKey("isPublic") ? body.get("isPublic") : body.get("is_public");
+                album.setIsPublic(Boolean.TRUE.equals(visibility));
             }
 
             albumRepo.save(album);
@@ -170,7 +200,7 @@ public class AlbumRestController {
 
 	@DeleteMapping("/{albumId}/songs/{songId}")
 	@Transactional
-	public ResponseEntity<?> removeSongFromAlbum(@PathVariable Integer albumId, @PathVariable Integer songId) {
+    public ResponseEntity<?> removeSongFromAlbum(@PathVariable Integer albumId, @PathVariable Integer songId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
 
@@ -187,5 +217,34 @@ public class AlbumRestController {
             log.info("Xóa bài #{} khỏi album #{}", songId, albumId);
             return ResponseEntity.ok(Map.of("message", "Đã xóa bài hát khỏi album"));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private boolean isAuthenticated(Authentication auth) {
+        return auth != null && auth.isAuthenticated()
+                && auth.getAuthorities().stream().noneMatch(a -> "ROLE_ANONYMOUS".equals(a.getAuthority()));
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        return isAuthenticated(auth) && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
+    private Map<String, Object> toAlbumSummary(Album album) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", album.getId());
+        result.put("type", "ALBUM");
+        result.put("title", album.getTitle());
+        result.put("description", album.getDescription());
+        result.put("coverUrl", album.getCoverUrl());
+        result.put("isPublic", Boolean.TRUE.equals(album.getIsPublic()));
+        result.put("createdAt", album.getCreatedAt());
+        result.put("releaseDate", album.getReleaseDate());
+        result.put("songCount", albumSongRepo.countByAlbumId(album.getId()));
+        if (album.getUser() != null) {
+            result.put("username", album.getUser().getUsername());
+            result.put("authorName", album.getUser().getFullname());
+            result.put("authorPhoto", album.getUser().getPhoto());
+        }
+        return result;
     }
 }

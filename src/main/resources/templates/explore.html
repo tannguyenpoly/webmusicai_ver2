@@ -1,371 +1,68 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
-
 <body>
     <div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;" v-cloak>
-
-        <!-- ================= EXPLORE HERO TITLE & SEARCH ================= -->
-        <div class="mb-4 pt-4 text-center" style="position: relative; z-index: 2;">
-            <h2 class="fw-extrabold" style="font-size: 34px; letter-spacing: -1.2px; font-weight: 800; background: linear-gradient(135deg, #ffffff 40%, var(--brand-green) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px;">Khám Phá Giai Điệu Mới</h2>
-            <p class="text-muted-sync small mb-4">Tìm kiếm và cảm nhận các tác phẩm ấn tượng từ cộng đồng trí tuệ nhân tạo MusicAI</p>
-            
-            <div class="d-flex flex-column align-items-center">
-                <div class="input-group search-box-container" style="max-width: 600px; background: rgba(120, 120, 120, 0.05); border: 1px solid var(--border-color); border-radius: 30px; overflow: hidden; padding: 4px 16px;">
-                    <span class="input-group-text border-0 bg-transparent text-muted-sync"><i class="ti ti-search" style="font-size: 20px;"></i></span>
-                    <input type="text" v-model="filters.keyword" class="form-control border-0 bg-transparent py-2" placeholder="Tìm tên bài hát, tác giả hoặc ý tưởng prompt..." style="box-shadow: none; font-size: 14px; color: var(--text-color) !important;">
-                    <span v-if="filters.keyword" @click="filters.keyword = ''" class="input-group-text border-0 bg-transparent text-muted-sync" style="cursor: pointer;"><i class="ti ti-x" style="font-size: 18px;"></i></span>
-                    <span class="badge px-3 py-2 d-flex align-items-center bg-success-subtle text-success border border-success-subtle ms-2 my-auto" style="border-radius: 20px; font-size: 11px;">
-                        {{ filteredSongs.length }} giai điệu
-                    </span>
+        <section class="app-surface-card explore-page-hero mb-4">
+            <h1>Khám phá nhạc và người sáng tạo</h1>
+            <div class="explore-search d-flex align-items-center">
+                <i class="ti ti-search text-muted-sync me-2"></i>
+                <input v-model="filters.keyword" class="form-control border-0 bg-transparent" type="search" placeholder="Tìm bài nhạc hoặc tác giả..." aria-label="Tìm bài nhạc hoặc tác giả">
+                <button v-if="filters.keyword" @click="filters.keyword = ''" class="btn btn-sm border-0 text-muted-sync"><i class="ti ti-x"></i></button>
+                <span class="explore-search-count">{{ filteredSongs.length }} bài</span>
+            </div>
+            <div v-if="genres.length || availableTags.length" class="explore-filter-panel explore-filter-panel-inline">
+                <div v-if="genres.length" class="explore-filter-group">
+                    <button v-for="genre in genres" :key="genre.id" @click="selectedExploreGenreId = selectedExploreGenreId === genre.id ? null : genre.id" class="explore-genre-chip" :class="{ active: selectedExploreGenreId === genre.id }">{{ genre.name }}</button>
                 </div>
-            </div>
-        </div>
-
-        <!-- ================= DYNAMIC GENRE TAGS ================= -->
-        <div class="d-flex flex-wrap gap-2.5 justify-content-center mb-5 mt-2" style="position: relative; z-index: 2;">
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Lofi'}" @click="filters.keyword = filters.keyword === 'Lofi' ? '' : 'Lofi'">
-                <i class="ti ti-coffee me-1.5 fs-6"></i> Lofi
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Pop'}" @click="filters.keyword = filters.keyword === 'Pop' ? '' : 'Pop'">
-                <i class="ti ti-headphones me-1.5 fs-6"></i> Pop
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'EDM'}" @click="filters.keyword = filters.keyword === 'EDM' ? '' : 'EDM'">
-                <i class="ti ti-flame me-1.5 fs-6"></i> EDM
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Acoustic'}" @click="filters.keyword = filters.keyword === 'Acoustic' ? '' : 'Acoustic'">
-                <i class="ti ti-guitar me-1.5 fs-6"></i> Acoustic
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Ballad'}" @click="filters.keyword = filters.keyword === 'Ballad' ? '' : 'Ballad'">
-                <i class="ti ti-heart me-1.5 fs-6"></i> Ballad
-            </div>
-            <div class="genre-tag" :class="{'genre-tag-active': filters.keyword === 'Rap'}" @click="filters.keyword = filters.keyword === 'Rap' ? '' : 'Rap'">
-                <i class="ti ti-microphone me-1.5 fs-6"></i> Rap
-            </div>
-        </div>
-
-        <!-- ================= CASE A: ACTIVE SEARCH RESULTS ================= -->
-        <div v-if="filters.keyword.trim() !== ''" style="position: relative; z-index: 2;">
-            
-            <!-- CREATOR SEARCH RESULTS SECTION -->
-            <div v-if="matchingCreators.length > 0" class="mb-5">
-                <div class="section-heading-row mb-3">
-                    <div class="section-title-wrapper">
-                        <i class="ti ti-users text-success me-2 fs-4"></i>
-                        <span class="section-title">Tác giả ({{ matchingCreators.length }})</span>
-                    </div>
+                <div v-if="availableTags.length" class="explore-filter-group">
+                    <button v-for="tag in availableTags" :key="tag.id" @click="selectedExploreTagId = selectedExploreTagId === tag.id ? null : tag.id" class="explore-genre-chip" :class="{ active: selectedExploreTagId === tag.id }">#{{ tag.name }}</button>
+                    <span v-if="isLoadingExploreTag" class="explore-filter-loading"><span class="spinner-border spinner-border-sm me-1"></span>Đang lọc</span>
                 </div>
-                <div class="row g-3">
-                    <div v-for="creator in matchingCreators" :key="creator.username" class="col-12 col-sm-6 col-md-4 col-lg-3">
-                        <div class="card h-100 border-0 shadow-sm p-3 text-center d-flex flex-column align-items-center justify-content-between"
-                             style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color) !important; border-radius: 18px; backdrop-filter: blur(10px); transition: transform 0.2s, border-color 0.2s;"
-                             onmouseover="this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(22, 163, 74, 0.5)';"
-                             onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='var(--border-color)';">
-                            <div class="mb-2 position-relative">
-                                <img :src="creator.photo" class="rounded-circle shadow" style="width: 64px; height: 64px; object-fit: cover; border: 2.5px solid #16a34a;" alt="Avatar">
-                            </div>
-                            <h6 class="fw-bold mb-0 text-truncate w-100" style="color: var(--text-color); font-size: 14px;">{{ creator.fullname || creator.username }}</h6>
-                            <small class="text-muted-sync mb-2" style="font-size: 11px;">@{{ creator.username }}</small>
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 mb-3" style="font-size: 11px;">
-                                <i class="ti ti-music me-1"></i>{{ creator.total_songs }} bài hát
-                            </span>
-                            <div class="d-flex gap-2 w-100">
-                                <a :href="'/profile?username=' + creator.username" class="btn btn-sm btn-outline-secondary rounded-pill flex-grow-1 py-1" style="font-size: 12px; color: var(--text-color); border-color: var(--border-color);">
-                                    <i class="ti ti-user me-1"></i>Hồ sơ
-                                </a>
-                                <button @click="startChatWith(creator.username)" class="btn btn-sm btn-success rounded-pill flex-grow-1 py-1" style="font-size: 12px; background: #16a34a; border: 0;">
-                                    <i class="ti ti-brand-messenger me-1"></i>Chat
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <button v-if="selectedExploreGenreId !== null || selectedExploreTagId !== null" @click="selectedExploreGenreId = null; selectedExploreTagId = null" class="explore-filter-reset"><i class="ti ti-refresh me-1"></i>Xóa lọc</button>
             </div>
+        </section>
 
-            <!-- SONGS SEARCH RESULTS SECTION -->
-            <div class="section-heading-row mb-4">
-                <div class="section-title-wrapper">
-                    <div class="title-glow-dot"></div>
-                    <span class="section-title">Bài hát tìm thấy ({{ filteredSongs.length }})</span>
+        <template v-if="filters.keyword.trim() !== ''">
+            <section v-if="matchingCreators.length" class="explore-section">
+                <div class="explore-section-head"><h2 class="explore-section-title">Tác giả</h2></div>
+                <div class="creator-search-grid">
+                    <article v-for="creator in matchingCreators" :key="creator.username" class="explore-result-card">
+                        <img :src="formatAvatarUrl(creator.photo, creator.fullname || creator.username)" @error="onImageError($event)" class="creator-avatar" alt="Ảnh đại diện tác giả">
+                        <h3 class="creator-name">{{ creator.fullname || creator.username }}</h3><div class="creator-handle">@{{ creator.username }}</div>
+                        <div class="creator-metrics"><span><i class="ti ti-music me-1"></i>{{ creator.total_songs || 0 }} bài</span></div>
+                        <a :href="'/profile?username=' + creator.username" class="creator-profile-link">Xem hồ sơ</a>
+                    </article>
                 </div>
-            </div>
-            
-            <div v-if="filteredSongs.length > 0" class="suno-grid">
-                <div v-for="song in filteredSongs" :key="song.id" class="suno-card" @click="goToSongDetail(song.id)">
-                    <div class="suno-cover-wrapper">
-                        <img :src="getSongCover(song)" class="suno-cover-img" alt="Ảnh bìa bài hát" />
-                        
-                        <div class="suno-top-play-btn" @click.stop="playTrack(song)">
-                            <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
-                        </div>
-
-                        <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
-                            <i class="ti ti-share"></i>
-                        </div>
-
-                        <div class="suno-play-overlay" @click.stop="playTrack(song)">
-                            <div class="suno-play-btn-circle">
-                                <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
-                            </div>
-                        </div>
-
-                        <div class="suno-stats-overlay">
-                            <span class="suno-stat-badge">
-                                <i class="ti ti-headset" style="font-size: 10px;"></i>
-                                {{ getListensCount(song) }}
-                            </span>
-                            <span class="suno-stat-badge">
-                                <i class="ti ti-heart-filled text-danger" style="font-size: 10px;"></i>
-                                {{ getLikesCount(song) }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <h6 class="suno-card-title">{{ song.title }}</h6>
-                    <div class="suno-card-author-row">
-                        <img :src="formatAvatarUrl(null, song.username)" class="suno-card-avatar" alt="User Avatar" />
-                        <span class="suno-card-author-name">{{ song.username || 'Nhà sáng tạo MusicAI' }}</span>
-                    </div>
+            </section>
+            <section class="explore-section">
+                <div class="explore-section-head"><h2 class="explore-section-title">Bài nhạc</h2></div>
+                <div v-if="filteredSongs.length" class="explore-song-grid">
+                    <article v-for="song in filteredSongs.slice(0, 10)" :key="song.id" class="explore-song-card" @click="goToSongDetail(song.id)">
+                        <div class="explore-song-art"><img :src="getSongCover(song)" @error="onImageError($event, 'cover')" alt="Ảnh bìa bài hát"><button @click.stop="playTrack(song)" class="explore-song-play" :aria-label="'Phát ' + song.title"><i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play-filled']"></i></button><button @click.stop="toggleLike(song)" class="explore-song-like" :class="{ 'is-liked': song.liked_by_me }"><i :class="song.liked_by_me ? 'ti ti-heart-filled' : 'ti ti-heart'"></i></button><span class="explore-song-stat"><i class="ti ti-headphones me-1"></i>{{ getListensCount(song) }}</span></div>
+                        <h3 class="explore-song-title">{{ song.title }}</h3><div class="explore-song-author">{{ song.authorName || song.username || 'MusicAI' }}</div>
+                    </article>
                 </div>
-            </div>
+                <div v-else class="app-empty-state"><i class="ti ti-search-off d-block mb-2 fs-3"></i>Không tìm thấy nội dung phù hợp.</div>
+            </section>
+        </template>
 
-            <!-- Empty Search State -->
-            <div v-if="filteredSongs.length === 0 && matchingCreators.length === 0" class="text-center text-muted py-5 border border-dashed rounded-4" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
-                <i class="ti ti-search-off mb-2 text-muted" style="font-size: 32px; display: block;"></i>
-                <span style="font-size: 13px;">Không tìm thấy bài hát hoặc tác giả nào phù hợp với từ khóa của bạn.</span>
-            </div>
-        </div>
+        <template v-else-if="exploreSection === 'creators'">
+            <section class="explore-section"><div class="explore-section-head"><div><button @click="closeExploreSection" class="explore-see-all explore-back-button mb-3"><i class="ti ti-arrow-left me-1"></i>Quay lại</button><h2 class="explore-section-title">Tất cả tác giả nổi bật</h2></div></div><div class="creator-search-grid"><article v-for="creator in featuredCreators" :key="creator.username" class="creator-card"><img :src="formatAvatarUrl(creator.photo, creator.name || creator.username)" @error="onImageError($event)" class="creator-avatar" alt="Ảnh đại diện tác giả"><h3 class="creator-name">{{ creator.name }}</h3><div class="creator-handle">@{{ creator.username }}</div><div class="creator-metrics"><span><i class="ti ti-music me-1"></i>{{ creator.songCount }} bài</span><span><i class="ti ti-heart me-1"></i>{{ creator.likes }}</span></div><a :href="'/profile?username=' + creator.username" class="creator-profile-link">Xem hồ sơ</a></article></div></section>
+        </template>
 
-        <!-- ================= XEM TOÀN BỘ MỘT NHÓM ================= -->
-        <div v-else-if="exploreSection" style="position: relative; z-index: 2;">
-            <div class="section-heading-row mb-4">
-                <div class="section-title-wrapper">
-                    <button class="btn btn-sm action-btn-gray me-2" @click="closeExploreSection">
-                        <i class="ti ti-arrow-left"></i>
-                    </button>
-                    <span class="section-title">
-                        {{ exploreSection === 'trending' ? 'Tất cả bài đang thịnh hành'
-                            : (exploreSection === 'new' ? 'Tất cả bài mới phát hành' : 'Tất cả sáng tác từ phòng thu') }}
-                    </span>
-                </div>
-            </div>
-            <div class="suno-grid">
-                <div v-for="song in activeExploreSongs" :key="'all-' + song.id"
-                    class="suno-card" @click="goToSongDetail(song.id)">
-                    <div class="suno-cover-wrapper">
-                        <img :src="getSongCover(song)" class="suno-cover-img" alt="Ảnh bìa bài hát" />
-                        <div class="suno-top-play-btn" @click.stop="playTrack(song)">
-                            <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
-                        </div>
-                    </div>
-                    <h6 class="suno-card-title">{{ song.title }}</h6>
-                    <div class="suno-card-author-row">
-                        <img :src="formatAvatarUrl(null, song.username)" class="suno-card-avatar" alt="Ảnh đại diện" />
-                        <span class="suno-card-author-name">{{ song.username || 'Nhà sáng tạo MusicAI' }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <template v-else-if="exploreSection">
+            <section class="explore-section"><div class="explore-section-head"><div><button @click="closeExploreSection" class="explore-see-all explore-back-button mb-3"><i class="ti ti-arrow-left me-1"></i>Quay lại</button><h2 class="explore-section-title">{{ exploreSection === 'trending' ? 'Đang thịnh hành' : 'Mới phát hành' }}</h2></div></div><div class="explore-song-grid"><article v-for="song in activeExploreSongs.slice(0, 10)" :key="song.id" class="explore-song-card" @click="goToSongDetail(song.id)"><div class="explore-song-art"><img :src="getSongCover(song)" @error="onImageError($event, 'cover')" alt="Ảnh bìa bài hát"><button @click.stop="playTrack(song)" class="explore-song-play"><i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play-filled']"></i></button><button @click.stop="toggleLike(song)" class="explore-song-like" :class="{ 'is-liked': song.liked_by_me }"><i :class="song.liked_by_me ? 'ti ti-heart-filled' : 'ti ti-heart'"></i></button><span class="explore-song-stat"><i class="ti ti-headphones me-1"></i>{{ getListensCount(song) }}</span></div><h3 class="explore-song-title">{{ song.title }}</h3><div class="explore-song-author">{{ song.authorName || song.username || 'MusicAI' }}</div></article></div></section>
+        </template>
 
-        <!-- ================= CÁC DÒNG KHÁM PHÁ ================= -->
-        <div v-else style="position: relative; z-index: 2;">
-            
-            <!-- Nhóm 1: Sáng tác từ Studio -->
-            <div class="explore-row-container">
-                <div class="section-heading-row">
-                    <div class="section-title-wrapper">
-                        <div class="title-glow-dot"></div>
-                        <span class="section-title">Sáng tác từ phòng thu</span>
-                    </div>
-                </div>
-                
-                <!-- Scroll Buttons -->
-                <button class="scroll-btn left" @click="scrollRow('studioRow', 'left')">
-                    <i class="ti ti-chevron-left fs-5"></i>
-                </button>
-                
-                <div class="suno-explore-row" ref="studioRow">
-                    <div v-for="song in publicSongs.slice(0, 10)" :key="'studio-' + song.id" class="explore-card" @click="goToSongDetail(song.id)">
-                        <div class="explore-cover-wrapper">
-                            <img :src="getSongCover(song)" class="explore-cover-img" alt="Ảnh bìa" />
-                            
-                            <div class="explore-top-play-btn" @click.stop="playTrack(song)">
-                                <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
-                            </div>
-
-                            <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
-                                <i class="ti ti-share"></i>
-                            </div>
-
-                            <div class="explore-play-overlay" @click.stop="playTrack(song)">
-                                <div class="explore-play-btn-circle">
-                                    <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
-                                </div>
-                            </div>
-
-                            <div class="explore-stats-overlay">
-                                <span class="explore-stat-badge">
-                                    <i class="ti ti-headset" style="font-size: 9px;"></i>
-                                    {{ getListensCount(song) }}
-                                </span>
-                                <span class="explore-stat-badge">
-                                    <i class="ti ti-heart-filled text-danger" style="font-size: 9px;"></i>
-                                    {{ getLikesCount(song) }}
-                                </span>
-                            </div>
-                        </div>
-                        <h6 class="explore-card-title">{{ song.title }}</h6>
-                        <div class="explore-card-author-row">
-                            <img :src="formatAvatarUrl(null, song.username)" class="explore-card-avatar" alt="Avatar" />
-                            <span class="explore-card-author-name">{{ song.username || 'Nhà sáng tạo MusicAI' }}</span>
-                        </div>
-                    </div>
-                    <div class="explore-card" @click="openExploreSection('studio')">
-                        <div class="explore-cover-wrapper d-flex flex-column align-items-center justify-content-center"
-                            style="background: linear-gradient(135deg, rgba(22,163,74,.18), rgba(22,163,74,.04)); border: 1px solid rgba(22,163,74,.3);">
-                            <i class="ti ti-arrow-right-circle text-success" style="font-size: 42px;"></i>
-                            <span class="small fw-semibold mt-2">Xem tất cả</span>
-                        </div>
-                        <h6 class="explore-card-title">Toàn bộ sáng tác</h6>
-                    </div>
-                </div>
-                
-                <button class="scroll-btn right" @click="scrollRow('studioRow', 'right')">
-                    <i class="ti ti-chevron-right fs-5"></i>
-                </button>
-            </div>
-
-            <!-- Nhóm 2: Đang thịnh hành -->
-            <div class="explore-row-container">
-                <div class="section-heading-row">
-                    <div class="section-title-wrapper">
-                        <div class="title-glow-dot"></div>
-                        <span class="section-title">Đang thịnh hành</span>
-                    </div>
-                </div>
-                
-                <!-- Scroll Buttons -->
-                <button class="scroll-btn left" @click="scrollRow('trendingRow', 'left')">
-                    <i class="ti ti-chevron-left fs-5"></i>
-                </button>
-                
-                <div class="suno-explore-row" ref="trendingRow">
-                    <div v-for="song in [...publicSongs].sort((a,b) => (b.total_likes || 0) - (a.total_likes || 0)).slice(0, 10)" :key="'trending-' + song.id" class="explore-card" @click="goToSongDetail(song.id)">
-                        <div class="explore-cover-wrapper">
-                            <img :src="getSongCover(song)" class="explore-cover-img" alt="Ảnh bìa" />
-                            
-                            <div class="explore-top-play-btn" @click.stop="playTrack(song)">
-                                <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
-                            </div>
-
-                            <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
-                                <i class="ti ti-share"></i>
-                            </div>
-
-                            <div class="explore-play-overlay" @click.stop="playTrack(song)">
-                                <div class="explore-play-btn-circle">
-                                    <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
-                                </div>
-                            </div>
-
-                            <div class="explore-stats-overlay">
-                                <span class="explore-stat-badge">
-                                    <i class="ti ti-headset" style="font-size: 9px;"></i>
-                                    {{ getListensCount(song) }}
-                                </span>
-                                <span class="explore-stat-badge">
-                                    <i class="ti ti-heart-filled text-danger" style="font-size: 9px;"></i>
-                                    {{ getLikesCount(song) }}
-                                </span>
-                            </div>
-                        </div>
-                        <h6 class="explore-card-title">{{ song.title }}</h6>
-                        <div class="explore-card-author-row">
-                            <img :src="formatAvatarUrl(null, song.username)" class="explore-card-avatar" alt="Avatar" />
-                            <span class="explore-card-author-name">{{ song.username || 'Nhà sáng tạo MusicAI' }}</span>
-                        </div>
-                    </div>
-                    <div class="explore-card" @click="openExploreSection('trending')">
-                        <div class="explore-cover-wrapper d-flex flex-column align-items-center justify-content-center"
-                            style="background: linear-gradient(135deg, rgba(22,163,74,.18), rgba(22,163,74,.04)); border: 1px solid rgba(22,163,74,.3);">
-                            <i class="ti ti-arrow-right-circle text-success" style="font-size: 42px;"></i>
-                            <span class="small fw-semibold mt-2">Xem tất cả</span>
-                        </div>
-                        <h6 class="explore-card-title">Toàn bộ thịnh hành</h6>
-                    </div>
-                </div>
-                
-                <button class="scroll-btn right" @click="scrollRow('trendingRow', 'right')">
-                    <i class="ti ti-chevron-right fs-5"></i>
-                </button>
-            </div>
-
-            <!-- Nhóm 3: Mới phát hành -->
-            <div class="explore-row-container">
-                <div class="section-heading-row">
-                    <div class="section-title-wrapper">
-                        <div class="title-glow-dot"></div>
-                        <span class="section-title">Mới phát hành</span>
-                    </div>
-                </div>
-                
-                <!-- Scroll Buttons -->
-                <button class="scroll-btn left" @click="scrollRow('newRow', 'left')">
-                    <i class="ti ti-chevron-left fs-5"></i>
-                </button>
-                
-                <div class="suno-explore-row" ref="newRow">
-                    <div v-for="song in [...publicSongs].sort((a,b) => new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0)).slice(0, 10)" :key="'new-' + song.id" class="explore-card" @click="goToSongDetail(song.id)">
-                        <div class="explore-cover-wrapper">
-                            <img :src="getSongCover(song)" class="explore-cover-img" alt="Ảnh bìa" />
-                            
-                            <div class="explore-top-play-btn" @click.stop="playTrack(song)">
-                                <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']"></i>
-                            </div>
-
-                            <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
-                                <i class="ti ti-share"></i>
-                            </div>
-
-                            <div class="explore-play-overlay" @click.stop="playTrack(song)">
-                                <div class="explore-play-btn-circle">
-                                    <i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play']" :style="isTrackPlaying(song.id) ? '' : 'padding-left: 2px;'"></i>
-                                </div>
-                            </div>
-
-                            <div class="explore-stats-overlay">
-                                <span class="explore-stat-badge">
-                                    <i class="ti ti-headset" style="font-size: 9px;"></i>
-                                    {{ getListensCount(song) }}
-                                </span>
-                                <span class="explore-stat-badge">
-                                    <i class="ti ti-heart-filled text-danger" style="font-size: 9px;"></i>
-                                    {{ getLikesCount(song) }}
-                                </span>
-                            </div>
-                        </div>
-                        <h6 class="explore-card-title">{{ song.title }}</h6>
-                        <div class="explore-card-author-row">
-                            <img :src="formatAvatarUrl(null, song.username)" class="explore-card-avatar" alt="Avatar" />
-                            <span class="explore-card-author-name">{{ song.username || 'Nhà sáng tạo MusicAI' }}</span>
-                        </div>
-                    </div>
-                    <div class="explore-card" @click="openExploreSection('new')">
-                        <div class="explore-cover-wrapper d-flex flex-column align-items-center justify-content-center"
-                            style="background: linear-gradient(135deg, rgba(22,163,74,.18), rgba(22,163,74,.04)); border: 1px solid rgba(22,163,74,.3);">
-                            <i class="ti ti-arrow-right-circle text-success" style="font-size: 42px;"></i>
-                            <span class="small fw-semibold mt-2">Xem tất cả</span>
-                        </div>
-                        <h6 class="explore-card-title">Toàn bộ bài mới</h6>
-                    </div>
-                </div>
-                
-                <button class="scroll-btn right" @click="scrollRow('newRow', 'right')">
-                    <i class="ti ti-chevron-right fs-5"></i>
-                </button>
-            </div>
-
-        </div>
-
+        <template v-else>
+            <section id="explore-trending" class="explore-section"><div class="explore-section-head"><h2 class="explore-section-title">Đang thịnh hành</h2><button @click="openExploreSection('trending')" class="explore-see-all">Xem tất cả <i class="ti ti-arrow-right"></i></button></div><div class="explore-song-row"><article v-for="song in trendingSongs.slice(0, 5)" :key="song.id" class="explore-song-card" @click="goToSongDetail(song.id)"><div class="explore-song-art"><img :src="getSongCover(song)" @error="onImageError($event, 'cover')" alt="Ảnh bìa bài hát"><button @click.stop="playTrack(song)" class="explore-song-play" :aria-label="'Phát ' + song.title"><i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play-filled']"></i></button><button @click.stop="toggleLike(song)" class="explore-song-like" :class="{ 'is-liked': song.liked_by_me }"><i :class="song.liked_by_me ? 'ti ti-heart-filled' : 'ti ti-heart'"></i></button><span class="explore-song-stat"><i class="ti ti-headphones me-1"></i>{{ getListensCount(song) }}</span></div><h3 class="explore-song-title">{{ song.title }}</h3><div class="explore-song-author">{{ song.authorName || song.username || 'MusicAI' }}</div></article></div></section>
+            <section id="explore-new" class="explore-section"><div class="explore-section-head"><h2 class="explore-section-title">Mới phát hành</h2><button @click="openExploreSection('new')" class="explore-see-all">Xem tất cả <i class="ti ti-arrow-right"></i></button></div><div class="explore-song-row"><article v-for="song in newReleaseSongs.slice(0, 5)" :key="song.id" class="explore-song-card" @click="goToSongDetail(song.id)"><div class="explore-song-art"><img :src="getSongCover(song)" @error="onImageError($event, 'cover')" alt="Ảnh bìa bài hát"><button @click.stop="playTrack(song)" class="explore-song-play" :aria-label="'Phát ' + song.title"><i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play-filled']"></i></button><button @click.stop="toggleLike(song)" class="explore-song-like" :class="{ 'is-liked': song.liked_by_me }"><i :class="song.liked_by_me ? 'ti ti-heart-filled' : 'ti ti-heart'"></i></button><span class="explore-song-stat"><i class="ti ti-headphones me-1"></i>{{ getListensCount(song) }}</span></div><h3 class="explore-song-title">{{ song.title }}</h3><div class="explore-song-author">{{ song.authorName || song.username || 'MusicAI' }}</div></article></div></section>
+            <section id="explore-creators" class="explore-section"><div class="explore-section-head"><h2 class="explore-section-title">Tác giả nổi bật</h2><button @click="openExploreSection('creators')" class="explore-see-all">Xem tác giả <i class="ti ti-arrow-right"></i></button></div><div class="creator-row"><article v-for="creator in featuredCreators.slice(0, 5)" :key="creator.username" class="creator-card"><img :src="formatAvatarUrl(creator.photo, creator.name || creator.username)" @error="onImageError($event)" class="creator-avatar" alt="Ảnh đại diện tác giả"><h3 class="creator-name">{{ creator.name }}</h3><div class="creator-handle">@{{ creator.username }}</div><div class="creator-metrics"><span><i class="ti ti-music me-1"></i>{{ creator.songCount }} bài</span><span><i class="ti ti-heart me-1"></i>{{ creator.likes }}</span></div><a :href="'/profile?username=' + creator.username" class="creator-profile-link">Xem hồ sơ</a></article></div></section>
+            <section v-if="communityCollections.length" class="explore-section">
+                <div class="explore-section-head"><h2 class="explore-section-title">Bộ sưu tập từ cộng đồng</h2></div>
+                <div class="community-collection-grid"><article v-for="collection in communityCollections" :key="collection.type + '-' + collection.id" class="community-collection-card" @click="openCollection(collection.type, collection.id)"><div class="community-collection-icon" :class="{ album: collection.type === 'ALBUM' }"><i :class="collection.type === 'ALBUM' ? 'ti ti-disc' : 'ti ti-playlist'"></i></div><div class="min-w-0"><span class="community-collection-type">{{ collection.type === 'ALBUM' ? 'Album' : 'Playlist' }}</span><h3>{{ collection.title }}</h3><p>{{ collection.songCount }} bài · {{ collection.authorName || collection.username }}</p></div><i class="ti ti-chevron-right collection-arrow"></i></article></div>
+            </section>
+        </template>
     </div>
 </body>
 </html>

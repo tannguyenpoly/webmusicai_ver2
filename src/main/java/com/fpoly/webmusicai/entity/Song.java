@@ -88,9 +88,14 @@ public class Song implements Serializable {
 		map.put("parentId", this.getParentId());
 		map.put("coverUrl", this.getCoverUrl());
 		map.put("listenCount", this.getListenCount() != null ? this.getListenCount() : 0);
+		map.put("genres", this.getGenres() == null ? List.of() : this.getGenres().stream()
+				.map(genre -> Map.of("id", genre.getId(), "name", genre.getName()))
+				.toList());
 
 		if (this.getUser() != null) {
 			map.put("username", this.getUser().getUsername());
+			map.put("authorName", this.getUser().getFullname());
+			map.put("authorPhoto", this.getUser().getPhoto());
 		}
 		return map;
 	}

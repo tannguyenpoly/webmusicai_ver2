@@ -76,4 +76,10 @@ public class User implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "last_seen_at")
     private Date lastSeenAt;
+
+    /** Thời điểm tài khoản được tạo, phục vụ quản trị và báo cáo. */
+    @JsonIgnore
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at")
+    private Date createdAt = new Date();
 }

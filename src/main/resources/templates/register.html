@@ -319,6 +319,14 @@
     </div>
 </div>
 
+<!-- Nạp module trước main.js: trang đăng ký dùng Vue methods trong account.js. -->
+<script th:src="@{/js/modules/wizard.js(v=${#dates.createNow().getTime()})}"></script>
+<script th:src="@{/js/modules/navigation.js(v=${#dates.createNow().getTime()})}"></script>
+<script th:src="@{/js/modules/library.js(v=${#dates.createNow().getTime()})}"></script>
+<script th:src="@{/js/modules/music.js(v=${#dates.createNow().getTime()})}"></script>
+<script th:src="@{/js/modules/account.js(v=${#dates.createNow().getTime()})}"></script>
+<script th:src="@{/js/modules/social.js(v=${#dates.createNow().getTime()})}"></script>
+<script th:src="@{/js/modules/chat.js(v=${#dates.createNow().getTime()})}"></script>
 <script th:src="@{/js/main.js(v=${#dates.createNow().getTime()})}"></script>
 </body>
 </html>

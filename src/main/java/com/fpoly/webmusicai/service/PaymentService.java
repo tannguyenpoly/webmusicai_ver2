@@ -23,25 +23,22 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final MailService mailService;
-    private final OrderLifecycleService orderLifecycleService;
 
     public PaymentService(
             OrderRepository orderRepository,
             PaymentLogRepository paymentLogRepository,
             UserRepository userRepository,
             TransactionRepository transactionRepository,
-            MailService mailService,
-            OrderLifecycleService orderLifecycleService) {
+            MailService mailService) {
         this.orderRepository = orderRepository;
         this.paymentLogRepository = paymentLogRepository;
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
         this.mailService = mailService;
-        this.orderLifecycleService = orderLifecycleService;
     }
 
     @Transactional
-    public boolean complete(
+    public PaymentCompletionResult complete(
             String orderCode,
             String gateway,
             String transactionId,
@@ -49,22 +46,22 @@ public class PaymentService {
             String rawContent) {
         if (transactionId == null || transactionId.isBlank()
                 || paymentLogRepository.existsByTransactionId(transactionId)) {
-            return false;
+            return new PaymentCompletionResult("DUPLICATE", "Giao dịch đã được xử lý trước đó");
         }
 
         Order order = orderRepository.findByOrderCodeForUpdate(orderCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
-        if (orderLifecycleService.expireIfNeeded(order)) {
-            return false;
+        String previousStatus = order.getStatus() == null ? "PENDING" : order.getStatus().toUpperCase();
+        if ("SUCCESS".equals(previousStatus)) {
+            return new PaymentCompletionResult("DUPLICATE", "Đơn hàng đã thanh toán thành công");
         }
-        if ("SUCCESS".equals(order.getStatus())) {
-            return false;
-        }
-        if (!"PENDING".equals(order.getStatus())) {
-            throw new IllegalStateException("Đơn hàng không còn chờ thanh toán");
+        if (!java.util.Set.of("PENDING", "CANCELLED", "EXPIRED").contains(previousStatus)) {
+            return saveForReview(order, gateway, transactionId, receivedAmount, rawContent,
+                    "Đơn đang ở trạng thái " + previousStatus + ", cần Admin đối soát");
         }
         if (receivedAmount != order.getTotalPrice()) {
-            throw new IllegalArgumentException("Số tiền nhận không khớp giá trị đơn hàng");
+            return saveForReview(order, gateway, transactionId, receivedAmount, rawContent,
+                    "Số tiền không khớp. Cần " + order.getTotalPrice() + ", nhận " + receivedAmount);
         }
 
         PaymentLog log = new PaymentLog();
@@ -77,7 +74,48 @@ public class PaymentService {
 
         order.setStatus("SUCCESS");
         orderRepository.save(order);
+        creditOrderBenefits(order, "Thanh toán thành công qua " + gateway + " - Mã: " + orderCode);
+        String message = ("CANCELLED".equals(previousStatus) || "EXPIRED".equals(previousStatus))
+                ? "Đã nhận thanh toán muộn hợp lệ và cộng token"
+                : "Thanh toán thành công";
+        return new PaymentCompletionResult("SUCCESS", message);
+    }
 
+    @Transactional
+    public PaymentCompletionResult approveReview(String orderCode) {
+        Order order = orderRepository.findByOrderCodeForUpdate(orderCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
+        if (!"REVIEW".equalsIgnoreCase(order.getStatus())) {
+            throw new IllegalStateException("Chỉ đơn CẦN ĐỐI SOÁT mới có thể xác nhận thủ công");
+        }
+
+        order.setStatus("SUCCESS");
+        orderRepository.save(order);
+        creditOrderBenefits(order, "Admin xác nhận đối soát - Mã: " + orderCode);
+        return new PaymentCompletionResult("SUCCESS", "Admin đã xác nhận và cộng token cho người dùng");
+    }
+
+    private PaymentCompletionResult saveForReview(
+            Order order,
+            String gateway,
+            String transactionId,
+            int receivedAmount,
+            String rawContent,
+            String reason) {
+        PaymentLog log = new PaymentLog();
+        log.setOrderCode(order.getOrderCode());
+        log.setGatewayName(gateway);
+        log.setTransactionId(transactionId);
+        log.setAmount(receivedAmount);
+        log.setContent("[CẦN ĐỐI SOÁT] " + reason + "\n" + (rawContent == null ? "" : rawContent));
+        paymentLogRepository.save(log);
+
+        order.setStatus("REVIEW");
+        orderRepository.save(order);
+        return new PaymentCompletionResult("REVIEW", reason);
+    }
+
+    private void creditOrderBenefits(Order order, String transactionDescription) {
         User user = userRepository.findByUsernameForUpdate(order.getUser().getUsername())
                 .orElseThrow(() -> new IllegalStateException("Không tìm thấy người mua"));
         user.setTokenBalance((user.getTokenBalance() == null ? 0 : user.getTokenBalance())
@@ -101,10 +139,8 @@ public class PaymentService {
         Transaction transaction = new Transaction();
         transaction.setUser(user);
         transaction.setAmount(order.getPkg().getTokens());
-        transaction.setDescription("Thanh toán thành công qua " + gateway + " - Mã: " + orderCode);
+        transaction.setDescription(transactionDescription);
         transactionRepository.save(transaction);
-
         mailService.sendInvoiceEmail(user, order);
-        return true;
     }
 }

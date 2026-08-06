@@ -58,6 +58,16 @@ public class WebController {
 		return "profile";
 	}
 
+	@GetMapping("/library")
+	public String library() {
+		return "library";
+	}
+
+	@GetMapping({ "/playlists/{id}", "/albums/{id}" })
+	public String collectionDetail() {
+		return "collection-detail";
+	}
+
 	@GetMapping("/admin")
 	public String admin() {
 		return "admin";
@@ -66,5 +76,10 @@ public class WebController {
 	@GetMapping("/orders")
 	public String orders() {
 		return "orders";
+	}
+
+	@GetMapping("/payment-history")
+	public String paymentHistory() {
+		return "payment-history";
 	}
 }

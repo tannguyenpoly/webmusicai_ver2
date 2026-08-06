@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
     <style>
         [v-cloak] { display: none !important; }
@@ -286,6 +287,31 @@
             border-color: #16a34a !important;
             box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15) !important;
         }
+        .dashboard-stat-card { min-height: 92px; padding: 17px 18px; }
+        .dashboard-ranking-card { min-height: 286px; overflow: hidden; }
+        .dashboard-ranking-card .card-body { min-height: 224px; }
+        .dashboard-ranking-card .table-custom { table-layout: fixed; }
+        .dashboard-ranking-card .table-custom td:first-child { overflow: hidden; text-overflow: ellipsis; }
+        .form-select-custom option { background: #151b17; color: #f4fff5; }
+        [data-theme="light"] .form-select-custom option { background: #ffffff; color: #1a1f1b; }
+
+        .time-filter-card { border-radius: 18px; background: linear-gradient(135deg, rgba(22,163,74,.09), rgba(255,255,255,.01)); }
+        /* Bộ lọc luôn là một hàng; màn hình hẹp cuộn ngang thay vì đẩy nút xuống dòng. */
+        .time-filter-card .card-body { overflow-x: auto; }
+        .time-filter-grid { display: grid; gap: 12px; align-items: end; min-width: 900px; }
+        .song-time-filter-grid, .order-time-filter-grid { grid-template-columns: minmax(175px,1.35fr) minmax(160px,1.12fr) minmax(125px,.85fr) minmax(125px,.95fr) minmax(125px,.95fr) minmax(142px,auto); }
+        .revenue-time-filter-grid { grid-template-columns: minmax(175px,1.35fr) minmax(145px,1fr) minmax(145px,1fr) minmax(145px,1fr) minmax(142px,auto); }
+        .time-filter-grid > div { min-width: 0; }
+        .filter-action-group { flex-wrap: nowrap !important; white-space: nowrap; }
+        .filter-action-group .btn { min-height: 42px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+        .filter-action-group .btn-admin-primary { min-width: 88px; padding: 9px 25px; }
+        .filter-action-group .btn-admin-outline { min-width: 48px; padding: 9px 14px; }
+        .time-range-preview { display: flex; gap: 10px; align-items: center; padding: 10px 13px; border: 1px dashed rgba(74,222,128,.38); background: rgba(22,163,74,.06); border-radius: 12px; color: var(--text-color); font-size: 13px; }
+        .time-range-preview small { color: var(--text-muted); }
+        .revenue-chart-card { min-height: 330px; }
+        .revenue-chart-wrap { position: relative; height: 270px; }
+        @media (max-width: 991px) { .time-filter-card .card-body { padding-bottom: 16px; } }
+        @media (max-width: 575px) { .revenue-chart-wrap { height: 230px; } }
 
         .btn-admin-primary {
             background: #16a34a !important;
@@ -338,6 +364,7 @@
         .badge-completed { background: rgba(22, 163, 74, 0.15); color: #4ade80; }
         .badge-pending { background: rgba(234, 179, 8, 0.15); color: #facc15; }
         .badge-failed { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-review { background: rgba(249, 115, 22, 0.18); color: #fb923c; }
 
         .section-tab {
             display: none;
@@ -446,6 +473,10 @@
                     <i class="ti ti-coin"></i>
                     <span class="nav-label">Doanh thu</span>
                 </a>
+                <a class="nav-item" :class="{ active: activeTab === 'orders' }" @click.prevent="activeTab = 'orders'" href="#">
+                    <i class="ti ti-shopping-cart"></i>
+                    <span class="nav-label">Đơn hàng</span>
+                </a>
                 <a class="nav-item" :class="{ active: activeTab === 'transactions' }" @click.prevent="activeTab = 'transactions'" href="#">
                     <i class="ti ti-history"></i>
                     <span class="nav-label">Lịch sử Giao dịch</span>
@@ -470,9 +501,9 @@
                     <small class="text-muted-sync">Dữ liệu cập nhật theo thời gian thực</small>
                 </div>
 
-                <div class="row g-3 mb-4">
-                    <div class="col-6 col-md-4 col-lg-3" v-for="stat in dashboardStats" :key="stat.label">
-                        <div class="stat-card d-flex align-items-center gap-3"
+                <div class="row g-3 mb-4 dashboard-stat-grid">
+                    <div :class="dashboardStats.length === 11 && index >= 8 ? 'col-12 col-md-4' : 'col-6 col-md-4 col-lg-3'" v-for="(stat, index) in dashboardStats" :key="stat.label">
+                        <div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"
                              :class="{ clickable: stat.targetTab }"
                              :title="stat.help"
                              @click="stat.targetTab && (activeTab = stat.targetTab)">
@@ -498,9 +529,9 @@
                     </div>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="card-custom">
+                <div class="row g-3 align-items-stretch">
+                    <div class="col-md-6 d-flex">
+                        <div class="card-custom dashboard-ranking-card w-100">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <span><i class="ti ti-star text-warning me-2"></i>Top bài hát yêu thích</span>
                             </div>
@@ -519,8 +550,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="card-custom">
+                    <div class="col-md-6 d-flex">
+                        <div class="card-custom dashboard-ranking-card w-100">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <span><i class="ti ti-crown text-warning me-2"></i>Người dùng tích cực</span>
                             </div>
@@ -554,17 +585,28 @@
                     </div>
                 </div>
 
+                <div class="card-custom mb-4">
+                    <div class="card-body"><div class="row g-3 align-items-end">
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userFilters.tier" @change="loadUsers(0)" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userFilters.roleFilter" @change="loadUsers(0)" class="form-select-custom w-100"><option value="ALL">Tất cả tài khoản</option><option value="ADMIN">Chỉ quản trị viên</option><option value="USER">Chỉ người dùng</option></select></div>
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Ngày đăng ký</label><select v-model="userFilters.period" @change="loadUsers(0)" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="DAY">Hôm nay</option><option value="MONTH">Tháng này</option><option value="YEAR">Năm nay</option></select></div>
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Sắp xếp token</label><select v-model="userFilters.tokenSort" @change="loadUsers(0)" class="form-select-custom w-100"><option value="newest">Mới đăng ký</option><option value="token_desc">Cao đến thấp</option><option value="token_asc">Thấp đến cao</option></select></div>
+                        <div class="col-md-1"><button @click="resetUserFilters" class="btn btn-admin-outline w-100" title="Xóa bộ lọc"><i class="ti ti-refresh"></i></button></div>
+                    </div></div>
+                </div>
+
                 <div class="card-custom">
                     <div class="card-body p-0">
                         <table class="table table-custom">
                             <thead><tr>
-                                <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th class="text-center">Token</th><th class="text-center">Gói</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
+                                <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Ngày tạo</th><th class="text-center">Token</th><th class="text-center">Gói</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
                             </tr></thead>
                             <tbody>
                                 <tr v-for="u in usersPage.content" :key="u.username" style="cursor: pointer;">
                                     <td class="fw-medium" @click="viewUserSongs(u)">@{{ u.username }}</td>
                                     <td>{{ u.fullname }}</td>
                                     <td class="text-muted-sync">{{ u.email || '—' }}</td>
+                                    <td class="text-muted-sync" style="font-size:12px">{{ formatDate(u.createdAt) }}</td>
                                     <td class="text-center">{{ u.tokenBalance }}</td>
                                     <td class="text-center">
                                         <span class="badge-status" :class="u.accountTier === 'PRO' ? 'badge-completed' : 'badge-pending'">
@@ -581,11 +623,12 @@
                                             <i :class="u.enabled ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
                                             {{ u.enabled ? 'Khóa' : 'Mở' }}
                                         </button>
-                                        <span v-else class="text-muted-sync" style="font-size: 13px;">Quản trị viên</span>
+                                        <button v-if="!u.admin" @click="toggleAdminRole(u)" class="btn btn-admin-sm btn-admin-outline ms-1" title="Cấp quyền quản trị"><i class="ti ti-shield-up"></i></button>
+                                        <button v-else @click="toggleAdminRole(u)" class="btn btn-admin-sm btn-admin-outline" title="Thu hồi quyền quản trị"><i class="ti ti-shield-down"></i> Admin</button>
                                     </td>
                                 </tr>
                                 <tr v-if="!usersPage.content || usersPage.content.length === 0">
-                                    <td colspan="7" class="text-center text-muted-sync py-4">Không tìm thấy người dùng.</td>
+                                    <td colspan="8" class="text-center text-muted-sync py-4">Không tìm thấy người dùng.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -605,36 +648,18 @@
                     <h4><i class="ti ti-music text-success me-2"></i>Quản lý bài nhạc</h4>
                 </div>
 
-                <!-- Filter UI -->
-                <div class="card-custom mb-4">
-                    <div class="card-body">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted-sync">Sắp xếp theo</label>
-                                <select class="form-select-custom w-100" v-model="songFilters.filter" @change="loadSongs(0)">
-                                    <option value="newest">Mới nhất</option>
-                                    <option value="oldest">Cũ nhất</option>
-                                    <option value="top_likes">Yêu thích nhất</option>
-                                    <option value="top_listens">Nghe nhiều nhất</option>
-                                    <option value="trending">Xu hướng (7 ngày)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted-sync">Từ ngày</label>
-                                <input type="date" class="form-input-custom w-100" v-model="songFilters.startDate" @change="loadSongs(0)">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted-sync">Đến ngày</label>
-                                <input type="date" class="form-input-custom w-100" v-model="songFilters.endDate" @change="loadSongs(0)">
-                            </div>
-                            <div class="col-md-3 d-flex gap-2">
-                                <button class="btn btn-admin-outline w-100" @click="resetSongFilters">
-                                    <i class="ti ti-refresh me-1"></i> Xóa lọc
-                                </button>
-                            </div>
-                        </div>
+                <!-- Bộ lọc thời gian dùng cùng thao tác với Doanh thu và Đơn hàng; sắp xếp là lựa chọn độc lập. -->
+                <div class="card-custom time-filter-card mb-4"><div class="card-body">
+                    <div class="time-filter-grid song-time-filter-grid">
+                        <div><label class="form-label small text-muted-sync">Sắp xếp theo</label><select class="form-select-custom w-100" v-model="songFilters.filter" @change="loadSongs(0)"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="top_likes">Yêu thích nhất</option><option value="top_listens">Nghe nhiều nhất</option><option value="trending">Xu hướng (7 ngày gần đây)</option></select></div>
+                        <div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="songTime.mode" @change="updateSongRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Tuần trong tháng</option><option value="MONTH">Tháng cụ thể</option><option value="YEAR">Năm cụ thể</option></select></div>
+                        <div v-if="songTime.mode !== 'ALL' && songTime.mode !== 'TODAY'"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="songTime.year" @change="updateSongRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
+                        <div v-if="songTime.mode === 'MONTH' || songTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="songTime.month" @change="updateSongRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="songTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="songTime.week" @change="updateSongRangePreview" class="form-select-custom w-100"><option v-for="week in songWeekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
+                        <div><label class="form-label small text-muted-sync">&nbsp;</label><div class="d-flex gap-2 filter-action-group"><button @click="applySongTimeFilter" class="btn btn-admin-primary"><i class="ti ti-filter me-1"></i>Lọc</button><button @click="resetSongFilters" class="btn btn-admin-outline" title="Đặt lại"><i class="ti ti-refresh"></i></button></div></div>
                     </div>
-                </div>
+                    <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ songStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ songEndLabel }}</b></span></div></div>
+                </div></div>
 
                 <div v-if="isLoadingSongs" class="text-center py-5">
                     <div class="spinner-border text-success"></div>
@@ -713,7 +738,7 @@
                         <table class="table table-custom">
                             <thead><tr><th>ID</th><th>Tên thể loại</th><th>Mô tả</th><th class="text-center">Thao tác</th></tr></thead>
                             <tbody>
-                                <tr v-for="g in genres" :key="g.id">
+                                <tr v-for="g in pagedGenres" :key="g.id">
                                     <td class="text-muted-sync">#{{ g.id }}</td>
                                     <td class="fw-medium">{{ g.name }}</td>
                                     <td class="text-muted-sync">{{ g.description || '—' }}</td>
@@ -731,6 +756,7 @@
                         </table>
                     </div>
                 </div>
+                <div class="pagination-custom"><button class="page-btn" :disabled="genrePagination.page === 0" @click="genrePagination.page--">Trước</button><button class="page-btn" v-for="p in genreTotalPages" :key="p" :class="{ active: p - 1 === genrePagination.page }" @click="genrePagination.page = p - 1">{{ p }}</button><button class="page-btn" :disabled="genrePagination.page >= genreTotalPages - 1" @click="genrePagination.page++">Sau</button></div>
 
                 <!-- Genre Modal -->
                 <div v-if="showGenreModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
@@ -841,28 +867,16 @@
                     <h4><i class="ti ti-coin text-success me-2"></i>Doanh thu</h4>
                 </div>
 
-                <div class="card-custom mb-4">
-                    <div class="card-body">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted-sync">Từ ngày</label>
-                                <input type="date" v-model="revenueFrom" class="form-input-custom w-100">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted-sync">Đến ngày</label>
-                                <input type="date" v-model="revenueTo" class="form-input-custom w-100">
-                            </div>
-                            <div class="col-md-3 d-flex gap-2">
-                                <button @click="loadRevenue" class="btn btn-admin-primary">
-                                    <i class="ti ti-filter me-1"></i> Lọc
-                                </button>
-                                <button @click="clearRevenueFilter" class="btn btn-admin-outline">
-                                    <i class="ti ti-refresh me-1"></i> Đặt lại
-                                </button>
-                            </div>
-                        </div>
+                <div class="card-custom time-filter-card mb-4"><div class="card-body">
+                    <div class="time-filter-grid revenue-time-filter-grid">
+                        <div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="revenueTime.mode" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Tuần trong tháng</option><option value="MONTH">Tháng cụ thể</option><option value="YEAR">Năm cụ thể</option></select></div>
+                        <div v-if="revenueTime.mode !== 'ALL' && revenueTime.mode !== 'TODAY'"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="revenueTime.year" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
+                        <div v-if="revenueTime.mode === 'MONTH' || revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="revenueTime.month" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="revenueTime.week" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="week in weekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
+                        <div><label class="form-label small text-muted-sync">&nbsp;</label><div class="d-flex gap-2 filter-action-group"><button @click="applyRevenueTimeFilter" class="btn btn-admin-primary"><i class="ti ti-filter me-1"></i>Lọc</button><button @click="clearRevenueFilter" class="btn btn-admin-outline" title="Đặt lại"><i class="ti ti-refresh"></i></button></div></div>
                     </div>
-                </div>
+                    <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ revenueStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ revenueEndLabel }}</b></span></div></div>
+                </div></div>
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
@@ -903,12 +917,15 @@
                     </div>
                 </div>
 
-                <div class="card-custom">
+                <div class="card-custom revenue-chart-card mb-4"><div class="card-header d-flex justify-content-between"><span><i class="ti ti-chart-line text-success me-2"></i>Xu hướng doanh thu</span><small class="text-muted-sync">{{ revenueRangeLabel }}</small></div><div class="card-body"><div class="revenue-chart-wrap"><canvas id="revenueTrendChart"></canvas></div></div></div>
+
+                <div class="card-custom" v-if="false">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span><i class="ti ti-receipt text-success me-2"></i>Danh sách đơn hàng</span>
                         <select v-model="orderStatusFilter" @change="loadRevenue" class="form-select-custom" style="width: auto;">
                             <option value="">Tất cả trạng thái</option>
                             <option value="PENDING">Chờ thanh toán</option>
+                            <option value="REVIEW">Cần đối soát</option>
                             <option value="SUCCESS">Thành công</option>
                             <option value="FAILED">Thất bại</option>
                             <option value="CANCELLED">Đã hủy</option>
@@ -918,7 +935,7 @@
                     <div class="card-body p-0">
                         <table class="table table-custom">
                             <thead><tr>
-                                <th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th>
+                                <th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th><th class="text-center">Thao tác</th>
                             </tr></thead>
                             <tbody>
                                 <tr v-for="o in orders" :key="o.id">
@@ -930,14 +947,39 @@
                                         <span class="badge-status" :class="'badge-' + (o.status ? o.status.toLowerCase() : 'pending')">{{ statusLabel(o.status) }}</span>
                                     </td>
                                     <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(o.createdAt) }}</td>
+                                    <td class="text-center">
+                                        <button v-if="o.status === 'REVIEW'" @click="approveReviewOrder(o)" class="btn btn-admin-sm btn-admin-primary" title="Đã kiểm tra tiền thực, cộng token cho người dùng">
+                                            <i class="ti ti-circle-check me-1"></i> Xác nhận
+                                        </button>
+                                        <span v-else class="text-muted-sync">—</span>
+                                    </td>
                                 </tr>
                                 <tr v-if="orders.length === 0">
-                                    <td colspan="6" class="text-center text-muted-sync py-4">Chưa có đơn hàng.</td>
+                                    <td colspan="7" class="text-center text-muted-sync py-4">Chưa có đơn hàng.</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- ========== ORDERS ========== -->
+            <div class="section-tab" :class="{ active: activeTab === 'orders' }">
+                <div class="page-header"><h4><i class="ti ti-shopping-cart text-success me-2"></i>Đơn hàng thanh toán</h4></div>
+                <div class="card-custom time-filter-card mb-4"><div class="card-body">
+                    <div class="time-filter-grid order-time-filter-grid"><div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="revenueTime.mode" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Tuần trong tháng</option><option value="MONTH">Tháng cụ thể</option><option value="YEAR">Năm cụ thể</option></select></div>
+                        <div v-if="revenueTime.mode !== 'ALL' && revenueTime.mode !== 'TODAY'"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="revenueTime.year" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
+                        <div v-if="revenueTime.mode === 'MONTH' || revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="revenueTime.month" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="revenueTime.week" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="week in weekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
+                        <div><label class="form-label small text-muted-sync">Trạng thái</label><select v-model="orderStatusFilter" class="form-select-custom w-100"><option value="">Tất cả</option><option value="PENDING">Chờ thanh toán</option><option value="REVIEW">Cần đối soát</option><option value="SUCCESS">Thành công</option><option value="CANCELLED">Đã hủy</option><option value="EXPIRED">Hết hạn</option><option value="FAILED">Thất bại</option></select></div>
+                        <div><label class="form-label small text-muted-sync">&nbsp;</label><div class="d-flex gap-2 filter-action-group"><button @click="applyRevenueTimeFilter" class="btn btn-admin-primary"><i class="ti ti-filter me-1"></i>Lọc</button><button @click="clearRevenueFilter" class="btn btn-admin-outline" title="Đặt lại"><i class="ti ti-refresh"></i></button></div></div></div>
+                    <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ revenueStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ revenueEndLabel }}</b></span></div></div>
+                </div></div>
+                <div class="card-custom"><div class="card-body p-0"><table class="table table-custom"><thead><tr><th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody>
+                    <tr v-for="o in ordersPage.content" :key="o.id"><td class="text-muted-sync">{{ o.orderCode }}</td><td>@{{ o.user?.username }}</td><td>{{ o.pkg?.name }}</td><td class="text-center">{{ formatPrice(o.totalPrice) }}</td><td class="text-center"><span class="badge-status" :class="'badge-' + (o.status || '').toLowerCase()">{{ statusLabel(o.status) }}</span></td><td class="text-muted-sync">{{ formatDate(o.createdAt) }}</td><td><button v-if="o.status === 'REVIEW'" @click="approveReviewOrder(o)" class="btn btn-admin-sm btn-admin-primary">Xác nhận</button></td></tr>
+                    <tr v-if="!ordersPage.content || ordersPage.content.length === 0"><td colspan="7" class="text-center text-muted-sync py-4">Không có đơn phù hợp.</td></tr>
+                </tbody></table></div></div>
+                <div class="pagination-custom" v-if="ordersPage.totalPages > 1"><button class="page-btn" :disabled="ordersPage.number === 0" @click="loadOrders(ordersPage.number - 1)">Trước</button><button class="page-btn" v-for="p in ordersPage.totalPages" :key="p" :class="{ active: p - 1 === ordersPage.number }" @click="loadOrders(p - 1)">{{ p }}</button><button class="page-btn" :disabled="ordersPage.number >= ordersPage.totalPages - 1" @click="loadOrders(ordersPage.number + 1)">Sau</button></div>
             </div>
 
             <!-- ========== TRANSACTION HISTORY ========== -->
@@ -1099,20 +1141,26 @@ new Vue({
         // Users
         usersPage: { content: [], totalPages: 0, number: 0, size: 10 },
         userSearch: '',
+        userFilters: { tier: '', roleFilter: 'ALL', period: 'ALL', tokenSort: 'newest' },
 
         // Songs
-        songsPage: { content: [], totalPages: 0, number: 0, size: 15, first: true, last: true },
+        // Đồng bộ 10 dòng/trang với Người dùng, Thể loại, Đơn hàng và lịch sử giao dịch.
+        songsPage: { content: [], totalPages: 0, number: 0, size: 10, first: true, last: true },
         isLoadingSongs: false,
         songFilters: {
             filter: 'newest',
-            startDate: null,
-            endDate: null,
         },
+        songTime: { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 },
+        songFrom: '',
+        songTo: '',
+        songStartLabel: 'Từ trước đến nay',
+        songEndLabel: 'Hôm nay',
         // This is the old filter, I'll keep it for now in case it's needed for another view, but the new one is songFilters
         songStatusFilter: '', 
 
         // Genres
         genres: [],
+        genrePagination: { page: 0, size: 10 },
         showGenreModal: false,
         genreForm: { id: null, name: '', description: '' },
 
@@ -1123,12 +1171,20 @@ new Vue({
 
         // Orders
         orders: [],
+        ordersPage: { content: [], totalPages: 0, number: 0, size: 10 },
         orderStatusFilter: '',
 
         // Revenue
         revenueData: { totalRevenue: 0, completedOrders: 0, pendingOrders: 0, failedOrders: 0 },
+        revenuePeriod: 'ALL',
+        revenueTime: { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 },
         revenueFrom: '',
         revenueTo: '',
+        revenueRangeLabel: 'Tất cả dữ liệu từ trước đến nay',
+        revenueStartLabel: 'Từ trước đến nay',
+        revenueEndLabel: 'Hôm nay',
+        revenueTrend: { labels: [], amounts: [] },
+        revenueChart: null,
 
         // Transaction History
         transactionHistoryTab: 'tokens', // 'tokens' or 'payments'
@@ -1185,11 +1241,46 @@ new Vue({
             if (newTab === 'transactions' && this.transactionsPage.content.length === 0) {
                 this.loadTransactions(0);
             }
+            if (newTab === 'revenue') this.$nextTick(() => this.renderRevenueChart());
         },
         transactionHistoryTab(newTab, oldTab) {
             if (newTab === 'payments' && this.paymentLogsPage.content.length === 0) {
                 this.loadPaymentLogs(0);
             }
+        }
+    },
+
+    computed: {
+        availableYears() {
+            const lastYear = Math.max(2030, new Date().getFullYear());
+            return Array.from({ length: lastYear - 2021 + 1 }, (_, index) => lastYear - index);
+        },
+        monthOptions() {
+            return ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12']
+                .map((label, index) => ({ value: index + 1, label }));
+        },
+        weekOptions() {
+            const totalDays = new Date(this.revenueTime.year, this.revenueTime.month, 0).getDate();
+            return Array.from({ length: Math.ceil(totalDays / 7) }, (_, index) => {
+                const start = index * 7 + 1;
+                const end = Math.min(start + 6, totalDays);
+                return { value: index + 1, label: `Tuần ${index + 1} (${start}–${end})` };
+            });
+        },
+        songWeekOptions() {
+            const totalDays = new Date(this.songTime.year, this.songTime.month, 0).getDate();
+            return Array.from({ length: Math.ceil(totalDays / 7) }, (_, index) => {
+                const start = index * 7 + 1;
+                const end = Math.min(start + 6, totalDays);
+                return { value: index + 1, label: `Tuần ${index + 1} (${start}–${end})` };
+            });
+        },
+        pagedGenres() {
+            const start = this.genrePagination.page * this.genrePagination.size;
+            return this.genres.slice(start, start + this.genrePagination.size);
+        },
+        genreTotalPages() {
+            return Math.max(1, Math.ceil(this.genres.length / this.genrePagination.size));
         }
     },
 
@@ -1227,6 +1318,7 @@ new Vue({
         statusLabel(status) {
             const labels = {
                 PENDING: 'Đang chờ',
+                REVIEW: 'Cần đối soát',
                 COMPLETED: 'Hoàn thành',
                 SUCCESS: 'Thành công',
                 FAILED: 'Thất bại',
@@ -1268,11 +1360,12 @@ new Vue({
 
         // ===== USERS =====
         loadUsers(page) {
-            const keyword = this.userSearch.trim();
-            const url = keyword
-                ? `/api/admin/users?page=${page}&size=10&keyword=${encodeURIComponent(keyword)}`
-                : `/api/admin/users?page=${page}&size=10`;
-            axios.get(url).then(r => { this.usersPage = r.data; }).catch(() => {});
+            const params = new URLSearchParams({ page, size: 10 });
+            if (this.userSearch.trim()) params.append('keyword', this.userSearch.trim());
+            Object.entries(this.userFilters).forEach(([key, value]) => {
+                if (value !== null && value !== '') params.append(key, value);
+            });
+            axios.get('/api/admin/users?' + params.toString()).then(r => { this.usersPage = r.data; }).catch(() => {});
         },
 
         searchUsers() {
@@ -1305,8 +1398,8 @@ new Vue({
             this.isLoadingSongs = true;
             let params = new URLSearchParams();
             params.append('filter', this.songFilters.filter);
-            if (this.songFilters.startDate) params.append('startDate', this.songFilters.startDate);
-            if (this.songFilters.endDate) params.append('endDate', this.songFilters.endDate);
+            if (this.songFrom) params.append('startDate', this.songFrom);
+            if (this.songTo) params.append('endDate', this.songTo);
             params.append('page', page);
             params.append('size', this.songsPage.size);
 
@@ -1324,11 +1417,12 @@ new Vue({
         },
 
         resetSongFilters() {
-            this.songFilters = {
-                filter: 'newest',
-                startDate: null,
-                endDate: null,
-            };
+            this.songFilters = { filter: 'newest' };
+            this.songTime = { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 };
+            this.songFrom = '';
+            this.songTo = '';
+            this.songStartLabel = 'Từ trước đến nay';
+            this.songEndLabel = 'Hôm nay';
             this.loadSongs(0);
         },
         getSongStatusClass(status) {
@@ -1416,7 +1510,10 @@ new Vue({
 
         // ===== GENRES =====
         loadGenres() {
-            axios.get('/api/genres').then(r => { this.genres = r.data; }).catch(() => {});
+            axios.get('/api/genres').then(r => {
+                this.genres = r.data || [];
+                if (this.genrePagination.page >= this.genreTotalPages) this.genrePagination.page = this.genreTotalPages - 1;
+            }).catch(() => {});
         },
 
         openGenreModal(g) {
@@ -1547,27 +1644,29 @@ new Vue({
         },
 
         // ===== ORDERS =====
-        loadOrders() {
+        loadOrders(page = 0) {
             const params = [];
             if (this.revenueFrom) params.push(`from=${this.revenueFrom}`);
             if (this.revenueTo) params.push(`to=${this.revenueTo}`);
             if (this.orderStatusFilter) params.push(`status=${this.orderStatusFilter}`);
+            params.push(`page=${page}`);
+            params.push(`size=${this.ordersPage.size}`);
             const url = '/api/admin/orders' + (params.length ? '?' + params.join('&') : '');
-            axios.get(url).then(r => { this.orders = r.data; }).catch(() => {});
+            axios.get(url).then(r => { this.ordersPage = r.data; this.orders = r.data.content || []; }).catch(() => {});
         },
 
         // ===== REVENUE =====
         loadRevenue() {
-            let url = '/api/admin/revenue';
-            const params = [];
-            if (this.revenueFrom) params.push(`from=${this.revenueFrom}`);
-            if (this.revenueTo) params.push(`to=${this.revenueTo}`);
-            if (params.length) url += '?' + params.join('&');
+            const params = new URLSearchParams();
+            if (this.revenueFrom) params.append('from', this.revenueFrom);
+            if (this.revenueTo) params.append('to', this.revenueTo);
+            const url = '/api/admin/revenue?' + params.toString();
 
             axios.get(url)
                 .then(r => {
                     this.revenueData = r.data;
                     this.loadOrders();
+                    this.loadRevenueTrend();
                 })
                 .catch(e => {
                     if (e.response?.data?.error) {
@@ -1577,10 +1676,156 @@ new Vue({
         },
 
         clearRevenueFilter() {
+            this.revenueTime = { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 };
             this.revenueFrom = '';
             this.revenueTo = '';
+            this.revenueRangeLabel = 'Tất cả dữ liệu từ trước đến nay';
+            this.revenueStartLabel = 'Từ trước đến nay';
+            this.revenueEndLabel = 'Hôm nay';
             this.orderStatusFilter = '';
             this.loadRevenue();
+        },
+
+        formatDateForApi(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+
+        formatDateShort(date) {
+            return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        },
+
+        buildTimeRange(choice) {
+            const now = new Date();
+            let start = null; let end = null;
+            if (choice.mode === 'TODAY') {
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                end = new Date(start);
+            } else if (choice.mode === 'YEAR') {
+                start = new Date(choice.year, 0, 1); end = new Date(choice.year, 11, 31);
+            } else if (choice.mode === 'MONTH') {
+                start = new Date(choice.year, choice.month - 1, 1); end = new Date(choice.year, choice.month, 0);
+            } else if (choice.mode === 'WEEK') {
+                const lastDay = new Date(choice.year, choice.month, 0).getDate();
+                const maxWeek = Math.ceil(lastDay / 7);
+                choice.week = Math.min(Math.max(choice.week || 1, 1), maxWeek);
+                const startDay = (choice.week - 1) * 7 + 1;
+                const endDay = Math.min(startDay + 6, lastDay);
+                start = new Date(choice.year, choice.month - 1, startDay);
+                end = new Date(choice.year, choice.month - 1, endDay);
+            }
+            return { start, end };
+        },
+
+        updateSongRangePreview() {
+            const { start, end } = this.buildTimeRange(this.songTime);
+            this.songFrom = start ? this.formatDateForApi(start) : '';
+            this.songTo = end ? this.formatDateForApi(end) : '';
+            this.songStartLabel = start ? this.formatDateShort(start) : 'Từ trước đến nay';
+            this.songEndLabel = end ? this.formatDateShort(end) : 'Hôm nay';
+        },
+
+        applySongTimeFilter() {
+            this.updateSongRangePreview();
+            this.loadSongs(0);
+        },
+
+        updateRevenueRangePreview() {
+            const choice = this.revenueTime;
+            const now = new Date();
+            let start = null; let end = null;
+            if (choice.mode === 'TODAY') {
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                end = new Date(start);
+            } else if (choice.mode === 'YEAR') {
+                start = new Date(choice.year, 0, 1); end = new Date(choice.year, 11, 31);
+            } else if (choice.mode === 'MONTH') {
+                start = new Date(choice.year, choice.month - 1, 1); end = new Date(choice.year, choice.month, 0);
+            } else if (choice.mode === 'WEEK') {
+                const lastDay = new Date(choice.year, choice.month, 0).getDate();
+                const startDay = (choice.week - 1) * 7 + 1;
+                const endDay = Math.min(startDay + 6, lastDay);
+                start = new Date(choice.year, choice.month - 1, startDay);
+                end = new Date(choice.year, choice.month - 1, endDay);
+            }
+            this.revenueFrom = start ? this.formatDateForApi(start) : '';
+            this.revenueTo = end ? this.formatDateForApi(end) : '';
+            this.revenueRangeLabel = start ? `${this.formatDateShort(start)} – ${this.formatDateShort(end)}` : 'Tất cả dữ liệu từ trước đến nay';
+            this.revenueStartLabel = start ? this.formatDateShort(start) : 'Từ trước đến nay';
+            this.revenueEndLabel = end ? this.formatDateShort(end) : 'Hôm nay';
+        },
+
+        applyRevenueTimeFilter() {
+            this.updateRevenueRangePreview();
+            this.loadRevenue();
+        },
+
+        loadRevenueTrend() {
+            const params = new URLSearchParams();
+            if (this.revenueFrom) params.append('from', this.revenueFrom);
+            if (this.revenueTo) params.append('to', this.revenueTo);
+            const byMonth = this.revenueTime.mode === 'ALL' || this.revenueTime.mode === 'YEAR';
+            params.append('granularity', byMonth ? 'MONTH' : 'DAY');
+            axios.get('/api/admin/revenue/trend?' + params.toString()).then(r => {
+                this.revenueTrend = r.data || { labels: [], amounts: [] };
+                this.$nextTick(() => this.renderRevenueChart());
+            }).catch(() => { this.revenueTrend = { labels: [], amounts: [] }; });
+        },
+
+        renderRevenueChart() {
+            if (this.activeTab !== 'revenue' || typeof Chart === 'undefined') return;
+            const canvas = document.getElementById('revenueTrendChart');
+            if (!canvas) return;
+            if (this.revenueChart) this.revenueChart.destroy();
+            const isDark = this.isDarkMode;
+            this.revenueChart = new Chart(canvas, {
+                type: 'line',
+                data: { labels: this.revenueTrend.labels || [], datasets: [{ label: 'Doanh thu (VNĐ)', data: this.revenueTrend.amounts || [], borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.16)', fill: true, tension: .35, borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#86efac' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + 'đ' } } }, scales: { x: { ticks: { color: isDark ? '#9ca3af' : '#64748b' }, grid: { color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' } }, y: { beginAtZero: true, ticks: { color: isDark ? '#9ca3af' : '#64748b', callback: value => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value) + 'đ' }, grid: { color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)' } } } }
+            });
+        },
+
+        resetUserFilters() {
+            this.userFilters = { tier: '', roleFilter: 'ALL', period: 'ALL', tokenSort: 'newest' };
+            this.loadUsers(0);
+        },
+
+        toggleAdminRole(u) {
+            const action = u.admin ? 'thu hồi quyền Admin của' : 'cấp quyền Admin cho';
+            Swal.fire({ title: 'Xác nhận quyền quản trị', text: `Bạn có chắc muốn ${action} @${u.username}?`, icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'Xác nhận', cancelButtonText: 'Hủy', confirmButtonColor: '#16a34a' }).then(result => {
+                if (!result.isConfirmed) return;
+                axios.put(`/api/admin/users/${encodeURIComponent(u.username)}/toggle-admin`).then(r => {
+                    this.Toast.fire({ icon: 'success', title: r.data.message });
+                    this.loadUsers(this.usersPage.number);
+                }).catch(e => Swal.fire('Lỗi', e.response?.data?.message || 'Không thể cập nhật quyền', 'error'));
+            });
+        },
+
+        approveReviewOrder(order) {
+            Swal.fire({
+                title: 'Xác nhận đối soát?',
+                text: `Chỉ xác nhận khi bạn đã kiểm tra tiền thực của đơn ${order.orderCode}. Token sẽ được cộng ngay cho @${order.user?.username || 'người dùng'}.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Xác nhận cộng token',
+                cancelButtonText: 'Quay lại',
+                confirmButtonColor: '#16a34a'
+            }).then(result => {
+                if (!result.isConfirmed) return;
+                axios.put(`/api/admin/orders/${encodeURIComponent(order.orderCode)}/approve-review`)
+                    .then(res => {
+                        this.Toast.fire({ icon: 'success', title: res.data.message });
+                        this.loadRevenue();
+                    })
+                    .catch(err => Swal.fire({
+                        icon: 'error',
+                        title: 'Không thể xác nhận',
+                        text: err.response?.data?.message || 'Vui lòng tải lại đơn hàng và thử lại.'
+                    }));
+            });
         },
 
         // ===== USER SONGS =====
