@@ -288,9 +288,14 @@ public class AuthController {
 		Optional<User> guestUserOpt = userRepo.findById(guestId);
 		if (guestUserOpt.isPresent()) {
 			List<Song> guestSongs = songRepo.findByUserUsernameOrderByCreatedAtDesc(guestId);
-			for (Song song : guestSongs) {
-				song.setUser(user);
-				songRepo.save(song);
+			if (!guestSongs.isEmpty()) {
+				for (Song song : guestSongs) {
+					song.setUser(user);
+					songRepo.save(song);
+				}
+				// Deduct 1 token from the user's balance because they already used 1 free guest creation
+				user.setTokenBalance(Math.max(0, user.getTokenBalance() - 1));
+				userRepo.save(user);
 			}
 			org.slf4j.LoggerFactory.getLogger(AuthController.class)
 				.info("Đã chuyển {} bài hát từ khách {} sang tài khoản {}", guestSongs.size(), guestId, username);

@@ -233,5 +233,58 @@ window.MusicAIModules.music = {
                 });
         },
 
+        getCurrentContextSongs() {
+            if (this.sessionPlaylist && this.sessionPlaylist.length > 0) {
+                return this.sessionPlaylist;
+            }
+            if (this.collectionDetail && this.collectionDetail.songs && this.collectionDetail.songs.length > 0) {
+                return this.collectionDetail.songs;
+            }
+            if (window.location.pathname.startsWith('/profile')) {
+                if (this.profileTab === 'generated' && this.profileGeneratedSongs && this.profileGeneratedSongs.length > 0) {
+                    return this.profileGeneratedSongs;
+                }
+                if (this.profileTab === 'favorites' && this.profileFavoriteSongs && this.profileFavoriteSongs.length > 0) {
+                    return this.profileFavoriteSongs;
+                }
+            }
+            if (window.location.pathname.startsWith('/favorites') && this.favoriteSongs && this.favoriteSongs.length > 0) {
+                return this.favoriteSongs;
+            }
+            if (window.location.pathname.startsWith('/library') && this.librarySongs && this.librarySongs.length > 0) {
+                return this.librarySongs;
+            }
+            if (this.publicSongs && this.publicSongs.length > 0) {
+                return this.publicSongs;
+            }
+            return [];
+        },
+
+        playNext() {
+            const songs = this.getCurrentContextSongs();
+            if (songs.length === 0) return;
+            let index = songs.findIndex(item => item.id === this.currentTrack.id);
+            if (index === -1) {
+                this.playTrack(songs[0]);
+            } else if (index < songs.length - 1) {
+                this.playTrack(songs[index + 1]);
+            } else {
+                this.playTrack(songs[0]);
+            }
+        },
+
+        playPrev() {
+            const songs = this.getCurrentContextSongs();
+            if (songs.length === 0) return;
+            let index = songs.findIndex(item => item.id === this.currentTrack.id);
+            if (index === -1) {
+                this.playTrack(songs[songs.length - 1]);
+            } else if (index > 0) {
+                this.playTrack(songs[index - 1]);
+            } else {
+                this.playTrack(songs[songs.length - 1]);
+            }
+        },
+
     }
 };

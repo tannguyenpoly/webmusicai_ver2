@@ -113,7 +113,17 @@
                     <div class="text-warning small text-center mb-2" v-if="currentTrack.status === 'PENDING'">
                         <span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px;"></span> AI đang tạo nhạc...
                     </div>
-                    <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay @play="isPlaying = true" @pause="isPlaying = false" class="w-100 custom-audio-player" v-if="currentTrack.audioUrl"></audio>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-outline-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; border-color: rgba(255,255,255,0.15); color: var(--text-color);" @click="playPrev" title="Bài trước">
+                            <i class="ti ti-player-skip-back" style="font-size: 18px;"></i>
+                        </button>
+                        <div class="flex-grow-1">
+                            <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay @play="isPlaying = true" @pause="isPlaying = false" @ended="playNext" class="w-100 custom-audio-player" v-if="currentTrack.audioUrl"></audio>
+                        </div>
+                        <button class="btn btn-outline-success rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px; border-color: rgba(255,255,255,0.15); color: var(--text-color);" @click="playNext" title="Bài tiếp theo">
+                            <i class="ti ti-player-skip-forward" style="font-size: 18px;"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- COMMENTS SECTION -->

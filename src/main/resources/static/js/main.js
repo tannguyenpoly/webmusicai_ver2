@@ -138,6 +138,10 @@ new Vue({
         isFollowing: false,
         followersCount: 0,
         followingCount: 0,
+        isLoadingFollowList: false,
+        followList: [],
+        followModalTitle: '',
+        showFollowModal: false,
         editingSongForm: { id: null, title: '', prompt: '', isPublic: false, coverUrl: '' },
         isSavingSongEdit: false,
 
@@ -636,7 +640,7 @@ new Vue({
             this.isGuest = true;
             this.guestUsername = guestId;
             this.generationForm.username = guestId;
-            this.userTokens = 5; // Default tokens for guest
+            this.userTokens = 1; // Default tokens for guest
             this.loadUserTokenBalance(guestId);
         }
 

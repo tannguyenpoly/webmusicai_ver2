@@ -233,7 +233,7 @@ public class SongRestController {
                 guestUser.setPassword("{noop}guest_nopass_" + UUID.randomUUID().toString().substring(0, 10));
                 guestUser.setFullname("Guest " + finalUsername.substring(Math.min(finalUsername.length(), 14)));
                 guestUser.setEnabled(true);
-                guestUser.setTokenBalance(5); // 5 free tokens
+                guestUser.setTokenBalance(1); // 1 free token
                 guestUser.setAccountTier("FREE");
                 guestUser.setAuthProvider("LOCAL");
                 guestUser.setTokenVersion(0);
