@@ -385,6 +385,26 @@ window.MusicAIModules.social = {
                 });
         },
 
+        onBellClick() {
+            if (!this.currentUser) return;
+            axios.get('/api/notifications?limit=20')
+                .then(response => {
+                    this.notifications = response.data || [];
+                    if (this.notifications.some(notification => !notification.read)) {
+                        axios.put('/api/notifications/read-all')
+                            .then(() => {
+                                this.notifications.forEach(n => { n.read = true; });
+                                this.notificationUnreadCount = 0;
+                            });
+                    } else {
+                        this.notificationUnreadCount = 0;
+                    }
+                })
+                .catch(error => {
+                    console.error('Không thể tải thông báo:', error);
+                });
+        },
+
         openNotification(notification) {
             if (notification.type === 'FRIEND_REQUEST' || notification.type === 'FRIEND_ACCEPTED') {
                 if (!notification.read) {
@@ -422,9 +442,9 @@ window.MusicAIModules.social = {
         removeFriendship() {
             if (!this.friendStatus.id) return;
             axios.delete(`/api/friends/${this.friendStatus.id}`)
-                .then(() => {
+                .then(res => {
                     this.friendStatus = { id: null, status: 'NONE' };
-                    this.Toast.fire({ icon: 'success', title: 'Đã cập nhật quan hệ bạn bè' });
+                    this.Toast.fire({ icon: 'success', title: res.data.message || 'Đã xóa kết bạn' });
                 });
         },
 

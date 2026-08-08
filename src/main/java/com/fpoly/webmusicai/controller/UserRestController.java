@@ -492,6 +492,18 @@ public class UserRestController {
 		));
 	}
 
+	@GetMapping("/{username}/followers")
+	public ResponseEntity<?> getFollowers(@PathVariable String username) {
+		List<User> followers = followRepo.findFollowersList(username);
+		return ResponseEntity.ok(followers);
+	}
+
+	@GetMapping("/{username}/following")
+	public ResponseEntity<?> getFollowing(@PathVariable String username) {
+		List<User> following = followRepo.findFollowingList(username);
+		return ResponseEntity.ok(following);
+	}
+
 	private void refreshExpiredTier(User user) {
 		if (user.getProExpiredAt() != null
 				&& user.getProExpiredAt().before(new Date())

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fpoly.webmusicai.entity.Notification;
 import com.fpoly.webmusicai.repository.NotificationRepository;
@@ -47,6 +48,7 @@ public class NotificationRestController {
     }
 
     @PutMapping("/{id}/read")
+    @Transactional
     public ResponseEntity<?> markRead(@PathVariable Integer id, Principal principal) {
         Notification notification = notificationRepository.findById(id).orElse(null);
         if (notification == null) {
@@ -62,6 +64,7 @@ public class NotificationRestController {
     }
 
     @PutMapping("/read-all")
+    @Transactional
     public Map<String, Object> markAllRead(Principal principal) {
         List<Notification> unread =
                 notificationRepository.findByUserUsernameAndReadFalse(principal.getName());

@@ -109,6 +109,12 @@
             color: var(--text-muted) !important;
         }
 
+        .dropdown-item:hover,
+        .dropdown-item:focus {
+            background-color: rgba(22, 163, 74, 0.1) !important;
+            color: var(--text-color) !important;
+        }
+
         .swal2-container {
             z-index: 99999 !important;
         }
@@ -1805,7 +1811,7 @@
             <div v-if="currentUser" class="dropdown position-fixed" style="top: 14px; right: 18px; z-index: 1080;" v-cloak>
                 <button class="btn rounded-circle position-relative d-flex align-items-center justify-content-center"
                         style="width: 42px; height: 42px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color);"
-                        data-bs-toggle="dropdown" @click="loadNotifications(true)" title="Thông báo">
+                        data-bs-toggle="dropdown" @click="onBellClick()" title="Thông báo">
                     <i class="ti ti-bell" style="font-size: 20px;"></i>
                     <span v-if="notificationUnreadCount > 0"
                           class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
@@ -2308,13 +2314,21 @@
             </div>
             
             <div class="suno-player-center">
-                <div class="suno-audio-wrapper">
-                    <div v-if="currentTrack.status === 'PENDING'" class="text-warning small text-center mb-1">
-                        <span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px;"></span> AI đang tạo nhạc...
-                        <button class="btn btn-sm btn-outline-danger ms-2 py-0 px-2"
-                                @click="cancelMusicGeneration(currentTrack)">Dừng</button>
+                <div class="suno-audio-wrapper d-flex align-items-center gap-2 w-100">
+                    <button class="suno-player-btn-circle flex-shrink-0" @click="playPrev" title="Bài trước" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                        <i class="ti ti-player-skip-back" style="font-size: 16px;"></i>
+                    </button>
+                    <div class="flex-grow-1">
+                        <div v-if="currentTrack.status === 'PENDING'" class="text-warning small text-center mb-1">
+                            <span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px;"></span> AI đang tạo nhạc...
+                            <button class="btn btn-sm btn-outline-danger ms-2 py-0 px-2"
+                                    @click="cancelMusicGeneration(currentTrack)">Dừng</button>
+                        </div>
+                        <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay @play="isPlaying = true" @pause="isPlaying = false" @ended="playNext" class="custom-audio-player w-100" v-if="currentTrack.audioUrl"></audio>
                     </div>
-                    <audio id="audio-element" :src="currentTrack.audioUrl" controls autoplay @play="isPlaying = true" @pause="isPlaying = false" class="custom-audio-player w-100" v-if="currentTrack.audioUrl"></audio>
+                    <button class="suno-player-btn-circle flex-shrink-0" @click="playNext" title="Bài tiếp theo" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                        <i class="ti ti-player-skip-forward" style="font-size: 16px;"></i>
+                    </button>
                 </div>
             </div>
             

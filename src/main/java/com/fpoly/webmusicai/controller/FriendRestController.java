@@ -129,6 +129,12 @@ public class FriendRestController {
         friendshipRepository.save(friendship);
         createNotification(friendship.getRequester(), "FRIEND_ACCEPTED",
                 friendship.getAddressee().getFullname() + " đã đồng ý lời mời kết bạn.", friendship.getId());
+        
+        List<Notification> reqNotifications = notificationRepository.findByUserUsernameAndTypeAndRefId(principal.getName(), "FRIEND_REQUEST", id);
+        if (reqNotifications != null && !reqNotifications.isEmpty()) {
+            notificationRepository.deleteAll(reqNotifications);
+        }
+        
         return ResponseEntity.ok(Map.of("status", "ACCEPTED", "message", "Đã trở thành bạn bè"));
     }
 
@@ -144,6 +150,12 @@ public class FriendRestController {
             return ResponseEntity.status(403).body(Map.of("message", "Không thể từ chối lời mời này"));
         }
         friendshipRepository.delete(friendship);
+        
+        List<Notification> reqNotifications = notificationRepository.findByUserUsernameAndTypeAndRefId(principal.getName(), "FRIEND_REQUEST", id);
+        if (reqNotifications != null && !reqNotifications.isEmpty()) {
+            notificationRepository.deleteAll(reqNotifications);
+        }
+        
         return ResponseEntity.ok(Map.of("status", "NONE", "message", "Đã từ chối lời mời kết bạn"));
     }
 
@@ -161,7 +173,7 @@ public class FriendRestController {
             return ResponseEntity.status(403).body(Map.of("message", "Không có quyền xóa quan hệ này"));
         }
         friendshipRepository.delete(friendship);
-        return ResponseEntity.ok(Map.of("status", "NONE", "message", "Đã cập nhật quan hệ bạn bè"));
+        return ResponseEntity.ok(Map.of("status", "NONE", "message", "Đã xóa kết bạn"));
     }
 
     private User otherUser(Friendship friendship, String username) {

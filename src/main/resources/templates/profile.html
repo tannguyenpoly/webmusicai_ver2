@@ -5,6 +5,10 @@
     <div id="workspace-area">
         <style>
             /* ====== MODERN PROFILE STYLES ====== */
+            .hover-underline:hover {
+                text-decoration: underline !important;
+                color: var(--brand-green) !important;
+            }
             .profile-container {
                 max-width: 960px;
                 margin: 0 auto;
@@ -265,9 +269,13 @@
                             {{ formatPresenceStatus(profilePageData) }}
                         </div>
                         <div class="small text-muted-sync d-flex justify-content-md-start justify-content-center gap-3 mt-1 mb-2">
-                            <span><strong>{{ followersCount }}</strong> người theo dõi</span>
+                            <span @click="openFollowersModal" style="cursor: pointer;" class="hover-underline">
+                                <strong>{{ followersCount }}</strong> người theo dõi
+                            </span>
                             <span>•</span>
-                            <span><strong>{{ followingCount }}</strong> đang theo dõi</span>
+                            <span @click="openFollowingModal" style="cursor: pointer;" class="hover-underline">
+                                <strong>{{ followingCount }}</strong> đang theo dõi
+                            </span>
                         </div>
                     </div>
 
@@ -559,6 +567,51 @@
                             <div class="suno-card-title text-start px-1" :title="song.title">{{ song.title }}</div>
                             <div class="suno-card-author-row text-start px-1 mb-2">
                                 <span class="suno-card-author-name text-truncate" style="max-width: 100%;">{{ song.prompt }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for Followers / Following list -->
+            <div v-if="showFollowModal" v-cloak
+                 style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display: flex; align-items: center; justify-content: center;"
+                 @click.self="closeFollowModal">
+                <div class="card shadow-lg border"
+                     style="width: 420px; max-width: 90%; border-radius: 20px; overflow: hidden; background: var(--card-bg) !important; color: var(--text-color); border-color: var(--border-color) !important; animation: fadeIn 0.3s ease;">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center pt-4 pb-2 px-4"
+                         style="border-bottom: 1px solid var(--border-color) !important;">
+                        <h5 class="mb-0 fw-bold d-flex align-items-center" style="color: var(--text-color); font-size: 18px;">
+                            <i class="ti ti-users text-success me-2" style="font-size: 24px;"></i> {{ followModalTitle }}
+                        </h5>
+                        <button @click="closeFollowModal" class="btn text-muted-sync border-0 p-0"
+                            style="font-size: 24px; background: transparent; transition: 0.2s;"
+                            onmouseover="this.style.color='#dc3545'"
+                            onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+                    </div>
+                    <div class="card-body px-4 pb-4 pt-3" style="max-height: 400px; overflow-y: auto;">
+                        <div v-if="isLoadingFollowList" class="text-center py-4">
+                            <div class="spinner-border text-success spinner-border-sm" role="status"></div>
+                            <p class="text-muted-sync small mt-2 mb-0">Đang tải danh sách...</p>
+                        </div>
+                        <div v-else-if="followList.length === 0" class="text-center py-5 text-muted-sync small">
+                            <i class="ti ti-users mb-2" style="font-size: 28px; opacity: 0.5;"></i>
+                            <p class="mb-0">Danh sách trống</p>
+                        </div>
+                        <div v-else class="d-flex flex-column gap-3">
+                            <div v-for="user in followList" :key="user.username" class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3 min-w-0">
+                                    <img :src="formatAvatarUrl(user.photo, user.fullname || user.username)" class="rounded-circle object-fit-cover" style="width: 40px; height: 40px; border: 1.5px solid var(--border-color);" alt="Avatar">
+                                    <div class="min-w-0">
+                                        <a :href="'/profile?u=' + encodeURIComponent(user.username)" class="text-decoration-none fw-bold d-block text-truncate song-link-hover" style="font-size: 14px; color: var(--text-color);" @click="closeFollowModal">
+                                            {{ user.fullname || user.username }}
+                                        </a>
+                                        <span class="small text-muted-sync d-block">@{{ user.username }}</span>
+                                    </div>
+                                </div>
+                                <a :href="'/profile?u=' + encodeURIComponent(user.username)" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-medium" @click="closeFollowModal">
+                                    Xem hồ sơ
+                                </a>
                             </div>
                         </div>
                     </div>

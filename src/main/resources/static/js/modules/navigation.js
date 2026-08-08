@@ -284,6 +284,48 @@ window.MusicAIModules.navigation = {
                 });
         },
 
+        openFollowersModal() {
+            if (!this.profileUsername) return;
+            this.followModalTitle = 'Người theo dõi';
+            this.isLoadingFollowList = true;
+            this.followList = [];
+            this.showFollowModal = true;
+            axios.get(`/api/users/${this.profileUsername}/followers`)
+                .then(res => {
+                    this.followList = res.data || [];
+                })
+                .catch(err => {
+                    console.error("Lỗi tải danh sách người theo dõi:", err);
+                    this.Toast.fire({ icon: 'error', title: 'Không thể tải danh sách người theo dõi.' });
+                })
+                .finally(() => {
+                    this.isLoadingFollowList = false;
+                });
+        },
+
+        openFollowingModal() {
+            if (!this.profileUsername) return;
+            this.followModalTitle = 'Đang theo dõi';
+            this.isLoadingFollowList = true;
+            this.followList = [];
+            this.showFollowModal = true;
+            axios.get(`/api/users/${this.profileUsername}/following`)
+                .then(res => {
+                    this.followList = res.data || [];
+                })
+                .catch(err => {
+                    console.error("Lỗi tải danh sách đang theo dõi:", err);
+                    this.Toast.fire({ icon: 'error', title: 'Không thể tải danh sách đang theo dõi.' });
+                })
+                .finally(() => {
+                    this.isLoadingFollowList = false;
+                });
+        },
+
+        closeFollowModal() {
+            this.showFollowModal = false;
+        },
+
         openSongEditModal(song) {
             this.editingSongForm = {
                 id: song.id,
