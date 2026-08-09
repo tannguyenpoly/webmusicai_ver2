@@ -1,22 +1,28 @@
 package com.fpoly.webmusicai.controller;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.fpoly.webmusicai.entity.Authority;
 import com.fpoly.webmusicai.entity.Order;
+import com.fpoly.webmusicai.entity.PaymentLog;
 import com.fpoly.webmusicai.entity.Song;
+import com.fpoly.webmusicai.entity.Transaction;
 import com.fpoly.webmusicai.entity.Tag;
 import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.entity.Role;
@@ -25,12 +31,15 @@ import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.SongTagRepository;
 import com.fpoly.webmusicai.repository.TagRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
+import com.fpoly.webmusicai.repository.TransactionRepository;
+import com.fpoly.webmusicai.repository.PaymentLogRepository;
 import com.fpoly.webmusicai.repository.AuthorityRepository;
 import com.fpoly.webmusicai.repository.RoleRepository;
 import com.fpoly.webmusicai.service.PaymentCompletionResult;
 import com.fpoly.webmusicai.service.PaymentService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import jakarta.persistence.criteria.Predicate;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -59,6 +68,12 @@ public class AdminRestController {
 
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private TransactionRepository transactionRepo;
+
+    @Autowired
+    private PaymentLogRepository paymentLogRepo;
 
 
     // ============ QUẢN LÝ USER (đã có sẵn) ============

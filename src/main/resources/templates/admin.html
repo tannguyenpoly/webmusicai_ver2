@@ -1002,17 +1002,28 @@
                     <div class="card-custom mb-4">
                         <div class="card-body">
                             <div class="row g-3 align-items-end">
-                                <div class="col-md-6">
-                                    <label class="form-label small text-muted-sync">Tìm theo Tên đăng nhập</label>
-                                    <input type="text" v-model="transactionFilters.username" @input="searchTransactions" class="form-input-custom w-100" placeholder="Để trống để xem tất cả...">
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted-sync">Từ ngày</label>
+                                    <input type="date" v-model="transactionFilters.startDate" @change="loadTransactions(0)" class="form-input-custom w-100">
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted-sync">Đến ngày</label>
+                                    <input type="date" v-model="transactionFilters.endDate" @change="loadTransactions(0)" class="form-input-custom w-100">
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label small text-muted-sync">Loại giao dịch</label>
                                     <select v-model="transactionFilters.type" @change="loadTransactions(0)" class="form-select-custom w-100">
                                         <option value="ALL">Tất cả</option>
                                         <option value="DEPOSIT">Cộng token (Nạp tiền)</option>
                                         <option value="USAGE">Trừ token (Sử dụng)</option>
                                     </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted-sync">Tìm theo Tên đăng nhập</label>
+                                    <input type="text" v-model="transactionFilters.username" @input="searchTransactions" class="form-input-custom w-100" placeholder="Để trống để xem tất cả...">
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button @click="resetTransactionFilters" class="btn btn-admin-outline w-100" title="Đặt lại bộ lọc"><i class="ti ti-refresh"></i> Đặt lại</button>
                                 </div>
                             </div>
                         </div>
@@ -1053,8 +1064,23 @@
                 <div v-if="transactionHistoryTab === 'payments'">
                     <div class="card-custom mb-4">
                         <div class="card-body">
-                            <label class="form-label small text-muted-sync">Tìm theo Mã đơn hàng, Mã giao dịch NH, Nội dung</label>
-                            <input type="text" v-model="paymentLogFilters.keyword" @input="searchPaymentLogs" class="form-input-custom w-100" placeholder="Nhập từ khóa...">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted-sync">Từ ngày</label>
+                                    <input type="date" v-model="paymentLogFilters.startDate" @change="loadPaymentLogs(0)" class="form-input-custom w-100">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted-sync">Đến ngày</label>
+                                    <input type="date" v-model="paymentLogFilters.endDate" @change="loadPaymentLogs(0)" class="form-input-custom w-100">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted-sync">Tìm theo Mã đơn hàng, Mã giao dịch NH, Nội dung</label>
+                                    <input type="text" v-model="paymentLogFilters.keyword" @input="searchPaymentLogs" class="form-input-custom w-100" placeholder="Nhập từ khóa...">
+                                </div>
+                                <div class="col-md-12 d-flex align-items-end">
+                                    <button @click="resetPaymentLogFilters" class="btn btn-admin-outline w-100" title="Đặt lại bộ lọc"><i class="ti ti-refresh"></i> Đặt lại</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div v-if="isLoadingPaymentLogs" class="text-center py-5"><div class="spinner-border text-success"></div></div>
@@ -1192,12 +1218,16 @@ new Vue({
         isLoadingTransactions: false,
         transactionFilters: {
             username: '',
-            type: 'ALL' // ALL, DEPOSIT, USAGE
+            type: 'ALL', // ALL, DEPOSIT, USAGE
+            startDate: '',
+            endDate: ''
         },
         paymentLogsPage: { content: [], totalPages: 0, number: 0, size: 15 },
         isLoadingPaymentLogs: false,
         paymentLogFilters: {
-            keyword: ''
+            keyword: '',
+            startDate: '',
+            endDate: ''
         },
         // User Songs Modal
         showUserSongsModal: false,
@@ -1478,6 +1508,8 @@ new Vue({
             params.append('size', this.transactionsPage.size);
             if (this.transactionFilters.username) params.append('username', this.transactionFilters.username);
             if (this.transactionFilters.type) params.append('type', this.transactionFilters.type);
+            if (this.transactionFilters.startDate) params.append('startDate', this.transactionFilters.startDate);
+            if (this.transactionFilters.endDate) params.append('endDate', this.transactionFilters.endDate);
 
             axios.get('/api/admin/transactions?' + params.toString())
                 .then(r => { this.transactionsPage = r.data; })
@@ -1490,12 +1522,22 @@ new Vue({
             this.transactionSearchTimer = setTimeout(() => { this.loadTransactions(0); }, 400);
         },
 
+        resetTransactionFilters() {
+            this.transactionFilters = { username: '', type: 'ALL', startDate: '', endDate: '' };
+            this.loadTransactions(0);
+        },
+
         loadPaymentLogs(page) {
             this.isLoadingPaymentLogs = true;
             let params = new URLSearchParams();
             params.append('page', page);
             params.append('size', this.paymentLogsPage.size);
             if (this.paymentLogFilters.keyword) params.append('keyword', this.paymentLogFilters.keyword);
+            if (this.paymentLogFilters.startDate) params.append('startDate', this.paymentLogFilters.startDate);
+            if (this.paymentLogFilters.endDate) params.append('endDate', this.paymentLogFilters.endDate);
+
+
+
 
             axios.get('/api/admin/payment-logs?' + params.toString())
                 .then(r => { this.paymentLogsPage = r.data; })
@@ -1506,6 +1548,11 @@ new Vue({
         searchPaymentLogs() {
             clearTimeout(this.paymentLogSearchTimer);
             this.paymentLogSearchTimer = setTimeout(() => { this.loadPaymentLogs(0); }, 400);
+        },
+
+        resetPaymentLogFilters() {
+            this.paymentLogFilters = { keyword: '', startDate: '', endDate: '' };
+            this.loadPaymentLogs(0);
         },
 
         // ===== GENRES =====
