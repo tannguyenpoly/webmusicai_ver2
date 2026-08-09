@@ -68,6 +68,9 @@ $env:DB_PASSWORD='mat-khau-sql-server'
 $env:JWT_SECRET='chuoi-ngau-nhien-toi-thieu-32-ky-tu'
 $env:GOOGLE_CLIENT_ID='google-client-id'
 $env:GOOGLE_CLIENT_SECRET='google-client-secret'
+$env:VNPAY_TMN_CODE='your-tmn-code'
+$env:VNPAY_SECRET_KEY='your-secret-key'
+$env:VNPAY_RETURN_URL='http://localhost:8080/api/orders/vnpay-return'
 $env:COLAB_MUSIC_API_URL='https://dia-chi-colab/generate-music'
 $env:MAIL_USERNAME='tai-khoan-gmail'
 $env:MAIL_PASSWORD='gmail-app-password'
@@ -91,6 +94,10 @@ sau khi khởi động lại; tài khoản không bị xóa.
 `JWT_SECRET` có thể bỏ trống khi chạy local: ứng dụng tự tạo khóa ngẫu nhiên lúc
 khởi động. Khi đó mọi phiên đăng nhập sẽ hết hiệu lực sau khi restart. Đây là hành vi
 phù hợp cho demo nhưng không phù hợp khi triển khai lâu dài.
+
+Các biến `VNPAY_*` là bắt buộc nếu muốn demo luồng thanh toán VNPay. Nếu để trống,
+hệ thống sẽ trả lỗi 503 khi tạo đơn hàng VNPay. Bạn cần thay `your-tmn-code` và
+`your-secret-key` bằng thông tin lấy từ trang VNPay sandbox.
 
 Không đưa password, JWT secret, Google secret, VNPay secret hoặc số tài khoản thật
 lên GitHub.
