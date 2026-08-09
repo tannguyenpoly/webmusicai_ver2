@@ -188,9 +188,7 @@ window.MusicAIModules.wizard = {
                 this.Toast.fire({ icon: 'success', title: 'AI đang tạo phiên bản chỉnh sửa...' });
                 this.resetWizardForNewSong();
             }).catch(error => {
-                const errorMsg = error.response && error.response.data
-                    ? (error.response.data.message || error.response.data)
-                    : 'Không thể tạo phiên bản mới.';
+                const errorMsg = error.response?.data?.message || 'Không thể tạo phiên bản mới. Vui lòng thử lại.';
                 Swal.fire({ icon: 'error', title: 'Thất bại', text: errorMsg, confirmButtonColor: '#dc3545' });
             }).finally(() => {
                 this.isGenerating = false;
