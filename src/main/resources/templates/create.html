@@ -279,6 +279,15 @@
                         <div class="wizard-section-title fw-bold mb-4">Kiểm tra bản yêu cầu</div>
                         <label class="small fw-semibold text-muted-sync mb-2">TÊN BÀI NHẠC <span class="fw-normal">(không bắt buộc)</span></label>
                         <input v-model="musicBrief.title" class="form-control custom-theme-input mb-3" placeholder="Ví dụ: Mưa chiều ở quán nhỏ">
+                        <label class="small fw-semibold text-muted-sync mb-2">PHƯƠNG THỨC TẠO NHẠC</label>
+                        <div class="d-flex gap-3 mb-3">
+                            <button type="button" @click="generationForm.engine = 'colab'" class="wizard-pill flex-fill text-center py-2 d-flex align-items-center justify-content-center gap-1.5" :class="{ 'is-selected': generationForm.engine === 'colab' }">
+                                <i class="ti ti-cpu fs-6"></i> Miễn phí (Colab)
+                            </button>
+                            <button type="button" @click="generationForm.engine = 'musicapi'" class="wizard-pill flex-fill text-center py-2 d-flex align-items-center justify-content-center gap-1.5" :class="{ 'is-selected': generationForm.engine === 'musicapi' }">
+                                <i class="ti ti-sparkles fs-6 text-warning"></i> VIP
+                            </button>
+                        </div>
                         <label class="small fw-semibold text-muted-sync mb-2">GHI CHÚ THÊM CHO AI</label>
                         <textarea v-model="musicBrief.note" rows="3" class="form-control custom-theme-input mb-3" placeholder="Ví dụ: Không quá buồn, mở đầu nhẹ trong 3 giây đầu..." style="resize:none;"></textarea>
                         <div class="wizard-preview-box p-3">

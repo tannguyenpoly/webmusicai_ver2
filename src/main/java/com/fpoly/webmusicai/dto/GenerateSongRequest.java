@@ -17,4 +17,7 @@ public class GenerateSongRequest {
     private boolean instrumental = true;
 
     private Integer genreId;
+
+    private String engine;
 }
+

@@ -257,7 +257,8 @@ public class SongRestController {
                         ticket.songId(),
                         effectivePrompt,
                         requestData.getTitle(),
-                        requestData.isInstrumental());
+                        requestData.isInstrumental(),
+                        requestData.getEngine());
             } catch (TaskRejectedException e) {
                 songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -717,7 +718,7 @@ public class SongRestController {
                     username, original, remixPrompt, customTitle);
             try {
                 musicJobService.submit(
-                        ticket.songId(), remixPrompt.trim(), customTitle, instrumental);
+                        ticket.songId(), remixPrompt.trim(), customTitle, instrumental, body.get("engine"));
             } catch (TaskRejectedException e) {
                 songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

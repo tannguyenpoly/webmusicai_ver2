@@ -33,8 +33,12 @@ public class MusicJobService {
     }
 
     public void submit(Integer songId, String prompt, String requestedTitle, boolean instrumental) {
+        submit(songId, prompt, requestedTitle, instrumental, null);
+    }
+
+    public void submit(Integer songId, String prompt, String requestedTitle, boolean instrumental, String engine) {
         FutureTask<Void> task = new FutureTask<>(() -> {
-            runGeneration(songId, prompt, requestedTitle, instrumental);
+            runGeneration(songId, prompt, requestedTitle, instrumental, engine);
             return null;
         });
         if (runningJobs.putIfAbsent(songId, task) != null) {
@@ -53,12 +57,12 @@ public class MusicJobService {
         return future != null && future.cancel(true);
     }
 
-    private void runGeneration(Integer songId, String prompt, String requestedTitle, boolean instrumental) {
+    private void runGeneration(Integer songId, String prompt, String requestedTitle, boolean instrumental, String engine) {
         try {
             if (Thread.currentThread().isInterrupted()) {
                 return;
             }
-            GeneratedMusic generatedMusic = musicGeneratorService.generateMusic(prompt, instrumental);
+            GeneratedMusic generatedMusic = musicGeneratorService.generateMusic(prompt, instrumental, engine);
             boolean completed = songGenerationService.complete(songId, generatedMusic, requestedTitle);
             if (completed) {
                 try {

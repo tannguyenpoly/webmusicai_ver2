@@ -180,7 +180,8 @@ window.MusicAIModules.wizard = {
             axios.post(`/api/songs/${originalId}/remix`, {
                 prompt: prompt,
                 title: title,
-                instrumental: this.generationForm.instrumental
+                instrumental: this.generationForm.instrumental,
+                engine: this.generationForm.engine
             }).then(response => {
                 const data = response.data;
                 this.registerQueuedSong(data, prompt, title);
