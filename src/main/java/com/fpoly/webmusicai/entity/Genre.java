@@ -36,4 +36,8 @@ public class Genre implements Serializable {
 	@ToString.Exclude
 	@EqualsAndHashCode.Exclude
 	private List<Song> songs;
+
+	public Genre(String name) {
+		this.name = name;
+	}
 }

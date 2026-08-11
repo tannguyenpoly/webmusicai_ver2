@@ -72,7 +72,7 @@ public class Song implements Serializable {
 	private User user;
 	
 	@ManyToMany
-	@JoinTable(name = "songgenres", joinColumns = @JoinColumn(name = "song_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
+	@JoinTable(name = "SongGenres", joinColumns = @JoinColumn(name = "song_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
 	private List<Genre> genres = new ArrayList<>();
 
 	public Map<String, Object> toMap() {

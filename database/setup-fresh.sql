@@ -1065,3 +1065,9 @@ SELECT 'Song_Comments' AS TableName, COUNT(*) AS TotalRows FROM Song_Comments;
 SELECT 'Notifications' AS TableName, COUNT(*) AS TotalRows FROM Notifications;
 SELECT 'Chat_Messages' AS TableName, COUNT(*) AS TotalRows FROM Chat_Messages;
 GO
+
+
+
+ALTER TABLE Songs 
+ALTER COLUMN prompt NVARCHAR(MAX) NULL;
+GO

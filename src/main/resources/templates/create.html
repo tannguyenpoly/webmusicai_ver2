@@ -298,6 +298,36 @@
                         </button>
                     </div>
                 </div>
+
+                <div id="upload-from-computer-tab" class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-upload me-2"></i>
+                            Tải nhạc lên từ máy tính
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="songTitleUpload" class="form-label">Tiêu đề bài hát <span class="text-danger">*</span></label>
+                            <input type="text" id="songTitleUpload" class="form-control" v-model="uploadForm.title" placeholder="Ví dụ: Bản nhạc chiều mưa">
+                        </div>
+                        <div class="mb-3">
+                            <label for="songFileUpload" class="form-label">Chọn file nhạc <span class="text-danger">*</span></label>
+                            <input type="file" id="songFileUpload" class="form-control" @change="handleFileSelect" ref="musicFileInput" accept="audio/*">
+                        </div>
+                        <div v-if="uploadForm.fileName" class="mb-3 text-muted small">
+                            File đã chọn: <strong>{{ uploadForm.fileName }}</strong>
+                        </div>
+                        <button class="btn btn-success w-100" @click="uploadMusicFile" :disabled="isUploading">
+                            <span v-if="isUploading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span v-if="isUploading"> Đang xử lý...</span>
+                            <span v-if="!isUploading"><i class="fas fa-cloud-upload-alt me-2"></i>Tải lên và Phân tích</span>
+                        </button>
+                        <div class="form-text mt-2">
+                            File của bạn sẽ được phân tích để tự động nhận diện thể loại. Chức năng đang trong giai đoạn thử nghiệm.
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- RIGHT PANEL: Workspaces & My Generated Songs -->

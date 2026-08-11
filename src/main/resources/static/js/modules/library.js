@@ -262,5 +262,70 @@ window.MusicAIModules.library = {
             this.startPollingStatus(data.songId);
         },
 
+        handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.uploadForm.file = file;
+                this.uploadForm.fileName = file.name;
+            } else {
+                this.uploadForm.file = null;
+                this.uploadForm.fileName = '';
+            }
+        },
+
+        uploadMusicFile() {
+            const file = this.uploadForm.file;
+            const title = this.uploadForm.title.trim();
+
+            if (!title) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập tiêu đề cho bài hát!' });
+                return;
+            }
+            if (!file) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng chọn một file nhạc để tải lên!' });
+                return;
+            }
+
+            this.isUploading = true;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('title', title);
+
+            axios.post('/api/songs/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            }).then(response => {
+                const newSong = response.data;
+                const detectedGenres = (newSong.genres && newSong.genres.length > 0)
+                    ? newSong.genres.map(g => g.name).join(', ')
+                    : 'Không thể xác định (dịch vụ phân tích có thể đang bận)';
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tải lên thành công!',
+                    html: `
+                        <div class="text-start p-2">
+                            <p class="mb-1">Bài hát <strong>${newSong.title}</strong> đã được thêm vào thư viện của bạn.</p>
+                            <p class="mb-0">Thể loại nhận dạng: <strong>${detectedGenres}</strong></p>
+                        </div>
+                    `,
+                    confirmButtonColor: '#16a34a'
+                });
+
+                // Reset form
+                this.uploadForm.title = '';
+                this.uploadForm.file = null;
+                this.uploadForm.fileName = '';
+                if (this.$refs.musicFileInput) this.$refs.musicFileInput.value = '';
+
+                // Add to the list of songs if on a relevant page (e.g., profile or create)
+                if ((window.location.pathname.includes('/profile') || window.location.pathname.includes('/create')) && this.profileGeneratedSongs) {
+                    this.profileGeneratedSongs.unshift(response.data);
+                }
+            }).catch(err => {
+                const msg = err.response?.data?.message || 'Tải lên thất bại. Vui lòng thử lại.';
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+            }).finally(() => { this.isUploading = false; });
+        },
+
     }
 };

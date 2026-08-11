@@ -179,6 +179,13 @@ new Vue({
         isLoadingLibraryAlbums: false,
 
         chatOpen: false,
+
+        isUploading: false,
+        uploadForm: {
+            title: '',
+            file: null,
+            fileName: ''
+        },
         chatContacts: [],
         activeChatUser: null,
         chatMessages: [],
