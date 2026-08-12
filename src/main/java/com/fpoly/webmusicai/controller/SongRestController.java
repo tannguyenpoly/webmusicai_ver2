@@ -26,6 +26,7 @@ import com.fpoly.webmusicai.entity.Favorite;
 import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.entity.LikeCount;
 import com.fpoly.webmusicai.entity.SongComment;
+import com.fpoly.webmusicai.entity.SongListenHistory;
 import com.fpoly.webmusicai.entity.SongTag;
 import com.fpoly.webmusicai.entity.Tag;
 import com.fpoly.webmusicai.entity.User;
@@ -34,6 +35,7 @@ import com.fpoly.webmusicai.dto.GenerateSongRequest;
 import com.fpoly.webmusicai.repository.FavoriteRepository;
 import com.fpoly.webmusicai.repository.SongCommentRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
+import com.fpoly.webmusicai.repository.SongListenHistoryRepository;
 import com.fpoly.webmusicai.repository.SongTagRepository;
 import com.fpoly.webmusicai.repository.TagRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
@@ -71,6 +73,9 @@ public class SongRestController {
 
     @Autowired
     SongRepository songRepo;
+
+    @Autowired
+    SongListenHistoryRepository songListenHistoryRepo;
 
     @Autowired
     UserRepository userRepo;
@@ -327,12 +332,23 @@ public class SongRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @Transactional
     @PostMapping("/{id}/play")
     public ResponseEntity<?> incrementListenCount(@PathVariable Integer id) {
         return songRepo.findById(id).map(song -> {
             int currentCount = song.getListenCount() != null ? song.getListenCount() : 0;
             song.setListenCount(currentCount + 1);
             songRepo.save(song);
+
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            User listener = null;
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                listener = userRepo.findById(auth.getName()).orElse(null);
+            }
+            SongListenHistory history = new SongListenHistory();
+            history.setSong(song);
+            history.setUser(listener);
+            songListenHistoryRepo.save(history);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -973,8 +989,11 @@ public class SongRestController {
                 return ResponseEntity.ok(result);
             case "trending":
                 LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-                LocalDateTime trendStartDate = (startDateTime == null || startDateTime.isBefore(sevenDaysAgo)) ? sevenDaysAgo : startDateTime;
-                songPage = songRepo.findFilteredByListenCount(trendStartDate, endDateTime, pageable);
+                // Không có khoảng thời gian thì mặc định xem tương tác trong 7 ngày gần nhất.
+                // Nếu Admin đã chọn ngày/tuần/tháng/năm, "xu hướng" tôn trọng đúng khoảng đó.
+                LocalDateTime trendStartDate = startDateTime == null ? sevenDaysAgo : startDateTime;
+                LocalDateTime trendEndDate = endDateTime == null ? LocalDateTime.now() : endDateTime;
+                songPage = songRepo.findTrendingByRecentEngagement(trendStartDate, trendEndDate, pageable);
                 break;
             case "oldest":
                 pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());

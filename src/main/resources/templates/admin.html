@@ -288,6 +288,9 @@
             box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15) !important;
         }
         .dashboard-stat-card { min-height: 92px; padding: 17px 18px; }
+        .user-spending-summary .dashboard-stat-card { min-height: 76px; padding: 13px 15px; }
+        .user-spending-summary .stat-icon { width: 38px; height: 38px; font-size: 18px; }
+        .user-spending-summary .stat-value { font-size: 23px; }
         .dashboard-ranking-card { min-height: 286px; overflow: hidden; }
         .dashboard-ranking-card .card-body { min-height: 224px; }
         .dashboard-ranking-card .table-custom { table-layout: fixed; }
@@ -296,16 +299,15 @@
         [data-theme="light"] .form-select-custom option { background: #ffffff; color: #1a1f1b; }
 
         .time-filter-card { border-radius: 18px; background: linear-gradient(135deg, rgba(22,163,74,.09), rgba(255,255,255,.01)); }
-        /* Bộ lọc luôn là một hàng; màn hình hẹp cuộn ngang thay vì đẩy nút xuống dòng. */
+        /* Dropdown luôn nằm trên một hàng; màn hình hẹp cuộn ngang thay vì đẩy bố cục xuống dòng. */
         .time-filter-card .card-body { overflow-x: auto; }
-        .time-filter-grid { display: grid; gap: 12px; align-items: end; min-width: 900px; }
-        .song-time-filter-grid, .order-time-filter-grid { grid-template-columns: minmax(175px,1.35fr) minmax(160px,1.12fr) minmax(125px,.85fr) minmax(125px,.95fr) minmax(125px,.95fr) minmax(142px,auto); }
-        .revenue-time-filter-grid { grid-template-columns: minmax(175px,1.35fr) minmax(145px,1fr) minmax(145px,1fr) minmax(145px,1fr) minmax(142px,auto); }
+        .time-filter-grid { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(160px, 1fr); gap: 12px; align-items: end; min-width: 900px; }
         .time-filter-grid > div { min-width: 0; }
-        .filter-action-group { flex-wrap: nowrap !important; white-space: nowrap; }
-        .filter-action-group .btn { min-height: 42px; font-size: 14px; font-weight: 600; white-space: nowrap; }
-        .filter-action-group .btn-admin-primary { min-width: 88px; padding: 9px 25px; }
-        .filter-action-group .btn-admin-outline { min-width: 48px; padding: 9px 14px; }
+        .admin-filter-card .card-body { overflow-x: auto; }
+        .admin-filter-grid { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(165px, 1fr); gap: 12px; align-items: end; min-width: 900px; }
+        .admin-filter-grid > [class*="col-md-"] { width: auto !important; max-width: none !important; flex: initial !important; }
+        .filter-actions-row { display: flex; gap: 12px; align-items: center; margin-top: 16px; min-width: 900px; }
+        .filter-actions-row .btn { width: 148px; min-height: 44px; padding: 10px 18px; font-size: 14px; font-weight: 600; white-space: nowrap; }
         .time-range-preview { display: flex; gap: 10px; align-items: center; padding: 10px 13px; border: 1px dashed rgba(74,222,128,.38); background: rgba(22,163,74,.06); border-radius: 12px; color: var(--text-color); font-size: 13px; }
         .time-range-preview small { color: var(--text-muted); }
         .revenue-chart-card { min-height: 330px; }
@@ -585,60 +587,65 @@
                     </div>
                 </div>
 
-                <div class="card-custom mb-4">
-                    <div class="card-body"><div class="row g-3 align-items-end">
-                        <div class="col-md-3"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userFilters.tier" @change="loadUsers(0)" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
-                        <div class="col-md-3"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userFilters.roleFilter" @change="loadUsers(0)" class="form-select-custom w-100"><option value="ALL">Tất cả tài khoản</option><option value="ADMIN">Chỉ quản trị viên</option><option value="USER">Chỉ người dùng</option></select></div>
-                        <div class="col-md-2"><label class="form-label small text-muted-sync">Ngày đăng ký</label><select v-model="userFilters.period" @change="loadUsers(0)" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="DAY">Hôm nay</option><option value="MONTH">Tháng này</option><option value="YEAR">Năm nay</option></select></div>
-                        <div class="col-md-3"><label class="form-label small text-muted-sync">Sắp xếp token</label><select v-model="userFilters.tokenSort" @change="loadUsers(0)" class="form-select-custom w-100"><option value="newest">Mới đăng ký</option><option value="token_desc">Cao đến thấp</option><option value="token_asc">Thấp đến cao</option></select></div>
-                        <div class="col-md-1"><button @click="resetUserFilters" class="btn btn-admin-outline w-100" title="Xóa bộ lọc"><i class="ti ti-refresh"></i></button></div>
-                    </div></div>
+                <div class="d-flex gap-2 mb-3" style="border-bottom: 1px solid var(--border-color);">
+                    <button @click="setUserManagementTab('usage')" class="btn btn-admin-outline" :class="{'btn-admin-primary': userManagementTab === 'usage'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
+                        <i class="ti ti-users me-1"></i>Tài khoản & Token
+                    </button>
+                    <button @click="setUserManagementTab('spending')" class="btn btn-admin-outline" :class="{'btn-admin-primary': userManagementTab === 'spending'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
+                        <i class="ti ti-chart-bar me-1"></i>Chi tiêu & hành vi mua
+                    </button>
                 </div>
 
-                <div class="card-custom">
-                    <div class="card-body p-0">
-                        <table class="table table-custom">
-                            <thead><tr>
-                                <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Ngày tạo</th><th class="text-center">Token</th><th class="text-center">Gói</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
-                            </tr></thead>
-                            <tbody>
-                                <tr v-for="u in usersPage.content" :key="u.username" style="cursor: pointer;">
-                                    <td class="fw-medium" @click="viewUserSongs(u)">@{{ u.username }}</td>
-                                    <td>{{ u.fullname }}</td>
-                                    <td class="text-muted-sync">{{ u.email || '—' }}</td>
-                                    <td class="text-muted-sync" style="font-size:12px">{{ formatDate(u.createdAt) }}</td>
-                                    <td class="text-center">{{ u.tokenBalance }}</td>
-                                    <td class="text-center">
-                                        <span class="badge-status" :class="u.accountTier === 'PRO' ? 'badge-completed' : 'badge-pending'">
-                                            {{ tierLabel(u.accountTier) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge-status" :class="u.enabled ? 'badge-completed' : 'badge-failed'">
-                                            {{ u.enabled ? 'Hoạt động' : 'Khóa' }}
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <button v-if="!u.admin" @click="toggleUserStatus(u)" class="btn btn-admin-sm" :class="u.enabled ? 'btn-admin-danger' : 'btn-admin-primary'">
-                                            <i :class="u.enabled ? 'ti ti-lock' : 'ti ti-lock-open'"></i>
-                                            {{ u.enabled ? 'Khóa' : 'Mở' }}
-                                        </button>
-                                        <button v-if="!u.admin" @click="toggleAdminRole(u)" class="btn btn-admin-sm btn-admin-outline ms-1" title="Cấp quyền quản trị"><i class="ti ti-shield-up"></i></button>
-                                        <button v-else @click="toggleAdminRole(u)" class="btn btn-admin-sm btn-admin-outline" title="Thu hồi quyền quản trị"><i class="ti ti-shield-down"></i> Admin</button>
-                                    </td>
-                                </tr>
-                                <tr v-if="!usersPage.content || usersPage.content.length === 0">
-                                    <td colspan="8" class="text-center text-muted-sync py-4">Không tìm thấy người dùng.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div v-if="userManagementTab === 'usage'">
+                    <div class="card-custom admin-filter-card mb-4"><div class="card-body"><div class="admin-filter-grid">
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userFilters.roleFilter" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="ADMIN">Admin</option><option value="USER">User</option></select></div>
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Ngày đăng ký</label><select v-model="userRegistration.mode" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
+                        <div v-if="userRegistration.mode !== 'ALL' && userRegistration.mode !== 'TODAY'" class="col-md-2"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="userRegistration.year" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
+                        <div v-if="userRegistration.mode === 'MONTH'" class="col-md-2"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="userRegistration.month" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="userRegistration.mode === 'WEEK'" class="col-md-3"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="userRegistration.week" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="week in userRegistrationWeekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Sắp xếp token hiện tại</label><select v-model="userFilters.tokenSort" class="form-select-custom w-100"><option value="token_desc">Cao đến thấp</option><option value="token_asc">Thấp đến cao</option></select></div>
+                    </div><div class="filter-actions-row"><button @click="applyUserUsageFilters" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="resetUserFilters" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div><div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ userRegistrationStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ userRegistrationEndLabel }}</b></span></div></div></div></div>
+
+                    <div class="card-custom"><div class="card-body p-0"><table class="table table-custom"><thead><tr>
+                        <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Ngày đăng ký</th><th class="text-center">Loại</th><th class="text-center">Token</th><th class="text-center">Gói</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
+                    </tr></thead><tbody>
+                        <tr v-for="u in usersPage.content" :key="u.username" style="cursor: pointer;">
+                            <td class="fw-medium" @click="viewUserSongs(u)">@{{ u.username }}</td><td>{{ u.fullname }}</td><td class="text-muted-sync">{{ u.email || '—' }}</td><td class="text-muted-sync" style="font-size:12px">{{ formatDate(u.createdAt) }}</td>
+                            <td class="text-center"><span class="badge-status" :class="u.admin ? 'badge-pending' : 'badge-completed'">{{ u.admin ? 'Admin' : 'User' }}</span></td><td class="text-center fw-medium">{{ u.tokenBalance }}</td>
+                            <td class="text-center"><span class="badge-status" :class="u.accountTier === 'PRO' || u.accountTier === 'STUDIO' ? 'badge-completed' : 'badge-pending'">{{ tierLabel(u.accountTier) }}</span></td>
+                            <td class="text-center"><span class="badge-status" :class="u.enabled ? 'badge-completed' : 'badge-failed'">{{ u.enabled ? 'Hoạt động' : 'Khóa' }}</span></td>
+                            <td class="text-center"><button v-if="!u.admin" @click="toggleUserStatus(u)" class="btn btn-admin-sm" :class="u.enabled ? 'btn-admin-danger' : 'btn-admin-primary'"><i :class="u.enabled ? 'ti ti-lock' : 'ti ti-lock-open'"></i>{{ u.enabled ? 'Khóa' : 'Mở' }}</button><button v-if="!u.admin" @click="toggleAdminRole(u)" class="btn btn-admin-sm btn-admin-outline ms-1" title="Cấp quyền quản trị"><i class="ti ti-shield-up"></i></button><button v-else @click="toggleAdminRole(u)" class="btn btn-admin-sm btn-admin-outline" title="Thu hồi quyền quản trị"><i class="ti ti-shield-down"></i> Admin</button></td>
+                        </tr>
+                        <tr v-if="!usersPage.content || usersPage.content.length === 0"><td colspan="9" class="text-center text-muted-sync py-4">Không tìm thấy người dùng.</td></tr>
+                    </tbody></table></div></div>
+                    <div class="pagination-custom" v-if="usersPage.totalPages > 1"><button class="page-btn" :disabled="usersPage.number === 0" @click="loadUsers(usersPage.number - 1)">Trước</button><button class="page-btn" v-for="p in usersPage.totalPages" :key="p" :class="{ active: p-1 === usersPage.number }" @click="loadUsers(p-1)">{{ p }}</button><button class="page-btn" :disabled="usersPage.number >= usersPage.totalPages - 1" @click="loadUsers(usersPage.number + 1)">Sau</button></div>
+                </div>
+
+                <div v-else>
+                    <div class="card-custom admin-filter-card mb-4"><div class="card-body"><div class="admin-filter-grid">
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userSpendingFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userSpendingFilters.roleFilter" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="ADMIN">Admin</option><option value="USER">User</option></select></div>
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Khoảng chi tiêu</label><select v-model="userSpendingFilters.period" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
+                        <div v-if="userSpendingFilters.period !== 'ALL' && userSpendingFilters.period !== 'TODAY'" class="col-md-1"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="userSpendingFilters.year" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
+                        <div v-if="userSpendingFilters.period === 'MONTH'" class="col-md-2"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="userSpendingFilters.month" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="userSpendingFilters.period === 'WEEK'" class="col-md-2"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="userSpendingFilters.week" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option v-for="week in userSpendingWeekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Sắp xếp chi tiêu</label><select v-model="userSpendingFilters.spentSort" class="form-select-custom w-100"><option value="spent_desc">Cao đến thấp</option><option value="spent_asc">Thấp đến cao</option></select></div>
+                    </div><div class="filter-actions-row"><button @click="applyUserSpendingFilter" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="resetUserFilters" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div><div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ userSpendingStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ userSpendingEndLabel }}</b></span></div></div></div></div>
+
+                    <div class="row g-3 mb-3 user-spending-summary">
+                        <div class="col-md-4"><div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"><div class="stat-icon bg-success-subtle text-success"><i class="ti ti-users"></i></div><div><div class="stat-value">{{ userSpendingInsights.payingCustomers || 0 }}</div><div class="stat-label">Khách đã chi tiêu</div></div></div></div>
+                        <div class="col-md-4"><div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"><div class="stat-icon bg-info-subtle text-info"><i class="ti ti-activity"></i></div><div><div class="stat-value">{{ userSpendingInsights.activeUsers || 0 }}</div><div class="stat-label">Đã dùng token</div></div></div></div>
+                        <div class="col-md-4"><div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"><div class="stat-icon bg-primary-subtle text-primary"><i class="ti ti-cash"></i></div><div><div class="stat-value" style="font-size:20px">{{ formatPrice(userSpendingInsights.revenue || 0) }}</div><div class="stat-label">Doanh thu trong khoảng</div></div></div></div>
                     </div>
-                </div>
 
-                <div class="pagination-custom" v-if="usersPage.totalPages > 1">
-                    <button class="page-btn" :disabled="usersPage.number === 0" @click="loadUsers(usersPage.number - 1)">Trước</button>
-                    <button class="page-btn" v-for="p in usersPage.totalPages" :key="p" :class="{ active: p-1 === usersPage.number }" @click="loadUsers(p-1)">{{ p }}</button>
-                    <button class="page-btn" :disabled="usersPage.number >= usersPage.totalPages - 1" @click="loadUsers(usersPage.number + 1)">Sau</button>
+                    <div class="card-custom"><div class="card-body p-0"><table class="table table-custom"><thead><tr>
+                        <th>Người dùng</th><th class="text-center">Loại</th><th class="text-center">Gói</th><th class="text-end">Tổng đã chi</th><th class="text-center">Đơn thành công</th><th class="text-center">Token đã mua</th><th class="text-center">Token đã dùng</th><th class="text-center">Token hiện tại</th><th>Lần thanh toán gần nhất</th>
+                    </tr></thead><tbody>
+                        <tr v-for="u in userSpendingPage.content" :key="u.username"><td><div class="fw-medium">@{{ u.username }}</div><small class="text-muted-sync">{{ u.fullname || u.email || '—' }}</small></td><td class="text-center"><span class="badge-status" :class="u.admin ? 'badge-pending' : 'badge-completed'">{{ u.admin ? 'Admin' : 'User' }}</span></td><td class="text-center">{{ tierLabel(u.accountTier) }}</td><td class="text-end fw-bold text-success">{{ formatPrice(u.totalSpent || 0) }}</td><td class="text-center">{{ u.successfulOrderCount || 0 }}</td><td class="text-center">{{ u.purchasedTokens || 0 }}</td><td class="text-center">{{ u.usedTokens || 0 }}</td><td class="text-center">{{ u.tokenBalance || 0 }}</td><td class="text-muted-sync" style="font-size:12px">{{ formatDate(u.lastPaidAt) }}</td></tr>
+                        <tr v-if="!userSpendingPage.content || userSpendingPage.content.length === 0"><td colspan="9" class="text-center text-muted-sync py-4">Không có dữ liệu chi tiêu trong khoảng đã chọn.</td></tr>
+                    </tbody></table></div></div>
+                    <div class="pagination-custom" v-if="userSpendingPage.totalPages > 1"><button class="page-btn" :disabled="userSpendingPage.number === 0" @click="loadUserSpending(userSpendingPage.number - 1)">Trước</button><button class="page-btn" v-for="p in userSpendingPage.totalPages" :key="p" :class="{ active: p-1 === userSpendingPage.number }" @click="loadUserSpending(p-1)">{{ p }}</button><button class="page-btn" :disabled="userSpendingPage.number >= userSpendingPage.totalPages - 1" @click="loadUserSpending(userSpendingPage.number + 1)">Sau</button></div>
                 </div>
             </div>
 
@@ -651,14 +658,15 @@
                 <!-- Bộ lọc thời gian dùng cùng thao tác với Doanh thu và Đơn hàng; sắp xếp là lựa chọn độc lập. -->
                 <div class="card-custom time-filter-card mb-4"><div class="card-body">
                     <div class="time-filter-grid song-time-filter-grid">
-                        <div><label class="form-label small text-muted-sync">Sắp xếp theo</label><select class="form-select-custom w-100" v-model="songFilters.filter" @change="loadSongs(0)"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="top_likes">Yêu thích nhất</option><option value="top_listens">Nghe nhiều nhất</option><option value="trending">Xu hướng (7 ngày gần đây)</option></select></div>
-                        <div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="songTime.mode" @change="updateSongRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Tuần trong tháng</option><option value="MONTH">Tháng cụ thể</option><option value="YEAR">Năm cụ thể</option></select></div>
+                        <div><label class="form-label small text-muted-sync">Sắp xếp theo</label><select class="form-select-custom w-100" v-model="songFilters.filter"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="top_likes">Yêu thích nhất</option><option value="top_listens">Nghe nhiều nhất</option><option value="trending">Xu hướng</option></select></div>
+                        <div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="songTime.mode" @change="updateSongRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
                         <div v-if="songTime.mode !== 'ALL' && songTime.mode !== 'TODAY'"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="songTime.year" @change="updateSongRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
-                        <div v-if="songTime.mode === 'MONTH' || songTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="songTime.month" @change="updateSongRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="songTime.mode === 'MONTH'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="songTime.month" @change="updateSongRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
                         <div v-if="songTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="songTime.week" @change="updateSongRangePreview" class="form-select-custom w-100"><option v-for="week in songWeekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
-                        <div><label class="form-label small text-muted-sync">&nbsp;</label><div class="d-flex gap-2 filter-action-group"><button @click="applySongTimeFilter" class="btn btn-admin-primary"><i class="ti ti-filter me-1"></i>Lọc</button><button @click="resetSongFilters" class="btn btn-admin-outline" title="Đặt lại"><i class="ti ti-refresh"></i></button></div></div>
                     </div>
+                    <div class="filter-actions-row"><button @click="applySongTimeFilter" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="resetSongFilters" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div>
                     <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ songStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ songEndLabel }}</b></span></div></div>
+                    <div class="small text-muted-sync mt-2"><i class="ti ti-chart-line me-1 text-success"></i>Xu hướng được xếp theo lượt nghe và lượt yêu thích mới phát sinh trong khoảng đã chọn.</div>
                 </div></div>
 
                 <div v-if="isLoadingSongs" class="text-center py-5">
@@ -726,22 +734,18 @@
                     </button>
                 </div>
 
-                <div class="card-custom mb-3">
-                    <div class="card-body small text-muted-sync">
-                        Thể loại tại đây xuất hiện trong màn hình Tạo nhạc. Khi người dùng chọn một thể loại,
-                        hệ thống bổ sung tên thể loại vào prompt gửi sang mô hình AI và đồng thời gắn thể loại vào bài hát.
-                    </div>
-                </div>
+                <div class="card-custom admin-filter-card mb-3"><div class="card-body"><div class="admin-filter-grid"><div><label class="form-label small text-muted-sync">Sắp xếp thể loại</label><select v-model="genreSort" class="form-select-custom w-100"><option value="usage_desc">Được sử dụng nhiều nhất</option><option value="usage_asc">Được sử dụng ít nhất</option><option value="name_asc">Tên A → Z</option><option value="name_desc">Tên Z → A</option></select></div></div><div class="filter-actions-row"><button @click="applyGenreSort" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="resetGenreSort" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div></div></div>
 
                 <div class="card-custom">
                     <div class="card-body p-0">
                         <table class="table table-custom">
-                            <thead><tr><th>ID</th><th>Tên thể loại</th><th>Mô tả</th><th class="text-center">Thao tác</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Tên thể loại</th><th>Mô tả</th><th class="text-center">Số bài đã dùng</th><th class="text-center">Thao tác</th></tr></thead>
                             <tbody>
                                 <tr v-for="g in pagedGenres" :key="g.id">
                                     <td class="text-muted-sync">#{{ g.id }}</td>
                                     <td class="fw-medium">{{ g.name }}</td>
                                     <td class="text-muted-sync">{{ g.description || '—' }}</td>
+                                    <td class="text-center fw-medium">{{ g.usageCount || 0 }}</td>
                                     <td class="text-center">
                                         <div class="d-flex gap-1 justify-content-center">
                                             <button @click="openGenreModal(g)" class="btn btn-admin-sm btn-admin-outline"><i class="ti ti-edit"></i></button>
@@ -750,7 +754,7 @@
                                     </td>
                                 </tr>
                                 <tr v-if="genres.length === 0">
-                                    <td colspan="4" class="text-center text-muted-sync py-4">Chưa có thể loại nào.</td>
+                                    <td colspan="5" class="text-center text-muted-sync py-4">Chưa có thể loại nào.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -792,16 +796,16 @@
                 <div class="card-custom">
                     <div class="card-body p-0">
                         <table class="table table-custom">
-                            <thead><tr><th>ID</th><th>Tên gói</th><th class="text-center">Cấp độ</th><th class="text-center">Token</th><th class="text-center">Thời hạn</th><th class="text-center">Giá (VNĐ)</th><th>Mô tả</th><th class="text-center">Thao tác</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Tên gói</th><th class="text-center">Cấp độ</th><th class="text-center">Token</th><th class="text-center">Giá</th><th class="text-center">Lượt mua</th><th class="text-end">Doanh thu</th><th class="text-center">Thao tác</th></tr></thead>
                             <tbody>
                                 <tr v-for="p in packages" :key="p.id">
                                     <td class="text-muted-sync">#{{ p.id }}</td>
                                     <td class="fw-medium">{{ p.name }}</td>
                                     <td class="text-center">{{ p.tierCode }}</td>
                                     <td class="text-center">{{ p.tokens }}</td>
-                                    <td class="text-center">{{ p.durationDays }} ngày</td>
                                     <td class="text-center">{{ formatPrice(p.price) }}</td>
-                                    <td class="text-muted-sync" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.description || '—' }}</td>
+                                    <td class="text-center fw-medium">{{ p.successfulOrders || 0 }}</td>
+                                    <td class="text-end fw-medium text-success">{{ formatPrice(p.revenue || 0) }}</td>
                                     <td class="text-center">
                                         <div class="d-flex gap-1 justify-content-center">
                                             <button @click="openPackageModal(p)" class="btn btn-admin-sm btn-admin-outline"><i class="ti ti-edit"></i></button>
@@ -835,8 +839,8 @@
                                 <input type="number" v-model.number="packageForm.price" class="form-input-custom w-100" min="1">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small text-muted-sync">Cấp tài khoản</label>
-                                <select v-model="packageForm.tierCode" class="form-input-custom w-100">
+                                <label class="form-label small text-muted-sync">Quyền sử dụng sau thanh toán</label>
+                                <select v-model="packageForm.tierCode" class="form-select-custom w-100">
                                     <option value="CREATOR">Nhà sáng tạo</option>
                                     <option value="PRO">Chuyên nghiệp</option>
                                     <option value="STUDIO">Phòng thu</option>
@@ -869,12 +873,12 @@
 
                 <div class="card-custom time-filter-card mb-4"><div class="card-body">
                     <div class="time-filter-grid revenue-time-filter-grid">
-                        <div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="revenueTime.mode" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Tuần trong tháng</option><option value="MONTH">Tháng cụ thể</option><option value="YEAR">Năm cụ thể</option></select></div>
+                        <div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="revenueTime.mode" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
                         <div v-if="revenueTime.mode !== 'ALL' && revenueTime.mode !== 'TODAY'"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="revenueTime.year" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
-                        <div v-if="revenueTime.mode === 'MONTH' || revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="revenueTime.month" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="revenueTime.mode === 'MONTH'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="revenueTime.month" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
                         <div v-if="revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="revenueTime.week" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="week in weekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
-                        <div><label class="form-label small text-muted-sync">&nbsp;</label><div class="d-flex gap-2 filter-action-group"><button @click="applyRevenueTimeFilter" class="btn btn-admin-primary"><i class="ti ti-filter me-1"></i>Lọc</button><button @click="clearRevenueFilter" class="btn btn-admin-outline" title="Đặt lại"><i class="ti ti-refresh"></i></button></div></div>
                     </div>
+                    <div class="filter-actions-row"><button @click="applyRevenueTimeFilter" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="clearRevenueFilter" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div>
                     <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ revenueStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ revenueEndLabel }}</b></span></div></div>
                 </div></div>
 
@@ -922,7 +926,7 @@
                 <div class="card-custom" v-if="false">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span><i class="ti ti-receipt text-success me-2"></i>Danh sách đơn hàng</span>
-                        <select v-model="orderStatusFilter" @change="loadRevenue" class="form-select-custom" style="width: auto;">
+                        <select v-model="orderStatusFilter" class="form-select-custom" style="width: auto;">
                             <option value="">Tất cả trạng thái</option>
                             <option value="PENDING">Chờ thanh toán</option>
                             <option value="REVIEW">Cần đối soát</option>
@@ -967,19 +971,27 @@
             <div class="section-tab" :class="{ active: activeTab === 'orders' }">
                 <div class="page-header"><h4><i class="ti ti-shopping-cart text-success me-2"></i>Đơn hàng thanh toán</h4></div>
                 <div class="card-custom time-filter-card mb-4"><div class="card-body">
-                    <div class="time-filter-grid order-time-filter-grid"><div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="revenueTime.mode" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Tuần trong tháng</option><option value="MONTH">Tháng cụ thể</option><option value="YEAR">Năm cụ thể</option></select></div>
+                    <div class="time-filter-grid order-time-filter-grid"><div><label class="form-label small text-muted-sync">Xem theo</label><select v-model="revenueTime.mode" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
                         <div v-if="revenueTime.mode !== 'ALL' && revenueTime.mode !== 'TODAY'"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="revenueTime.year" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
-                        <div v-if="revenueTime.mode === 'MONTH' || revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="revenueTime.month" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
+                        <div v-if="revenueTime.mode === 'MONTH'"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="revenueTime.month" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
                         <div v-if="revenueTime.mode === 'WEEK'"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="revenueTime.week" @change="updateRevenueRangePreview" class="form-select-custom w-100"><option v-for="week in weekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
                         <div><label class="form-label small text-muted-sync">Trạng thái</label><select v-model="orderStatusFilter" class="form-select-custom w-100"><option value="">Tất cả</option><option value="PENDING">Chờ thanh toán</option><option value="REVIEW">Cần đối soát</option><option value="SUCCESS">Thành công</option><option value="CANCELLED">Đã hủy</option><option value="EXPIRED">Hết hạn</option><option value="FAILED">Thất bại</option></select></div>
-                        <div><label class="form-label small text-muted-sync">&nbsp;</label><div class="d-flex gap-2 filter-action-group"><button @click="applyRevenueTimeFilter" class="btn btn-admin-primary"><i class="ti ti-filter me-1"></i>Lọc</button><button @click="clearRevenueFilter" class="btn btn-admin-outline" title="Đặt lại"><i class="ti ti-refresh"></i></button></div></div></div>
+                        </div><div class="filter-actions-row"><button @click="applyRevenueTimeFilter" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="clearRevenueFilter" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div>
                     <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ revenueStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ revenueEndLabel }}</b></span></div></div>
                 </div></div>
-                <div class="card-custom"><div class="card-body p-0"><table class="table table-custom"><thead><tr><th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody>
+                <div class="card-custom"><div class="card-body p-0"><table class="table table-custom"><thead><tr><th>Mã đơn</th><th>Người dùng</th><th>Gói</th><th class="text-center">Số tiền</th><th class="text-center">Trạng thái</th><th>Ngày tạo</th><th class="text-center">Xử lý đơn</th></tr></thead><tbody>
                     <tr v-for="o in ordersPage.content" :key="o.id"><td class="text-muted-sync">{{ o.orderCode }}</td><td>@{{ o.user?.username }}</td><td>{{ o.pkg?.name }}</td><td class="text-center">{{ formatPrice(o.totalPrice) }}</td><td class="text-center"><span class="badge-status" :class="'badge-' + (o.status || '').toLowerCase()">{{ statusLabel(o.status) }}</span></td><td class="text-muted-sync">{{ formatDate(o.createdAt) }}</td><td><button v-if="o.status === 'REVIEW'" @click="approveReviewOrder(o)" class="btn btn-admin-sm btn-admin-primary">Xác nhận</button></td></tr>
                     <tr v-if="!ordersPage.content || ordersPage.content.length === 0"><td colspan="7" class="text-center text-muted-sync py-4">Không có đơn phù hợp.</td></tr>
                 </tbody></table></div></div>
-                <div class="pagination-custom" v-if="ordersPage.totalPages > 1"><button class="page-btn" :disabled="ordersPage.number === 0" @click="loadOrders(ordersPage.number - 1)">Trước</button><button class="page-btn" v-for="p in ordersPage.totalPages" :key="p" :class="{ active: p - 1 === ordersPage.number }" @click="loadOrders(p - 1)">{{ p }}</button><button class="page-btn" :disabled="ordersPage.number >= ordersPage.totalPages - 1" @click="loadOrders(ordersPage.number + 1)">Sau</button></div>
+                <div class="pagination-custom" v-if="ordersPage.totalPages > 1">
+                    <button class="page-btn" :disabled="ordersPage.number === 0" @click="loadOrders(0)" title="Trang đầu">Đầu</button>
+                    <button class="page-btn" :disabled="ordersPage.number === 0" @click="loadOrders(ordersPage.number - 1)">Trước</button>
+                    <span v-if="orderPaginationPages[0] > 0" class="text-muted-sync px-1">…</span>
+                    <button class="page-btn" v-for="page in orderPaginationPages" :key="page" :class="{ active: page === ordersPage.number }" @click="loadOrders(page)">{{ page + 1 }}</button>
+                    <span v-if="orderPaginationPages[orderPaginationPages.length - 1] < ordersPage.totalPages - 1" class="text-muted-sync px-1">…</span>
+                    <button class="page-btn" :disabled="ordersPage.number >= ordersPage.totalPages - 1" @click="loadOrders(ordersPage.number + 1)">Sau</button>
+                    <button class="page-btn" :disabled="ordersPage.number >= ordersPage.totalPages - 1" @click="loadOrders(ordersPage.totalPages - 1)" title="Trang cuối">Cuối</button>
+                </div>
             </div>
 
             <!-- ========== TRANSACTION HISTORY ========== -->
@@ -999,33 +1011,40 @@
 
                 <!-- Sub-tab: Token History -->
                 <div v-if="transactionHistoryTab === 'tokens'">
-                    <div class="card-custom mb-4">
+                    <div class="card-custom admin-filter-card mb-4">
                         <div class="card-body">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted-sync">Từ ngày</label>
-                                    <input type="date" v-model="transactionFilters.startDate" @change="loadTransactions(0)" class="form-input-custom w-100">
+                            <div class="admin-filter-grid">
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted-sync">Xem theo</label>
+                                    <select v-model="transactionTime.mode" @change="updateTransactionRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted-sync">Đến ngày</label>
-                                    <input type="date" v-model="transactionFilters.endDate" @change="loadTransactions(0)" class="form-input-custom w-100">
+                                <div v-if="transactionTime.mode !== 'ALL' && transactionTime.mode !== 'TODAY'" class="col-md-2">
+                                    <label class="form-label small text-muted-sync">Năm</label>
+                                    <select v-model.number="transactionTime.year" @change="updateTransactionRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select>
                                 </div>
-                                <div class="col-md-4">
+                                <div v-if="transactionTime.mode === 'MONTH'" class="col-md-2">
+                                    <label class="form-label small text-muted-sync">Tháng</label>
+                                    <select v-model.number="transactionTime.month" @change="updateTransactionRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select>
+                                </div>
+                                <div v-if="transactionTime.mode === 'WEEK'" class="col-md-3">
+                                    <label class="form-label small text-muted-sync">Tuần</label>
+                                    <select v-model.number="transactionTime.week" @change="updateTransactionRangePreview" class="form-select-custom w-100"><option v-for="week in transactionWeekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select>
+                                </div>
+                                <div class="col-md-3">
                                     <label class="form-label small text-muted-sync">Loại giao dịch</label>
-                                    <select v-model="transactionFilters.type" @change="loadTransactions(0)" class="form-select-custom w-100">
+                                    <select v-model="transactionFilters.type" class="form-select-custom w-100">
                                         <option value="ALL">Tất cả</option>
                                         <option value="DEPOSIT">Cộng token (Nạp tiền)</option>
                                         <option value="USAGE">Trừ token (Sử dụng)</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-5">
                                     <label class="form-label small text-muted-sync">Tìm theo Tên đăng nhập</label>
                                     <input type="text" v-model="transactionFilters.username" @input="searchTransactions" class="form-input-custom w-100" placeholder="Để trống để xem tất cả...">
                                 </div>
-                                <div class="col-md-6 d-flex align-items-end">
-                                    <button @click="resetTransactionFilters" class="btn btn-admin-outline w-100" title="Đặt lại bộ lọc"><i class="ti ti-refresh"></i> Đặt lại</button>
-                                </div>
                             </div>
+                            <div class="filter-actions-row"><button @click="applyTransactionTimeFilter" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="resetTransactionFilters" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div>
+                            <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ transactionStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ transactionEndLabel }}</b></span></div></div>
                         </div>
                     </div>
                     <div v-if="isLoadingTransactions" class="text-center py-5"><div class="spinner-border text-success"></div></div>
@@ -1062,25 +1081,32 @@
 
                 <!-- Sub-tab: Payment Logs -->
                 <div v-if="transactionHistoryTab === 'payments'">
-                    <div class="card-custom mb-4">
+                    <div class="card-custom admin-filter-card mb-4">
                         <div class="card-body">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted-sync">Từ ngày</label>
-                                    <input type="date" v-model="paymentLogFilters.startDate" @change="loadPaymentLogs(0)" class="form-input-custom w-100">
+                            <div class="admin-filter-grid">
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted-sync">Xem theo</label>
+                                    <select v-model="paymentLogTime.mode" @change="updatePaymentLogRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label small text-muted-sync">Đến ngày</label>
-                                    <input type="date" v-model="paymentLogFilters.endDate" @change="loadPaymentLogs(0)" class="form-input-custom w-100">
+                                <div v-if="paymentLogTime.mode !== 'ALL' && paymentLogTime.mode !== 'TODAY'" class="col-md-2">
+                                    <label class="form-label small text-muted-sync">Năm</label>
+                                    <select v-model.number="paymentLogTime.year" @change="updatePaymentLogRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select>
+                                </div>
+                                <div v-if="paymentLogTime.mode === 'MONTH'" class="col-md-2">
+                                    <label class="form-label small text-muted-sync">Tháng</label>
+                                    <select v-model.number="paymentLogTime.month" @change="updatePaymentLogRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select>
+                                </div>
+                                <div v-if="paymentLogTime.mode === 'WEEK'" class="col-md-3">
+                                    <label class="form-label small text-muted-sync">Tuần</label>
+                                    <select v-model.number="paymentLogTime.week" @change="updatePaymentLogRangePreview" class="form-select-custom w-100"><option v-for="week in paymentLogWeekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small text-muted-sync">Tìm theo Mã đơn hàng, Mã giao dịch NH, Nội dung</label>
                                     <input type="text" v-model="paymentLogFilters.keyword" @input="searchPaymentLogs" class="form-input-custom w-100" placeholder="Nhập từ khóa...">
                                 </div>
-                                <div class="col-md-12 d-flex align-items-end">
-                                    <button @click="resetPaymentLogFilters" class="btn btn-admin-outline w-100" title="Đặt lại bộ lọc"><i class="ti ti-refresh"></i> Đặt lại</button>
-                                </div>
                             </div>
+                            <div class="filter-actions-row"><button @click="applyPaymentLogTimeFilter" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="resetPaymentLogFilters" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div>
+                            <div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ paymentLogStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ paymentLogEndLabel }}</b></span></div></div>
                         </div>
                     </div>
                     <div v-if="isLoadingPaymentLogs" class="text-center py-5"><div class="spinner-border text-success"></div></div>
@@ -1167,7 +1193,16 @@ new Vue({
         // Users
         usersPage: { content: [], totalPages: 0, number: 0, size: 10 },
         userSearch: '',
-        userFilters: { tier: '', roleFilter: 'ALL', period: 'ALL', tokenSort: 'newest' },
+        userManagementTab: 'usage',
+        userFilters: { tier: '', roleFilter: 'ALL', tokenSort: 'token_desc' },
+        userRegistration: { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 },
+        userRegistrationStartLabel: 'Không giới hạn',
+        userRegistrationEndLabel: 'Hiện tại',
+        userSpendingPage: { content: [], totalPages: 0, number: 0, size: 10 },
+        userSpendingFilters: { tier: '', roleFilter: 'ALL', period: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1, spentSort: 'spent_desc' },
+        userSpendingStartLabel: 'Không giới hạn',
+        userSpendingEndLabel: 'Hiện tại',
+        userSpendingInsights: { payingCustomers: 0, activeUsers: 0, revenue: 0 },
 
         // Songs
         // Đồng bộ 10 dòng/trang với Người dùng, Thể loại, Đơn hàng và lịch sử giao dịch.
@@ -1179,13 +1214,14 @@ new Vue({
         songTime: { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 },
         songFrom: '',
         songTo: '',
-        songStartLabel: 'Từ trước đến nay',
-        songEndLabel: 'Hôm nay',
+        songStartLabel: 'Không giới hạn',
+        songEndLabel: 'Hiện tại',
         // This is the old filter, I'll keep it for now in case it's needed for another view, but the new one is songFilters
         songStatusFilter: '', 
 
         // Genres
         genres: [],
+        genreSort: 'usage_desc',
         genrePagination: { page: 0, size: 10 },
         showGenreModal: false,
         genreForm: { id: null, name: '', description: '' },
@@ -1206,9 +1242,9 @@ new Vue({
         revenueTime: { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 },
         revenueFrom: '',
         revenueTo: '',
-        revenueRangeLabel: 'Tất cả dữ liệu từ trước đến nay',
-        revenueStartLabel: 'Từ trước đến nay',
-        revenueEndLabel: 'Hôm nay',
+        revenueRangeLabel: 'Tất cả dữ liệu',
+        revenueStartLabel: 'Không giới hạn',
+        revenueEndLabel: 'Hiện tại',
         revenueTrend: { labels: [], amounts: [] },
         revenueChart: null,
 
@@ -1222,6 +1258,9 @@ new Vue({
             startDate: '',
             endDate: ''
         },
+        transactionTime: { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 },
+        transactionStartLabel: 'Không giới hạn',
+        transactionEndLabel: 'Hiện tại',
         paymentLogsPage: { content: [], totalPages: 0, number: 0, size: 15 },
         isLoadingPaymentLogs: false,
         paymentLogFilters: {
@@ -1229,6 +1268,9 @@ new Vue({
             startDate: '',
             endDate: ''
         },
+        paymentLogTime: { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 },
+        paymentLogStartLabel: 'Không giới hạn',
+        paymentLogEndLabel: 'Hiện tại',
         // User Songs Modal
         showUserSongsModal: false,
         selectedUser: null,
@@ -1289,28 +1331,26 @@ new Vue({
             return ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12']
                 .map((label, index) => ({ value: index + 1, label }));
         },
-        weekOptions() {
-            const totalDays = new Date(this.revenueTime.year, this.revenueTime.month, 0).getDate();
-            return Array.from({ length: Math.ceil(totalDays / 7) }, (_, index) => {
-                const start = index * 7 + 1;
-                const end = Math.min(start + 6, totalDays);
-                return { value: index + 1, label: `Tuần ${index + 1} (${start}–${end})` };
-            });
-        },
-        songWeekOptions() {
-            const totalDays = new Date(this.songTime.year, this.songTime.month, 0).getDate();
-            return Array.from({ length: Math.ceil(totalDays / 7) }, (_, index) => {
-                const start = index * 7 + 1;
-                const end = Math.min(start + 6, totalDays);
-                return { value: index + 1, label: `Tuần ${index + 1} (${start}–${end})` };
-            });
-        },
+        weekOptions() { return this.isoWeekOptions(this.revenueTime.year); },
+        songWeekOptions() { return this.isoWeekOptions(this.songTime.year); },
+        userRegistrationWeekOptions() { return this.isoWeekOptions(this.userRegistration.year); },
+        userSpendingWeekOptions() { return this.isoWeekOptions(this.userSpendingFilters.year); },
+        transactionWeekOptions() { return this.isoWeekOptions(this.transactionTime.year); },
+        paymentLogWeekOptions() { return this.isoWeekOptions(this.paymentLogTime.year); },
         pagedGenres() {
             const start = this.genrePagination.page * this.genrePagination.size;
             return this.genres.slice(start, start + this.genrePagination.size);
         },
         genreTotalPages() {
             return Math.max(1, Math.ceil(this.genres.length / this.genrePagination.size));
+        },
+        orderPaginationPages() {
+            const total = this.ordersPage.totalPages || 0;
+            const current = this.ordersPage.number || 0;
+            let start = Math.max(0, current - 2);
+            let end = Math.min(total - 1, start + 4);
+            start = Math.max(0, end - 4);
+            return Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index);
         }
     },
 
@@ -1395,12 +1435,73 @@ new Vue({
             Object.entries(this.userFilters).forEach(([key, value]) => {
                 if (value !== null && value !== '') params.append(key, value);
             });
+            Object.entries(this.userRegistration).forEach(([key, value]) => {
+                if (value !== null && value !== '') params.append(`registration${key.charAt(0).toUpperCase()}${key.slice(1)}`, value);
+            });
             axios.get('/api/admin/users?' + params.toString()).then(r => { this.usersPage = r.data; }).catch(() => {});
         },
 
         searchUsers() {
             clearTimeout(this.userSearchTimer);
-            this.userSearchTimer = setTimeout(() => { this.loadUsers(0); }, 400);
+            this.userSearchTimer = setTimeout(() => {
+                this.userManagementTab === 'spending' ? this.loadUserSpending(0) : this.loadUsers(0);
+            }, 400);
+        },
+
+        setUserManagementTab(tab) {
+            this.userManagementTab = tab;
+            if (tab === 'spending' && this.userSpendingPage.content.length === 0) this.loadUserSpending(0);
+        },
+
+        loadUserSpending(page) {
+            const params = new URLSearchParams({ page, size: 10 });
+            if (this.userSearch.trim()) params.append('keyword', this.userSearch.trim());
+            Object.entries(this.userSpendingFilters).forEach(([key, value]) => {
+                if (value !== null && value !== '') params.append(key, value);
+            });
+            axios.get('/api/admin/users/spending?' + params.toString())
+                .then(r => { this.userSpendingPage = r.data; })
+                .catch(() => { this.userSpendingPage = { content: [], totalPages: 0, number: 0, size: 10 }; });
+            this.loadUserSpendingInsights();
+        },
+
+        loadUserSpendingInsights() {
+            const params = new URLSearchParams();
+            if (this.userSearch.trim()) params.append('keyword', this.userSearch.trim());
+            Object.entries(this.userSpendingFilters).forEach(([key, value]) => {
+                if (value !== null && value !== '') params.append(key, value);
+            });
+            axios.get('/api/admin/users/spending/insights?' + params.toString())
+                .then(r => { this.userSpendingInsights = r.data || this.userSpendingInsights; })
+                .catch(() => { this.userSpendingInsights = { payingCustomers: 0, activeUsers: 0, revenue: 0 }; });
+        },
+
+        setTimePreview(choice, filter, startLabelKey, endLabelKey) {
+            const { start, end } = this.buildTimeRange(choice);
+            if (filter) {
+                filter.startDate = start ? this.formatDateForApi(start) : '';
+                filter.endDate = end ? this.formatDateForApi(end) : '';
+            }
+            this[startLabelKey] = start ? this.formatDateShort(start) : 'Không giới hạn';
+            this[endLabelKey] = end ? this.formatDateShort(end) : 'Hiện tại';
+        },
+
+        updateUserRegistrationRangePreview() {
+            this.setTimePreview(this.userRegistration, null, 'userRegistrationStartLabel', 'userRegistrationEndLabel');
+        },
+
+        applyUserUsageFilters() {
+            this.updateUserRegistrationRangePreview();
+            this.loadUsers(0);
+        },
+
+        updateUserSpendingRangePreview() {
+            this.setTimePreview(this.userSpendingFilters, null, 'userSpendingStartLabel', 'userSpendingEndLabel');
+        },
+
+        applyUserSpendingFilter() {
+            this.updateUserSpendingRangePreview();
+            this.loadUserSpending(0);
         },
 
         toggleUserStatus(u) {
@@ -1451,8 +1552,8 @@ new Vue({
             this.songTime = { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 };
             this.songFrom = '';
             this.songTo = '';
-            this.songStartLabel = 'Từ trước đến nay';
-            this.songEndLabel = 'Hôm nay';
+            this.songStartLabel = 'Không giới hạn';
+            this.songEndLabel = 'Hiện tại';
             this.loadSongs(0);
         },
         getSongStatusClass(status) {
@@ -1522,8 +1623,20 @@ new Vue({
             this.transactionSearchTimer = setTimeout(() => { this.loadTransactions(0); }, 400);
         },
 
+        updateTransactionRangePreview() {
+            this.setTimePreview(this.transactionTime, this.transactionFilters, 'transactionStartLabel', 'transactionEndLabel');
+        },
+
+        applyTransactionTimeFilter() {
+            this.updateTransactionRangePreview();
+            this.loadTransactions(0);
+        },
+
         resetTransactionFilters() {
             this.transactionFilters = { username: '', type: 'ALL', startDate: '', endDate: '' };
+            this.transactionTime = { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 };
+            this.transactionStartLabel = 'Không giới hạn';
+            this.transactionEndLabel = 'Hiện tại';
             this.loadTransactions(0);
         },
 
@@ -1550,17 +1663,39 @@ new Vue({
             this.paymentLogSearchTimer = setTimeout(() => { this.loadPaymentLogs(0); }, 400);
         },
 
+        updatePaymentLogRangePreview() {
+            this.setTimePreview(this.paymentLogTime, this.paymentLogFilters, 'paymentLogStartLabel', 'paymentLogEndLabel');
+        },
+
+        applyPaymentLogTimeFilter() {
+            this.updatePaymentLogRangePreview();
+            this.loadPaymentLogs(0);
+        },
+
         resetPaymentLogFilters() {
             this.paymentLogFilters = { keyword: '', startDate: '', endDate: '' };
+            this.paymentLogTime = { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 };
+            this.paymentLogStartLabel = 'Không giới hạn';
+            this.paymentLogEndLabel = 'Hiện tại';
             this.loadPaymentLogs(0);
         },
 
         // ===== GENRES =====
         loadGenres() {
-            axios.get('/api/genres').then(r => {
+            axios.get('/api/admin/genres/summary', { params: { sort: this.genreSort } }).then(r => {
                 this.genres = r.data || [];
                 if (this.genrePagination.page >= this.genreTotalPages) this.genrePagination.page = this.genreTotalPages - 1;
             }).catch(() => {});
+        },
+
+        applyGenreSort() {
+            this.genrePagination.page = 0;
+            this.loadGenres();
+        },
+
+        resetGenreSort() {
+            this.genreSort = 'usage_desc';
+            this.applyGenreSort();
         },
 
         openGenreModal(g) {
@@ -1618,7 +1753,7 @@ new Vue({
 
         // ===== PACKAGES =====
         loadPackages() {
-            axios.get('/api/packages').then(r => { this.packages = r.data; }).catch(() => {});
+            axios.get('/api/admin/packages/summary').then(r => { this.packages = r.data || []; }).catch(() => {});
         },
 
         openPackageModal(p) {
@@ -1726,9 +1861,9 @@ new Vue({
             this.revenueTime = { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 };
             this.revenueFrom = '';
             this.revenueTo = '';
-            this.revenueRangeLabel = 'Tất cả dữ liệu từ trước đến nay';
-            this.revenueStartLabel = 'Từ trước đến nay';
-            this.revenueEndLabel = 'Hôm nay';
+            this.revenueRangeLabel = 'Tất cả dữ liệu';
+            this.revenueStartLabel = 'Không giới hạn';
+            this.revenueEndLabel = 'Hiện tại';
             this.orderStatusFilter = '';
             this.loadRevenue();
         },
@@ -1744,6 +1879,33 @@ new Vue({
             return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
         },
 
+        getIsoWeekNumber(date) {
+            const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const day = utcDate.getUTCDay() || 7;
+            utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+            const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+            return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+        },
+
+        getIsoWeekRange(year, rawWeek) {
+            const maxWeek = this.getIsoWeekNumber(new Date(year, 11, 28));
+            const week = Math.min(Math.max(Number(rawWeek) || 1, 1), maxWeek);
+            const jan4 = new Date(year, 0, 4);
+            const day = jan4.getDay() || 7;
+            const monday = new Date(year, 0, 4 - day + 1 + (week - 1) * 7);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            return { week, start: monday, end: sunday };
+        },
+
+        isoWeekOptions(year) {
+            const count = this.getIsoWeekNumber(new Date(year, 11, 28));
+            return Array.from({ length: count }, (_, index) => {
+                const range = this.getIsoWeekRange(year, index + 1);
+                return { value: range.week, label: `Tuần ${range.week} (${this.formatDateShort(range.start)} – ${this.formatDateShort(range.end)})` };
+            });
+        },
+
         buildTimeRange(choice) {
             const now = new Date();
             let start = null; let end = null;
@@ -1755,13 +1917,10 @@ new Vue({
             } else if (choice.mode === 'MONTH') {
                 start = new Date(choice.year, choice.month - 1, 1); end = new Date(choice.year, choice.month, 0);
             } else if (choice.mode === 'WEEK') {
-                const lastDay = new Date(choice.year, choice.month, 0).getDate();
-                const maxWeek = Math.ceil(lastDay / 7);
-                choice.week = Math.min(Math.max(choice.week || 1, 1), maxWeek);
-                const startDay = (choice.week - 1) * 7 + 1;
-                const endDay = Math.min(startDay + 6, lastDay);
-                start = new Date(choice.year, choice.month - 1, startDay);
-                end = new Date(choice.year, choice.month - 1, endDay);
+                const range = this.getIsoWeekRange(choice.year, choice.week);
+                choice.week = range.week;
+                start = range.start;
+                end = range.end;
             }
             return { start, end };
         },
@@ -1770,8 +1929,8 @@ new Vue({
             const { start, end } = this.buildTimeRange(this.songTime);
             this.songFrom = start ? this.formatDateForApi(start) : '';
             this.songTo = end ? this.formatDateForApi(end) : '';
-            this.songStartLabel = start ? this.formatDateShort(start) : 'Từ trước đến nay';
-            this.songEndLabel = end ? this.formatDateShort(end) : 'Hôm nay';
+            this.songStartLabel = start ? this.formatDateShort(start) : 'Không giới hạn';
+            this.songEndLabel = end ? this.formatDateShort(end) : 'Hiện tại';
         },
 
         applySongTimeFilter() {
@@ -1780,28 +1939,12 @@ new Vue({
         },
 
         updateRevenueRangePreview() {
-            const choice = this.revenueTime;
-            const now = new Date();
-            let start = null; let end = null;
-            if (choice.mode === 'TODAY') {
-                start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                end = new Date(start);
-            } else if (choice.mode === 'YEAR') {
-                start = new Date(choice.year, 0, 1); end = new Date(choice.year, 11, 31);
-            } else if (choice.mode === 'MONTH') {
-                start = new Date(choice.year, choice.month - 1, 1); end = new Date(choice.year, choice.month, 0);
-            } else if (choice.mode === 'WEEK') {
-                const lastDay = new Date(choice.year, choice.month, 0).getDate();
-                const startDay = (choice.week - 1) * 7 + 1;
-                const endDay = Math.min(startDay + 6, lastDay);
-                start = new Date(choice.year, choice.month - 1, startDay);
-                end = new Date(choice.year, choice.month - 1, endDay);
-            }
+            const { start, end } = this.buildTimeRange(this.revenueTime);
             this.revenueFrom = start ? this.formatDateForApi(start) : '';
             this.revenueTo = end ? this.formatDateForApi(end) : '';
-            this.revenueRangeLabel = start ? `${this.formatDateShort(start)} – ${this.formatDateShort(end)}` : 'Tất cả dữ liệu từ trước đến nay';
-            this.revenueStartLabel = start ? this.formatDateShort(start) : 'Từ trước đến nay';
-            this.revenueEndLabel = end ? this.formatDateShort(end) : 'Hôm nay';
+            this.revenueRangeLabel = start ? `${this.formatDateShort(start)} – ${this.formatDateShort(end)}` : 'Tất cả dữ liệu';
+            this.revenueStartLabel = start ? this.formatDateShort(start) : 'Không giới hạn';
+            this.revenueEndLabel = end ? this.formatDateShort(end) : 'Hiện tại';
         },
 
         applyRevenueTimeFilter() {
@@ -1835,7 +1978,18 @@ new Vue({
         },
 
         resetUserFilters() {
-            this.userFilters = { tier: '', roleFilter: 'ALL', period: 'ALL', tokenSort: 'newest' };
+            this.userSearch = '';
+            if (this.userManagementTab === 'spending') {
+                this.userSpendingFilters = { tier: '', roleFilter: 'ALL', period: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1, spentSort: 'spent_desc' };
+                this.userSpendingStartLabel = 'Không giới hạn';
+                this.userSpendingEndLabel = 'Hiện tại';
+                this.loadUserSpending(0);
+                return;
+            }
+            this.userFilters = { tier: '', roleFilter: 'ALL', tokenSort: 'token_desc' };
+            this.userRegistration = { mode: 'ALL', year: new Date().getFullYear(), month: new Date().getMonth() + 1, week: 1 };
+            this.userRegistrationStartLabel = 'Không giới hạn';
+            this.userRegistrationEndLabel = 'Hiện tại';
             this.loadUsers(0);
         },
 
