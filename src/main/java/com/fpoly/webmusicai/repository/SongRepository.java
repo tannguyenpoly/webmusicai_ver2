@@ -85,4 +85,29 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
            "GROUP BY s.id, s.title, s.prompt, s.audioUrl, s.status, s.isPublic, s.lyrics, s.modelVer, s.isRemix, s.parentId, s.coverUrl, s.listenCount, s.createdAt, s.user " +
            "ORDER BY COUNT(f.id) DESC")
     Page<Object[]> findFilteredByLikes(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
+
+    @Query(value = """
+            SELECT s.*
+            FROM Songs s
+            LEFT JOIN (
+                SELECT song_id, COUNT(*) AS new_listens, MAX(listened_at) AS latest_listen
+                FROM Song_Listen_History
+                WHERE (:startDate IS NULL OR listened_at >= :startDate)
+                  AND (:endDate IS NULL OR listened_at <= :endDate)
+                GROUP BY song_id
+            ) listens ON listens.song_id = s.id
+            LEFT JOIN (
+                SELECT song_id, COUNT(*) AS new_likes, MAX(created_at) AS latest_like
+                FROM Favorites
+                WHERE (:startDate IS NULL OR created_at >= :startDate)
+                  AND (:endDate IS NULL OR created_at <= :endDate)
+                GROUP BY song_id
+            ) likes ON likes.song_id = s.id
+            ORDER BY (COALESCE(listens.new_listens, 0) + COALESCE(likes.new_likes, 0)) DESC,
+                     COALESCE(listens.latest_listen, likes.latest_like, s.created_at) DESC,
+                     s.id DESC
+            """, countQuery = "SELECT COUNT(*) FROM Songs", nativeQuery = true)
+    Page<Song> findTrendingByRecentEngagement(@Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate,
+                                                Pageable pageable);
 }

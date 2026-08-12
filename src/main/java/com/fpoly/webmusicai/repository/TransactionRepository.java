@@ -16,4 +16,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Intege
     
     List<Transaction> findByUserUsernameOrderByCreatedAtDesc(String username);
     Page<Transaction> findByUserUsernameOrderByCreatedAtDesc(String username, Pageable pageable);
+
+    @Query("""
+            SELECT t.user.username AS username, COALESCE(SUM(-t.amount), 0) AS usedTokens
+            FROM Transaction t
+            WHERE t.amount < 0
+              AND (:fromDate IS NULL OR t.createdAt >= :fromDate)
+              AND (:toDate IS NULL OR t.createdAt <= :toDate)
+            GROUP BY t.user.username
+            """)
+    List<UserTokenUsageProjection> summarizeUsageForAdmin(
+            @Param("fromDate") java.util.Date fromDate,
+            @Param("toDate") java.util.Date toDate);
 }

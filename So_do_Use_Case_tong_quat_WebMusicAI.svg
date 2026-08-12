@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <marker id="arrow" markerWidth="11" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L11,4 L0,8" fill="none" stroke="#253858" stroke-width="1.6"/>
+    </marker>
+    <style>
+      .title { font: bold 28px 'Times New Roman', serif; fill: #111; }
+      .system { font: bold 17px 'Times New Roman', serif; fill: #111; }
+      .actor { font: 17px 'Times New Roman', serif; fill: #111; }
+      .case { font: 16px 'Times New Roman', serif; fill: #111; }
+      .relation { font: italic 14px 'Times New Roman', serif; fill: #9d1c31; }
+      .note { font: 14px 'Times New Roman', serif; fill: #333; }
+      .assoc { fill: none; stroke: #253858; stroke-width: 1.8; marker-end: url(#arrow); }
+      .include { fill: none; stroke: #9d1c31; stroke-width: 1.7; stroke-dasharray: 8 5; marker-end: url(#arrow); }
+      .usecase { fill: #e8f1fb; stroke: #2b5e93; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="white"/>
+  <text x="800" y="48" text-anchor="middle" class="title">SƠ ĐỒ USE CASE TỔNG QUÁT - HỆ THỐNG WEBMUSICAI</text>
+
+  <rect x="195" y="85" width="1190" height="820" fill="none" stroke="#202020" stroke-width="2.2"/>
+  <text x="790" y="116" text-anchor="middle" class="system">HỆ THỐNG WEBMUSICAI</text>
+
+  <!-- Actors -->
+  <g stroke="#202020" stroke-width="2.2" fill="none">
+    <circle cx="85" cy="270" r="18"/><path d="M85 288v55m-29-31h58m-29 31l-29 36m29-36l29 36"/>
+    <circle cx="85" cy="600" r="18"/><path d="M85 618v55m-29-31h58m-29 31l-29 36m29-36l29 36"/>
+    <circle cx="1495" cy="430" r="18"/><path d="M1495 448v55m-29-31h58m-29 31l-29 36m29-36l29 36"/>
+    <circle cx="1495" cy="720" r="18"/><path d="M1495 738v55m-29-31h58m-29 31l-29 36m29-36l29 36"/>
+  </g>
+  <text x="85" y="405" text-anchor="middle" class="actor">Khách</text>
+  <text x="85" y="735" text-anchor="middle" class="actor">Người dùng</text>
+  <text x="1495" y="565" text-anchor="middle" class="actor">Quản trị viên</text>
+  <text x="1495" y="855" text-anchor="middle" class="actor">Dịch vụ ngoài</text>
+
+  <!-- Use cases -->
+  <g class="usecase">
+    <ellipse cx="415" cy="190" rx="145" ry="39"/>
+    <ellipse cx="415" cy="305" rx="145" ry="39"/>
+    <ellipse cx="415" cy="420" rx="145" ry="39"/>
+    <ellipse cx="415" cy="610" rx="145" ry="39"/>
+    <ellipse cx="790" cy="190" rx="150" ry="39"/>
+    <ellipse cx="790" cy="305" rx="150" ry="39"/>
+    <ellipse cx="790" cy="420" rx="150" ry="39"/>
+    <ellipse cx="790" cy="610" rx="150" ry="39"/>
+    <ellipse cx="1165" cy="190" rx="150" ry="39"/>
+    <ellipse cx="1165" cy="305" rx="150" ry="39"/>
+    <ellipse cx="1165" cy="420" rx="150" ry="39"/>
+    <ellipse cx="1165" cy="610" rx="150" ry="39"/>
+    <ellipse cx="1165" cy="735" rx="150" ry="39"/>
+  </g>
+  <g text-anchor="middle" class="case">
+    <text x="415" y="196">Đăng ký / Đăng nhập</text>
+    <text x="415" y="311">Khôi phục mật khẩu</text>
+    <text x="415" y="426">Khám phá / xem bài hát</text>
+    <text x="415" y="616">Quản lý hồ sơ</text>
+    <text x="790" y="196">Tạo nhạc bằng AI</text>
+    <text x="790" y="311">Remix bài hát</text>
+    <text x="790" y="426">Quản lý thư viện nhạc</text>
+    <text x="790" y="616">Tương tác bài hát</text>
+    <text x="1165" y="196">Playlist / Album</text>
+    <text x="1165" y="311">Kết bạn, Chat, thông báo</text>
+    <text x="1165" y="426">Mua token / thanh toán</text>
+    <text x="1165" y="616">Quản trị hệ thống</text>
+    <text x="1165" y="741">Báo cáo, đối soát</text>
+  </g>
+
+  <!-- Actor - use case associations -->
+  <path class="assoc" d="M113 263 L267 200"/>
+  <path class="assoc" d="M113 280 L267 414"/>
+  <path class="assoc" d="M114 590 L270 610"/>
+  <path class="assoc" d="M114 605 L640 190"/>
+  <path class="assoc" d="M114 620 L640 420"/>
+  <path class="assoc" d="M114 635 L640 610"/>
+  <path class="assoc" d="M114 650 L1015 190"/>
+  <path class="assoc" d="M114 665 L1015 305"/>
+  <path class="assoc" d="M114 680 L1015 420"/>
+  <path class="assoc" d="M1465 430 L1315 610"/>
+  <path class="assoc" d="M1465 445 L1315 735"/>
+
+  <!-- External service relations -->
+  <path class="include" d="M940 190 L1458 690"/>
+  <path class="include" d="M560 190 L1458 720"/>
+  <path class="include" d="M1315 420 L1458 748"/>
+  <text x="1115" y="415" class="relation">«include» AI Music API</text>
+  <text x="970" y="520" class="relation">«include» Google OAuth2 / SMTP</text>
+  <text x="1320" y="585" class="relation">«include» SePay / VNPay</text>
+
+  <text x="235" y="875" class="note">Chú thích: Mũi tên liền biểu thị quan hệ tác nhân - chức năng; mũi tên nét đứt biểu thị quan hệ «include» với dịch vụ ngoài.</text>
+</svg>

@@ -2,11 +2,14 @@ package com.fpoly.webmusicai.controller;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.temporal.ChronoField;
+import java.time.temporal.WeekFields;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -31,8 +34,12 @@ import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.SongTagRepository;
 import com.fpoly.webmusicai.repository.TagRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
+import com.fpoly.webmusicai.repository.UserSpendingProjection;
+import com.fpoly.webmusicai.repository.UserTokenUsageProjection;
 import com.fpoly.webmusicai.repository.TransactionRepository;
 import com.fpoly.webmusicai.repository.PaymentLogRepository;
+import com.fpoly.webmusicai.repository.GenreRepository;
+import com.fpoly.webmusicai.repository.PackageRepository;
 import com.fpoly.webmusicai.repository.AuthorityRepository;
 import com.fpoly.webmusicai.repository.RoleRepository;
 import com.fpoly.webmusicai.service.PaymentCompletionResult;
@@ -75,8 +82,64 @@ public class AdminRestController {
     @Autowired
     private PaymentLogRepository paymentLogRepo;
 
+    @Autowired
+    private GenreRepository genreRepo;
+
+    @Autowired
+    private PackageRepository packageRepo;
+
 
     // ============ QUẢN LÝ USER (đã có sẵn) ============
+
+    @GetMapping("/genres/summary")
+    public ResponseEntity<?> getGenreSummary(@RequestParam(defaultValue = "usage_desc") String sort) {
+        List<Map<String, Object>> rows = genreRepo.findUsageSummary().stream().map(row -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", row[0]);
+            item.put("name", row[1]);
+            item.put("description", row[2]);
+            item.put("createdAt", row[3]);
+            item.put("usageCount", ((Number) row[4]).longValue());
+            return item;
+        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+
+        Comparator<Map<String, Object>> byName = Comparator.comparing(row -> String.valueOf(row.get("name")), String.CASE_INSENSITIVE_ORDER);
+        Comparator<Map<String, Object>> byUsage = Comparator.comparingLong(row -> ((Number) row.get("usageCount")).longValue());
+        if ("usage_asc".equals(sort)) rows.sort(byUsage.thenComparing(byName));
+        else if ("name_asc".equals(sort)) rows.sort(byName);
+        else if ("name_desc".equals(sort)) rows.sort(byName.reversed());
+        else rows.sort(byUsage.reversed().thenComparing(byName));
+        return ResponseEntity.ok(rows);
+    }
+
+    @GetMapping("/packages/summary")
+    public ResponseEntity<?> getPackageSummary(@RequestParam(defaultValue = "sales_desc") String sort) {
+        List<Map<String, Object>> rows = packageRepo.findSalesSummary().stream().map(row -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", row[0]); item.put("name", row[1]); item.put("tokens", row[2]); item.put("price", row[3]);
+            item.put("description", row[4]); item.put("oldPrice", row[5]); item.put("badge", row[6]);
+            item.put("tierCode", row[7]); item.put("durationDays", row[8]);
+            item.put("successfulOrders", ((Number) row[9]).longValue());
+            item.put("revenue", ((Number) row[10]).longValue());
+            return item;
+        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+
+        Comparator<Map<String, Object>> byName = Comparator.comparing(row -> String.valueOf(row.get("name")), String.CASE_INSENSITIVE_ORDER);
+        Comparator<Map<String, Object>> bySales = Comparator.comparingLong(row -> ((Number) row.get("successfulOrders")).longValue());
+        Comparator<Map<String, Object>> byRevenue = Comparator.comparingLong(row -> ((Number) row.get("revenue")).longValue());
+        Comparator<Map<String, Object>> byPrice = Comparator.comparingLong(row -> ((Number) row.get("price")).longValue());
+        Comparator<Map<String, Object>> byTokens = Comparator.comparingLong(row -> ((Number) row.get("tokens")).longValue());
+        switch (sort) {
+            case "sales_asc" -> rows.sort(bySales.thenComparing(byName));
+            case "revenue_desc" -> rows.sort(byRevenue.reversed().thenComparing(byName));
+            case "price_asc" -> rows.sort(byPrice.thenComparing(byName));
+            case "price_desc" -> rows.sort(byPrice.reversed().thenComparing(byName));
+            case "tokens_asc" -> rows.sort(byTokens.thenComparing(byName));
+            case "tokens_desc" -> rows.sort(byTokens.reversed().thenComparing(byName));
+            default -> rows.sort(bySales.reversed().thenComparing(byName));
+        }
+        return ResponseEntity.ok(rows);
+    }
 
     @GetMapping("/users")
     public ResponseEntity<?> getUsers(
@@ -86,7 +149,11 @@ public class AdminRestController {
             @RequestParam(required = false) String tier,
             @RequestParam(defaultValue = "ALL") String period,
             @RequestParam(defaultValue = "ALL") String roleFilter,
-            @RequestParam(defaultValue = "newest") String tokenSort) {
+            @RequestParam(defaultValue = "newest") String tokenSort,
+            @RequestParam(required = false) String registrationMode,
+            @RequestParam(required = false) Integer registrationYear,
+            @RequestParam(required = false) Integer registrationMonth,
+            @RequestParam(required = false) Integer registrationWeek) {
 
         org.springframework.data.domain.Sort sort = switch (tokenSort) {
             case "token_asc" -> org.springframework.data.domain.Sort.by("tokenBalance").ascending();
@@ -95,7 +162,9 @@ public class AdminRestController {
         };
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<User> users;
-        Date[] bounds = getPeriodBounds(period);
+        Date[] bounds = registrationMode == null || registrationMode.isBlank()
+                ? getPeriodBounds(period)
+                : getRegistrationBounds(registrationMode, registrationYear, registrationMonth, registrationWeek);
         users = userRepo.findForAdmin(
                 keyword == null || keyword.isBlank() ? null : keyword.trim(),
                 tier == null || tier.isBlank() ? null : tier.trim().toUpperCase(),
@@ -126,6 +195,98 @@ public class AdminRestController {
         result.put("size", users.getSize());
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/users/spending")
+    public ResponseEntity<?> getUserSpending(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) String tier,
+            @RequestParam(defaultValue = "ALL") String roleFilter,
+            @RequestParam(defaultValue = "ALL") String period,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer week,
+            @RequestParam(defaultValue = "spent_desc") String spentSort) {
+        Date[] bounds = getSpendingBounds(period, year, month, week);
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50));
+        Page<UserSpendingProjection> spendingPage = userRepo.findSpendingForAdmin(
+                keyword == null || keyword.isBlank() ? null : keyword.trim(),
+                tier == null || tier.isBlank() ? null : tier.trim().toUpperCase(),
+                normalizeRoleFilter(roleFilter), bounds[0], bounds[1], normalizeSpentSort(spentSort), pageable);
+        Map<String, Long> usageByUser = getUsageByUser(bounds);
+        List<Map<String, Object>> content = spendingPage.getContent().stream()
+                .map(row -> toSpendingMap(row, usageByUser)).toList();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", content);
+        result.put("totalPages", spendingPage.getTotalPages());
+        result.put("totalElements", spendingPage.getTotalElements());
+        result.put("number", spendingPage.getNumber());
+        result.put("size", spendingPage.getSize());
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/users/spending/insights")
+    public ResponseEntity<?> getUserSpendingInsights(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) String tier,
+            @RequestParam(defaultValue = "ALL") String roleFilter,
+            @RequestParam(defaultValue = "ALL") String period,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer week,
+            @RequestParam(defaultValue = "spent_desc") String spentSort) {
+        Date[] bounds = getSpendingBounds(period, year, month, week);
+        Page<UserSpendingProjection> spendingRows = userRepo.findSpendingForAdmin(
+                keyword == null || keyword.isBlank() ? null : keyword.trim(),
+                tier == null || tier.isBlank() ? null : tier.trim().toUpperCase(),
+                normalizeRoleFilter(roleFilter), bounds[0], bounds[1], normalizeSpentSort(spentSort), Pageable.unpaged());
+        Map<String, Long> usageByUser = getUsageByUser(bounds);
+        List<Map<String, Object>> allRows = spendingRows.getContent().stream()
+                .map(row -> toSpendingMap(row, usageByUser)).toList();
+
+        long payingCustomers = allRows.stream().filter(row -> longValue(row.get("totalSpent")) > 0).count();
+        long activeUsers = allRows.stream().filter(row -> longValue(row.get("usedTokens")) > 0).count();
+        long revenue = allRows.stream().mapToLong(row -> longValue(row.get("totalSpent"))).sum();
+
+        return ResponseEntity.ok(Map.of(
+                "payingCustomers", payingCustomers,
+                "activeUsers", activeUsers,
+                "revenue", revenue));
+    }
+
+    private Map<String, Long> getUsageByUser(Date[] bounds) {
+        Map<String, Long> usageByUser = new HashMap<>();
+        for (UserTokenUsageProjection row : transactionRepo.summarizeUsageForAdmin(bounds[0], bounds[1])) {
+            usageByUser.put(row.getUsername(), row.getUsedTokens() == null ? 0L : row.getUsedTokens());
+        }
+        return usageByUser;
+    }
+
+    private Map<String, Object> toSpendingMap(UserSpendingProjection row, Map<String, Long> usageByUser) {
+        long purchasedTokens = row.getPurchasedTokens() == null ? 0L : row.getPurchasedTokens();
+        long usedTokens = usageByUser.getOrDefault(row.getUsername(), 0L);
+        long tokenBalance = row.getTokenBalance() == null ? 0L : row.getTokenBalance();
+        long totalSpent = row.getTotalSpent() == null ? 0L : row.getTotalSpent();
+        Map<String, Object> item = new HashMap<>();
+        item.put("username", row.getUsername());
+        item.put("fullname", row.getFullname());
+        item.put("email", row.getEmail());
+        item.put("accountTier", row.getAccountTier());
+        item.put("tokenBalance", tokenBalance);
+        item.put("successfulOrderCount", row.getSuccessfulOrderCount() == null ? 0L : row.getSuccessfulOrderCount());
+        item.put("totalSpent", totalSpent);
+        item.put("purchasedTokens", purchasedTokens);
+        item.put("usedTokens", usedTokens);
+        item.put("lastPaidAt", row.getLastPaidAt());
+        item.put("admin", authorityRepo.findByUserUsernameAndRoleId(row.getUsername(), "ADMIN").isPresent());
+        return item;
+    }
+
+    private static long longValue(Object value) {
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     @PutMapping("/users/{username}/toggle-status")
@@ -307,6 +468,74 @@ public class AdminRestController {
         else if ("QUARTER".equals(period)) { start.set(java.util.Calendar.MONTH, (start.get(java.util.Calendar.MONTH) / 3) * 3); start.set(java.util.Calendar.DAY_OF_MONTH, 1); }
         else if ("YEAR".equals(period)) { start.set(java.util.Calendar.MONTH, java.util.Calendar.JANUARY); start.set(java.util.Calendar.DAY_OF_MONTH, 1); }
         return new Date[] { start.getTime(), end.getTime() };
+    }
+
+    private static String normalizeSpentSort(String rawSort) {
+        return "spent_asc".equalsIgnoreCase(rawSort) ? "spent_asc" : "spent_desc";
+    }
+
+    /** Khoảng tuần dùng chuẩn ISO: Thứ Hai đến Chủ nhật, có thể vắt qua tháng hoặc năm. */
+    private static Date[] getRegistrationBounds(String rawMode, Integer rawYear, Integer rawMonth, Integer rawWeek) {
+        String mode = rawMode == null ? "ALL" : rawMode.toUpperCase();
+        if ("ALL".equals(mode)) return new Date[] { null, null };
+        int year = rawYear == null ? LocalDate.now().getYear() : Math.max(2000, Math.min(rawYear, 2100));
+        int month = rawMonth == null ? 1 : Math.max(1, Math.min(rawMonth, 12));
+        LocalDate startDate;
+        LocalDate endDate;
+        if ("TODAY".equals(mode)) {
+            startDate = LocalDate.now();
+            endDate = startDate;
+        } else if ("YEAR".equals(mode)) {
+            startDate = LocalDate.of(year, 1, 1);
+            endDate = startDate.withMonth(12).withDayOfMonth(31);
+        } else if ("MONTH".equals(mode)) {
+            startDate = LocalDate.of(year, month, 1);
+            endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        } else if ("WEEK".equals(mode)) {
+            return getIsoWeekBounds(year, rawWeek);
+        } else {
+            return new Date[] { null, null };
+        }
+        return toFullDayBounds(startDate, endDate);
+    }
+
+    private static Date[] getSpendingBounds(String rawPeriod, Integer rawYear, Integer rawMonth, Integer rawWeek) {
+        String period = rawPeriod == null ? "ALL" : rawPeriod.toUpperCase();
+        if ("ALL".equals(period)) return new Date[] { null, null };
+        int year = rawYear == null ? LocalDate.now().getYear() : Math.max(2000, Math.min(rawYear, 2100));
+        if ("TODAY".equals(period)) {
+            LocalDate today = LocalDate.now();
+            return toFullDayBounds(today, today);
+        }
+        if ("YEAR".equals(period)) {
+            return toFullDayBounds(LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31));
+        }
+        if ("MONTH".equals(period)) {
+            int month = rawMonth == null ? 1 : Math.max(1, Math.min(rawMonth, 12));
+            LocalDate firstDay = LocalDate.of(year, month, 1);
+            return toFullDayBounds(firstDay, firstDay.withDayOfMonth(firstDay.lengthOfMonth()));
+        }
+        if ("WEEK".equals(period)) {
+            return getIsoWeekBounds(year, rawWeek);
+        }
+        return new Date[] { null, null };
+    }
+
+    private static Date[] getIsoWeekBounds(int year, Integer rawWeek) {
+        int maxWeek = LocalDate.of(year, 12, 28).get(WeekFields.ISO.weekOfWeekBasedYear());
+        int week = rawWeek == null ? 1 : Math.max(1, Math.min(rawWeek, maxWeek));
+        LocalDate monday = LocalDate.of(year, 1, 4)
+                .with(WeekFields.ISO.weekOfWeekBasedYear(), week)
+                .with(ChronoField.DAY_OF_WEEK, 1);
+        return toFullDayBounds(monday, monday.plusDays(6));
+    }
+
+    private static Date[] toFullDayBounds(LocalDate startDate, LocalDate endDate) {
+        java.time.ZoneId zone = java.time.ZoneId.systemDefault();
+        return new Date[] {
+                Date.from(startDate.atStartOfDay(zone).toInstant()),
+                Date.from(endDate.plusDays(1).atStartOfDay(zone).toInstant().minusMillis(1))
+        };
     }
 
     /** Ưu tiên khoảng ngày do UI tính từ năm/tháng/tuần; vẫn giữ period cho API cũ. */

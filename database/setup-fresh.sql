@@ -76,6 +76,10 @@ CREATE TABLE Users (
 );
 GO
 
+-- Tối ưu lọc Admin theo ngày đăng ký, gói và số dư token.
+CREATE INDEX IX_Users_AdminFilter ON Users(created_at, account_tier, token_balance);
+GO
+
 -- [2] Roles
 CREATE TABLE Roles (
     id VARCHAR(20) PRIMARY KEY,
@@ -207,7 +211,20 @@ CREATE TABLE Favorites (
 );
 GO
 
--- [12] Song_Comments (Đã tích hợp cấu trúc phân cấp parent_id sạch sẽ ngay từ đầu)
+-- [12] Song_Listen_History: nhật ký ngầm để tính xu hướng, không hiển thị trong thư viện.
+CREATE TABLE Song_Listen_History (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    song_id INT NOT NULL,
+    username VARCHAR(50) NULL,
+    listened_at DATETIME NOT NULL DEFAULT GETDATE(),
+    FOREIGN KEY (song_id) REFERENCES Songs(id),
+    FOREIGN KEY (username) REFERENCES Users(username)
+);
+GO
+CREATE INDEX IX_SongListenHistory_Trend ON Song_Listen_History(listened_at, song_id);
+GO
+
+-- [13] Song_Comments (Đã tích hợp cấu trúc phân cấp parent_id sạch sẽ ngay từ đầu)
 CREATE TABLE Song_Comments (
     id INT IDENTITY(1,1) PRIMARY KEY,
     song_id INT NOT NULL,
@@ -632,6 +649,22 @@ INSERT INTO Songs (title, prompt, audio_url, status, is_public, lyrics, model_ve
 (N'Giai điệu cửa hàng', N'Nhạc nền nhẹ cho không gian kinh doanh', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&w=900&q=85', 690, '2026-08-06T09:10:00', 'cafe_moc');
 GO
 
+-- 19.3B. Bổ sung tác phẩm công khai đa dạng để thử phân trang, Khám phá và dữ liệu cộng đồng.
+INSERT INTO Songs (title, prompt, audio_url, status, is_public, lyrics, model_ver, is_remix, parent_id, cover_url, listen_count, created_at, username) VALUES
+(N'Đêm đèn phố', N'Synthwave neon cho video thành phố về đêm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1519608487953-e999c86e7450?auto=format&fit=crop&w=900&q=85', 1840, '2026-01-08T20:30:00', 'duc_review'),
+(N'Thư giãn bên hiên', N'Bossa nova nhẹ nhàng cho quán cà phê buổi sáng', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1511081692775-05d0f180a065?auto=format&fit=crop&w=900&q=85', 960, '2026-01-22T08:15:00', 'ngoc_cafe'),
+(N'Sóng nhỏ cuối ngày', N'Lofi êm dịu cho nhật ký và podcast', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=85', 1250, '2026-02-09T17:40:00', 'mai_podcast'),
+(N'Bước qua mây', N'Dream pop giàu cảm xúc cho video du lịch', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3', 'COMPLETED', 1, N'[Chorus] Bước qua mây, mình chạm vào bình minh', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=900&q=85', 1365, '2026-02-28T06:50:00', 'minh_travel'),
+(N'Nhịp sống trẻ', N'Afrobeats sôi động cho video ngắn và thương hiệu', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1521337581100-8ca9a73a5f79?auto=format&fit=crop&w=900&q=85', 1670, '2026-03-16T19:10:00', 'thao_content'),
+(N'Bản đồ ký ức', N'Soul pop ấm áp, giọng hát Việt', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3', 'COMPLETED', 1, N'[Verse] Bản đồ ký ức đưa ta về ngày xưa', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=85', 1095, '2026-03-30T21:05:00', 'lan_chill'),
+(N'Mưa qua khung cửa', N'Jazz piano mộc cho không gian đọc sách', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=900&q=85', 875, '2026-04-14T16:20:00', 'trang_book'),
+(N'Tự do ngoài trời', N'Folk acoustic cho vlog dã ngoại', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=85', 1180, '2026-05-02T10:35:00', 'anh_foodie'),
+(N'Chuyến xe tháng tám', N'Pop hiện đại cho video hành trình', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3', 'COMPLETED', 1, N'[Chorus] Chuyến xe tháng tám mang theo nắng mới', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1473445361085-b9a07f55608b?auto=format&fit=crop&w=900&q=85', 1410, '2026-05-21T07:25:00', 'tuan_film'),
+(N'Dư âm sân khấu', N'Techno điện tử mạnh cho sự kiện đêm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=900&q=85', 1515, '2026-06-09T22:10:00', 'hoa_event'),
+(N'Vệt nắng trên bàn', N'Ambient tối giản cho giờ làm việc tập trung', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3', 'COMPLETED', 1, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=85', 780, '2026-07-12T09:05:00', 'linh_piano'),
+(N'Lời hẹn cuối tuần', N'Indie pop tươi sáng cho video hẹn hò', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3', 'COMPLETED', 1, N'[Verse] Lời hẹn cuối tuần, mình đi qua phố quen', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=900&q=85', 1325, '2026-08-08T18:45:00', 'nhi_bakery');
+GO
+
 -- 19.4. Thể loại: 22 lựa chọn để kiểm tra phân trang 10 dòng/trang.
 INSERT INTO Genres (name, description) VALUES
 (N'Pop', N'Giai điệu đại chúng, dễ nghe và linh hoạt'),
@@ -650,6 +683,22 @@ INSERT INTO Genres (name, description) VALUES
 (N'Funk', N'Nhịp bass vui, phù hợp sự kiện cuối tuần');
 GO
 
+-- Thể loại mở rộng để thử phân trang và sắp xếp trong Admin.
+INSERT INTO Genres (name, description, created_at) VALUES
+(N'Bossa Nova', N'Nhẹ nhàng, phù hợp quán cà phê', '2024-02-12T09:00:00'),
+(N'Dream Pop', N'Âm thanh mơ màng cho video cảm xúc', '2024-04-18T10:00:00'),
+(N'Drill', N'Nhịp rap hiện đại, bass mạnh', '2024-06-22T11:00:00'),
+(N'Gospel', N'Giai điệu giàu cảm xúc, hợp xướng', '2024-08-14T12:00:00'),
+(N'Hyperpop', N'Điện tử nhanh, màu sắc táo bạo', '2024-10-09T13:00:00'),
+(N'Indie Pop', N'Pop độc lập, mộc mạc', '2025-01-17T14:00:00'),
+(N'K-Pop', N'Pop hiện đại, nhịp bắt tai', '2025-03-21T15:00:00'),
+(N'Latin Pop', N'Pop Latin sôi động', '2025-05-16T16:00:00'),
+(N'New Age', N'Không gian thư giãn và thiền', '2025-07-11T17:00:00'),
+(N'Afrobeats', N'Nhịp điệu hiện đại, sôi động và giàu năng lượng', '2025-09-05T18:00:00'),
+(N'Soul', N'Giọng hát ấm áp và sâu lắng', '2026-01-12T19:00:00'),
+(N'Techno', N'Điện tử mạnh cho sự kiện đêm', '2026-04-24T20:00:00');
+GO
+
 -- Gắn thể loại cho các bài mới bằng tên, không phụ thuộc identity ID.
 INSERT INTO SongGenres (song_id, genre_id)
 SELECT s.id, g.id
@@ -662,6 +711,27 @@ FROM (VALUES
     (N'Nắng qua ô cửa', N'Acoustic'), (N'Con đường xanh', N'Indie'),
     (N'Đi qua mùa hạ', N'Rock'), (N'Lặng giữa thành phố', N'Chillhop'),
     (N'Bước chân tự do', N'EDM'), (N'Giai điệu cửa hàng', N'Ambient')
+) AS seed(song_title, genre_name)
+JOIN Songs s ON s.title = seed.song_title
+JOIN Genres g ON g.name = seed.genre_name;
+GO
+
+-- Gắn thể loại cho tác phẩm bổ sung. Một bài có thể mang nhiều thể loại để phản ánh cách phân loại thực tế.
+INSERT INTO SongGenres (song_id, genre_id)
+SELECT s.id, g.id
+FROM (VALUES
+    (N'Đêm đèn phố', N'Synthwave'), (N'Đêm đèn phố', N'House'),
+    (N'Thư giãn bên hiên', N'Bossa Nova'), (N'Thư giãn bên hiên', N'Jazz'),
+    (N'Sóng nhỏ cuối ngày', N'Lofi'), (N'Sóng nhỏ cuối ngày', N'Chillhop'),
+    (N'Bước qua mây', N'Dream Pop'), (N'Bước qua mây', N'Pop'),
+    (N'Nhịp sống trẻ', N'Afrobeats'), (N'Nhịp sống trẻ', N'Pop'),
+    (N'Bản đồ ký ức', N'Soul'), (N'Bản đồ ký ức', N'R&B'),
+    (N'Mưa qua khung cửa', N'Jazz'), (N'Mưa qua khung cửa', N'Classical'),
+    (N'Tự do ngoài trời', N'Folk'), (N'Tự do ngoài trời', N'Acoustic'),
+    (N'Chuyến xe tháng tám', N'Pop'), (N'Chuyến xe tháng tám', N'Indie Pop'),
+    (N'Dư âm sân khấu', N'Techno'), (N'Dư âm sân khấu', N'EDM'),
+    (N'Vệt nắng trên bàn', N'Ambient'), (N'Vệt nắng trên bàn', N'New Age'),
+    (N'Lời hẹn cuối tuần', N'Indie Pop'), (N'Lời hẹn cuối tuần', N'Pop')
 ) AS seed(song_title, genre_name)
 JOIN Songs s ON s.title = seed.song_title
 JOIN Genres g ON g.name = seed.genre_name;
@@ -831,6 +901,46 @@ FROM (VALUES
 JOIN Packages p ON p.name = seed.package_name;
 GO
 
+-- 19.6a. Dữ liệu bán hàng xuyên nhiều năm: mỗi tuần có 3 đơn để kiểm tra bộ lọc theo tuần/tháng/năm.
+;WITH WeekSeeds AS (
+    SELECT CAST('2024-01-01' AS DATE) AS week_start
+    UNION ALL
+    SELECT DATEADD(WEEK, 1, week_start) FROM WeekSeeds WHERE week_start < '2026-08-03'
+), WeekOrders AS (
+    SELECT w.week_start, v.sequence_no, DATEADD(DAY, v.day_offset, w.week_start) AS created_at,
+           CASE v.sequence_no
+               WHEN 1 THEN 'SUCCESS'
+               WHEN 2 THEN 'SUCCESS'
+               ELSE CASE DATEPART(ISO_WEEK, w.week_start) % 4
+                   WHEN 0 THEN 'PENDING' WHEN 1 THEN 'REVIEW' WHEN 2 THEN 'FAILED' ELSE 'SUCCESS' END
+           END AS status,
+           CASE (DATEPART(ISO_WEEK, w.week_start) + v.sequence_no) % 2 WHEN 0 THEN 'SEPAY' ELSE 'VNPAY' END AS payment_method,
+           CASE (DATEPART(ISO_WEEK, w.week_start) + v.sequence_no) % 3
+               WHEN 0 THEN N'Nhà sáng tạo' WHEN 1 THEN N'Chuyên nghiệp' ELSE N'Phòng thu' END AS package_name,
+           CASE (DATEPART(ISO_WEEK, w.week_start) + v.sequence_no) % 8
+               WHEN 0 THEN 'anh_foodie' WHEN 1 THEN 'duc_review' WHEN 2 THEN 'huyen_studio' WHEN 3 THEN 'tuan_film'
+               WHEN 4 THEN 'ngoc_cafe' WHEN 5 THEN 'long_sport' WHEN 6 THEN 'thao_content' ELSE 'hoa_event' END AS username
+    FROM WeekSeeds w CROSS JOIN (VALUES (1, 1), (2, 3), (3, 5)) v(sequence_no, day_offset)
+)
+INSERT INTO Orders (order_code, total_price, status, payment_method, created_at, username, package_id)
+SELECT CONCAT('SEED-WEEK-', CONVERT(CHAR(8), created_at, 112), '-', sequence_no), p.price, status, payment_method, created_at, username, p.id
+FROM WeekOrders wo JOIN Packages p ON p.name = wo.package_name
+OPTION (MAXRECURSION 200);
+GO
+
+-- Nhật ký thanh toán/token tương ứng cho các đơn thành công mẫu để thử phân trang lịch sử.
+INSERT INTO Payment_Logs (order_code, gateway_name, transaction_id, amount, content, created_at)
+SELECT o.order_code, o.payment_method, CONCAT('SEED-TRANS-', o.order_code), o.total_price,
+       N'[DEMO] Thanh toán thành công từ dữ liệu mồi theo tuần', o.created_at
+FROM Orders o WHERE o.order_code LIKE 'SEED-WEEK-%' AND o.status = 'SUCCESS';
+GO
+
+INSERT INTO Transactions (username, amount, description, created_at)
+SELECT o.username, p.tokens, CONCAT(N'Cộng token từ đơn ', o.order_code), o.created_at
+FROM Orders o JOIN Packages p ON p.id = o.package_id
+WHERE o.order_code LIKE 'SEED-WEEK-%' AND o.status = 'SUCCESS';
+GO
+
 -- Lịch sử thanh toán riêng của admin_core: đủ hơn một trang để thử lọc và phân trang ở màn hình người dùng.
 INSERT INTO Orders (order_code, total_price, status, payment_method, created_at, username, package_id)
 SELECT seed.order_code, seed.total_price, seed.status, seed.payment_method, seed.created_at, 'admin_core', p.id
@@ -951,6 +1061,50 @@ FROM (VALUES
     ('thao_content', N'Lời chào ngày mới', '2026-08-03T08:00:00'), ('mai_podcast', N'Chuyện kể đêm khuya', '2026-08-04T22:00:00'),
     ('nam_acoustic', N'Chạm vào hoàng hôn', '2026-08-05T18:00:00'), ('linh_piano', N'Mưa trên phím đàn', '2026-08-06T09:00:00')
 ) AS seed(username, song_title, created_at)
+JOIN Songs s ON s.title = seed.song_title;
+GO
+
+-- Tạo phân bố lượt thích rõ ràng cho Top bài hát: mỗi người chỉ được thích một lần trên một bài.
+;WITH RankedUsers AS (
+    SELECT username, ROW_NUMBER() OVER (ORDER BY username) AS user_rank
+    FROM Users
+), PopularSongs AS (
+    SELECT N'Bình minh Tây Bắc' AS song_title, 18 AS target_likes UNION ALL
+    SELECT N'Đêm đèn phố', 16 UNION ALL
+    SELECT N'Hè trên biển', 15 UNION ALL
+    SELECT N'Bước chân tự do', 14 UNION ALL
+    SELECT N'Nhịp sống trẻ', 13 UNION ALL
+    SELECT N'Cà phê chiều mưa', 12 UNION ALL
+    SELECT N'Chạm vào hoàng hôn', 11 UNION ALL
+    SELECT N'Chuyến xe tháng tám', 10 UNION ALL
+    SELECT N'Đêm mưa Sài Gòn', 9 UNION ALL
+    SELECT N'Bản đồ ký ức', 8
+)
+INSERT INTO Favorites (username, song_id, created_at)
+SELECT u.username, s.id, DATEADD(DAY, u.user_rank, CAST('2026-07-01T08:00:00' AS DATETIME))
+FROM PopularSongs ps
+JOIN Songs s ON s.title = ps.song_title
+JOIN RankedUsers u ON u.user_rank <= ps.target_likes
+WHERE NOT EXISTS (
+    SELECT 1 FROM Favorites f WHERE f.username = u.username AND f.song_id = s.id
+);
+GO
+
+-- 19.9a. Lượt nghe mới để kiểm tra bộ lọc "Xu hướng" của Admin.
+-- Xu hướng dùng tổng tương tác mới: lượt nghe mới cộng lượt tim mới.
+INSERT INTO Song_Listen_History (song_id, username, listened_at)
+SELECT s.id, seed.username, seed.listened_at
+FROM (VALUES
+    ('lan_chill', N'Bình minh Tây Bắc', '2026-08-04T08:10:00'), ('anh_foodie', N'Bình minh Tây Bắc', '2026-08-05T09:20:00'),
+    ('tuan_film', N'Bình minh Tây Bắc', '2026-08-06T11:15:00'), ('hoa_event', N'Bình minh Tây Bắc', '2026-08-07T20:30:00'),
+    ('cafe_moc', N'Cà phê chiều mưa', '2026-08-03T16:10:00'), ('nhi_bakery', N'Cà phê chiều mưa', '2026-08-05T17:20:00'),
+    ('trang_book', N'Cà phê chiều mưa', '2026-08-08T18:10:00'), ('phuc_gaming', N'Bước chân tự do', '2026-08-04T06:30:00'),
+    ('long_sport', N'Bước chân tự do', '2026-08-06T07:40:00'), ('mai_podcast', N'Bước chân tự do', '2026-08-08T08:50:00'),
+    ('minh_travel', N'Hè trên biển', '2026-08-02T10:20:00'), ('ngoc_cafe', N'Hè trên biển', '2026-08-04T11:10:00'),
+    ('zmedia_agency', N'Phố lên đèn', '2026-08-06T21:25:00'), ('duc_review', N'Phố lên đèn', '2026-08-07T22:00:00'),
+    ('thao_content', N'Lời chào ngày mới', '2026-08-03T07:30:00'), ('yen_yoga', N'Một phút nghỉ ngơi', '2026-08-05T06:50:00'),
+    ('nam_acoustic', N'Chạm vào hoàng hôn', '2026-08-08T18:30:00'), ('linh_piano', N'Mưa trên phím đàn', '2026-08-09T09:10:00')
+) AS seed(username, song_title, listened_at)
 JOIN Songs s ON s.title = seed.song_title;
 GO
 
