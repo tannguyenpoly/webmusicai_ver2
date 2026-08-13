@@ -43,7 +43,7 @@ window.MusicAIModules.wizard = {
 
         createEmptyMusicBrief() {
             return {
-                audience: '', useCase: '', venueStyle: '', platform: '', timeOfDay: '',
+                provider: 'audiocraft', audience: '', useCase: '', venueStyle: '', platform: '', timeOfDay: '',
                 duration: '30 giây', genreId: null, genreName: '', mood: '', energy: 'Vừa phải',
                 instruments: [], vocalMode: 'instrumental', vocalLanguage: 'Tiếng Việt',
                 lyrics: '', title: '', note: ''
@@ -70,6 +70,11 @@ window.MusicAIModules.wizard = {
             this.musicBrief = this.createEmptyMusicBrief();
             this.generationForm.genreId = null;
             this.generationForm.instrumental = true;
+            this.generationForm.provider = 'audiocraft';
+            this.generationForm.lyrics = '';
+            this.generationForm.vocalMode = 'instrumental';
+            this.generationForm.vocalLanguage = 'Tiếng Việt';
+            this.generationForm.durationSeconds = 30;
             this.wizardEditingSongId = null;
             this.wizardEditingSongTitle = '';
             this.wizardStep = 1;
@@ -124,7 +129,33 @@ window.MusicAIModules.wizard = {
             if (mode === 'instrumental') this.musicBrief.lyrics = '';
         },
 
+        selectMusicProvider(provider) {
+            this.musicBrief.provider = provider.code;
+            this.generationForm.provider = provider.code;
+            if (!provider.supportsLyrics && this.musicBrief.vocalMode !== 'instrumental') {
+                this.selectWizardVocalMode('instrumental');
+                this.Toast.fire({ icon: 'info', title: 'AudioCraft hiện chỉ tạo nhạc không lời.' });
+            }
+        },
+
+        selectedMusicProvider() {
+            return this.musicProviders.find(item => item.code === this.musicBrief.provider) || this.musicProviders[0];
+        },
+
+        loadMusicProviderStatus() {
+            axios.get('/api/songs/ai-status').then(response => {
+                const statusByCode = response.data?.providers || {};
+                this.musicProviders.forEach(provider => {
+                    provider.available = Boolean(statusByCode[provider.code]?.available);
+                });
+            }).catch(() => {});
+        },
+
         canMoveWizardForward() {
+            if (this.wizardStep === 1 && !this.musicBrief.provider) {
+                this.Toast.fire({ icon: 'info', title: 'Hãy chọn mô hình AI trước.' });
+                return false;
+            }
             if (this.wizardStep === 1 && !this.musicBrief.audience) {
                 this.Toast.fire({ icon: 'info', title: 'Hãy chọn nhóm nhu cầu trước.' });
                 return false;
@@ -164,6 +195,11 @@ window.MusicAIModules.wizard = {
             this.generationForm.instrumental = this.musicBrief.vocalMode === 'instrumental';
             this.generationForm.genreId = this.musicBrief.genreId;
             this.generationForm.title = (this.musicBrief.title || '').trim();
+            this.generationForm.provider = this.musicBrief.provider;
+            this.generationForm.lyrics = this.musicBrief.vocalMode === 'own-lyrics' ? this.musicBrief.lyrics : '';
+            this.generationForm.vocalMode = this.musicBrief.vocalMode;
+            this.generationForm.vocalLanguage = this.musicBrief.vocalLanguage;
+            this.generationForm.durationSeconds = this.durationToSeconds(this.musicBrief.duration);
 
             if (this.wizardEditingSongId && this.currentUser) {
                 this.createWizardVariation(prompt);
@@ -181,6 +217,11 @@ window.MusicAIModules.wizard = {
                 prompt: prompt,
                 title: title,
                 instrumental: this.generationForm.instrumental
+                , provider: this.generationForm.provider,
+                lyrics: this.generationForm.lyrics,
+                vocalMode: this.generationForm.vocalMode,
+                vocalLanguage: this.generationForm.vocalLanguage,
+                durationSeconds: this.generationForm.durationSeconds
             }).then(response => {
                 const data = response.data;
                 this.registerQueuedSong(data, prompt, title);
@@ -193,6 +234,14 @@ window.MusicAIModules.wizard = {
             }).finally(() => {
                 this.isGenerating = false;
             });
+        },
+
+        durationToSeconds(duration) {
+            const value = String(duration || '30');
+            if (value.includes('2 ph')) return 120;
+            if (value.includes('60')) return 60;
+            if (value.includes('15')) return 15;
+            return 30;
         },
 
         createFromHome() {

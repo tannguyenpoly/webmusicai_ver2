@@ -14,6 +14,7 @@ import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.TransactionRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
+import com.fpoly.webmusicai.service.music.GenerationSpec;
 
 @Service
 public class SongGenerationService {
@@ -35,7 +36,7 @@ public class SongGenerationService {
     }
 
     @Transactional
-    public SongGenerationTicket createPendingSong(String username, String prompt, String title) {
+    public SongGenerationTicket createPendingSong(String username, String prompt, String title, GenerationSpec spec) {
         User user = lockUserWithToken(username);
         deductToken(user, "Tạo nhạc: " + prompt);
 
@@ -43,11 +44,27 @@ public class SongGenerationService {
         song.setTitle(title != null && !title.isBlank() ? title.trim() : "Đang tạo...");
         song.setPrompt(prompt.trim());
         song.setStatus("PENDING");
+        song.setGenerationProvider(spec.provider());
+        song.setProviderStatus("QUEUED");
+        song.setGenerationDurationSeconds(spec.durationSeconds());
+        song.setVocalMode(spec.vocalMode());
+        song.setVocalLanguage(spec.vocalLanguage());
+        song.setLyrics(spec.hasLyrics() ? spec.lyrics() : null);
+        song.setModelVer(spec.provider());
         song.setIsPublic(isFreeTier(user) && !username.startsWith("guest_"));
         song.setUser(user);
         songRepository.save(song);
 
         return new SongGenerationTicket(song.getId(), user.getTokenBalance(), null);
+    }
+
+    /**
+     * Tương thích với API tạo nhạc trước khi có lựa chọn nhiều mô hình AI.
+     * Luồng cũ mặc định dùng AudioCraft và nhạc không lời 30 giây.
+     */
+    @Transactional
+    public SongGenerationTicket createPendingSong(String username, String prompt, String title) {
+        return createPendingSong(username, prompt, title, legacyGenerationSpec(prompt));
     }
 
     @Transactional
@@ -68,7 +85,7 @@ public class SongGenerationService {
 
     @Transactional
     public SongGenerationTicket createPendingRemix(
-            String username, Song original, String prompt, String title) {
+            String username, Song original, String prompt, String title, GenerationSpec spec) {
         User user = lockUserWithToken(username);
         deductToken(user, "Remix nhạc từ bài: " + original.getTitle());
 
@@ -78,6 +95,13 @@ public class SongGenerationService {
                 : original.getTitle() + " (Remix)");
         remix.setPrompt(prompt.trim());
         remix.setStatus("PENDING");
+        remix.setGenerationProvider(spec.provider());
+        remix.setProviderStatus("QUEUED");
+        remix.setGenerationDurationSeconds(spec.durationSeconds());
+        remix.setVocalMode(spec.vocalMode());
+        remix.setVocalLanguage(spec.vocalLanguage());
+        remix.setLyrics(spec.hasLyrics() ? spec.lyrics() : null);
+        remix.setModelVer(spec.provider());
         remix.setIsPublic(isFreeTier(user) && !username.startsWith("guest_"));
         remix.setIsRemix(true);
         remix.setParentId(original.getId());
@@ -85,6 +109,17 @@ public class SongGenerationService {
         songRepository.save(remix);
 
         return new SongGenerationTicket(remix.getId(), user.getTokenBalance(), original.getId());
+    }
+
+    /** Tương thích với API remix cũ chưa gửi thông tin nhà cung cấp AI. */
+    @Transactional
+    public SongGenerationTicket createPendingRemix(String username, Song original, String prompt, String title) {
+        return createPendingRemix(username, original, prompt, title, legacyGenerationSpec(prompt));
+    }
+
+    private GenerationSpec legacyGenerationSpec(String prompt) {
+        return new GenerationSpec("audiocraft", prompt, true, null,
+                "instrumental", "vi", 30);
     }
 
     @Transactional
@@ -99,6 +134,8 @@ public class SongGenerationService {
                 generatedMusic.audioBytes(), generatedMusic.contentType());
         song.setAudioUrl(audioUrl);
         song.setLyrics(generatedMusic.lyrics());
+        song.setProviderTaskId(generatedMusic.externalTaskId());
+        song.setProviderStatus(generatedMusic.providerStatus() == null ? "COMPLETED" : generatedMusic.providerStatus());
         song.setStatus("COMPLETED");
         if (requestedTitle == null || requestedTitle.isBlank()) {
             song.setTitle(generatedMusic.title() != null && !generatedMusic.title().isBlank()
@@ -110,6 +147,15 @@ public class SongGenerationService {
     }
 
     @Transactional
+    public void markProcessing(Integer songId) {
+        Song song = songRepository.findByIdForUpdate(songId).orElse(null);
+        if (song != null && "PENDING".equals(song.getStatus())) {
+            song.setProviderStatus("PROCESSING");
+            songRepository.save(song);
+        }
+    }
+
+    @Transactional
     public void failAndRefund(Integer songId, String reason) {
         Song song = songRepository.findByIdForUpdate(songId).orElse(null);
         if (song == null || !"PENDING".equals(song.getStatus())) {
@@ -117,6 +163,7 @@ public class SongGenerationService {
         }
 
         song.setStatus("FAILED");
+        song.setProviderStatus("FAILED");
         songRepository.save(song);
 
         User user = userRepository.findByUsernameForUpdate(song.getUser().getUsername())
@@ -146,6 +193,7 @@ public class SongGenerationService {
         }
 
         song.setStatus("CANCELLED");
+        song.setProviderStatus("CANCELLED");
         songRepository.save(song);
 
         User user = userRepository.findByUsernameForUpdate(song.getUser().getUsername())
@@ -173,6 +221,7 @@ public class SongGenerationService {
             }
 
             lockedSong.setStatus("FAILED");
+            lockedSong.setProviderStatus("TIMEOUT");
             songRepository.save(lockedSong);
 
             User user = userRepository.findByUsernameForUpdate(lockedSong.getUser().getUsername())

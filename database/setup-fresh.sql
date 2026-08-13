@@ -108,6 +108,12 @@ CREATE TABLE Songs (
     is_public BIT DEFAULT 0,
     lyrics NVARCHAR(MAX) NULL,
     model_ver VARCHAR(20) NULL,
+    generation_provider VARCHAR(30) NULL,
+    provider_task_id VARCHAR(120) NULL,
+    provider_status VARCHAR(30) NULL,
+    generation_duration_seconds INT NULL,
+    vocal_mode VARCHAR(30) NULL,
+    vocal_language NVARCHAR(30) NULL,
     is_remix BIT DEFAULT 0,
     parent_id INT NULL,
     cover_url VARCHAR(500) NULL,
@@ -117,6 +123,11 @@ CREATE TABLE Songs (
     FOREIGN KEY (username) REFERENCES Users(username),
     FOREIGN KEY (parent_id) REFERENCES Songs(id)
 );
+GO
+
+-- Provider AI: dùng để lọc/lịch sử tác vụ sau này; không cần script SQL thứ hai.
+CREATE INDEX IX_Songs_GenerationProviderStatus
+ON Songs(generation_provider, provider_status, created_at DESC);
 GO
 
 -- [5] Transactions
