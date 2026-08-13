@@ -43,12 +43,14 @@ import com.fpoly.webmusicai.repository.GenreRepository;
 import com.fpoly.webmusicai.repository.PlaylistSongRepository;
 import com.fpoly.webmusicai.repository.AlbumSongRepository;
 import com.fpoly.webmusicai.service.MusicJobService;
+import com.fpoly.webmusicai.service.MusicGeneratorService;
 import com.fpoly.webmusicai.service.SongGenerationService;
 import com.fpoly.webmusicai.service.SongGenerationTicket;
 import com.fpoly.webmusicai.service.SongCancellationResult;
 import com.fpoly.webmusicai.service.SongNotificationService;
 import com.fpoly.webmusicai.service.AudioStorageService;
 import com.fpoly.webmusicai.service.SpamProtectionService;
+import com.fpoly.webmusicai.service.music.GenerationSpec;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -93,6 +95,9 @@ public class SongRestController {
     MusicJobService musicJobService;
 
     @Autowired
+    MusicGeneratorService musicGeneratorService;
+
+    @Autowired
     SongGenerationService songGenerationService;
 
     @Autowired
@@ -109,6 +114,21 @@ public class SongRestController {
 
     @Autowired
     SpamProtectionService spamProtectionService;
+
+    @GetMapping("/ai-status")
+    public ResponseEntity<?> getAiStatus() {
+        Map<String, Object> providers = musicGeneratorService.getCapabilities();
+        boolean online = providers.values().stream()
+                .filter(Map.class::isInstance).map(Map.class::cast)
+                .anyMatch(item -> Boolean.TRUE.equals(item.get("available")));
+        return ResponseEntity.status(online ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of(
+                        "online", online,
+                        "providers", providers,
+                        "message", online
+                                ? "Hệ thống AI sẵn sàng"
+                                : "Hệ thống AI đang ngoại tuyến. Vui lòng bật lại máy chủ Colab."));
+    }
 
     @GetMapping("/public")
     public ResponseEntity<?> getPublicSongs() {
@@ -254,15 +274,21 @@ public class SongRestController {
                         .orElseThrow(() -> new IllegalArgumentException("Thể loại đã chọn không tồn tại"));
                 effectivePrompt = "Thể loại " + selectedGenre.getName() + ". " + effectivePrompt;
             }
+            GenerationSpec spec = generationSpec(requestData);
+            if (!musicGeneratorService.isAvailable(spec.provider())) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(Map.of("message",
+                                "Hệ thống AI đang ngoại tuyến. Yêu cầu chưa được tạo và token không bị trừ."));
+            }
             SongGenerationTicket ticket = songGenerationService.createPendingSong(
-                    finalUsername, effectivePrompt, requestData.getTitle());
+                    finalUsername, effectivePrompt, requestData.getTitle(), spec);
             songGenerationService.assignGenre(ticket.songId(), selectedGenre);
             try {
                 musicJobService.submit(
                         ticket.songId(),
                         effectivePrompt,
                         requestData.getTitle(),
-                        requestData.isInstrumental());
+                        spec);
             } catch (TaskRejectedException e) {
                 songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -727,13 +753,21 @@ public class SongRestController {
             return ResponseEntity.badRequest().body(Map.of("message", "Tên bản remix không được vượt quá 255 ký tự"));
         }
         boolean instrumental = Boolean.parseBoolean(body.getOrDefault("instrumental", "true"));
+        GenerationSpec spec = new GenerationSpec(body.getOrDefault("provider", "audiocraft"), remixPrompt.trim(), instrumental,
+                body.get("lyrics"), body.getOrDefault("vocalMode", instrumental ? "instrumental" : "own-lyrics"),
+                body.getOrDefault("vocalLanguage", "Tiếng Việt"), parseDurationSeconds(body.get("durationSeconds")));
 
         try {
+            if (!musicGeneratorService.isAvailable(spec.provider())) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(Map.of("message",
+                                "Hệ thống AI đang ngoại tuyến. Yêu cầu chưa được tạo và token không bị trừ."));
+            }
             SongGenerationTicket ticket = songGenerationService.createPendingRemix(
-                    username, original, remixPrompt, customTitle);
+                    username, original, remixPrompt, customTitle, spec);
             try {
                 musicJobService.submit(
-                        ticket.songId(), remixPrompt.trim(), customTitle, instrumental);
+                        ticket.songId(), remixPrompt.trim(), customTitle, spec);
             } catch (TaskRejectedException e) {
                 songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -1007,5 +1041,25 @@ public class SongRestController {
         }
 
         return ResponseEntity.ok(songPage.map(Song::toMap));
+    }
+
+    private GenerationSpec generationSpec(GenerateSongRequest request) {
+        String provider = request.getProvider() == null || request.getProvider().isBlank()
+                ? "audiocraft" : request.getProvider().trim();
+        return new GenerationSpec(provider, request.getPrompt().trim(), request.isInstrumental(), request.getLyrics(),
+                request.getVocalMode(), request.getVocalLanguage(), normalizeDuration(request.getDurationSeconds()));
+    }
+
+    private Integer parseDurationSeconds(String value) {
+        try {
+            return normalizeDuration(value == null ? null : Integer.valueOf(value));
+        } catch (NumberFormatException error) {
+            return 30;
+        }
+    }
+
+    private Integer normalizeDuration(Integer durationSeconds) {
+        if (durationSeconds == null) return 30;
+        return Math.max(15, Math.min(durationSeconds, 240));
     }
 }

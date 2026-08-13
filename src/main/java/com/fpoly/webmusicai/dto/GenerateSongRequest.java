@@ -17,4 +17,18 @@ public class GenerateSongRequest {
     private boolean instrumental = true;
 
     private Integer genreId;
+
+    /** audiocraft | ace-step | musicapi | suno */
+    private String provider = "audiocraft";
+
+    @Size(max = 6000, message = "Lời nhạc không được vượt quá 6000 ký tự")
+    private String lyrics;
+
+    @Size(max = 30, message = "Chế độ lời nhạc không hợp lệ")
+    private String vocalMode = "instrumental";
+
+    @Size(max = 30, message = "Ngôn ngữ giọng hát không hợp lệ")
+    private String vocalLanguage = "Tiếng Việt";
+
+    private Integer durationSeconds = 30;
 }

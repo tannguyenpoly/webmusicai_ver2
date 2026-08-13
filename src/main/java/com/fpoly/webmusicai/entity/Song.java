@@ -55,6 +55,24 @@ public class Song implements Serializable {
 	@Column(name = "model_ver")
 	private String modelVer;
 
+    @Column(name = "generation_provider")
+    private String generationProvider;
+
+    @Column(name = "provider_task_id")
+    private String providerTaskId;
+
+    @Column(name = "provider_status")
+    private String providerStatus;
+
+    @Column(name = "generation_duration_seconds")
+    private Integer generationDurationSeconds;
+
+    @Column(name = "vocal_mode")
+    private String vocalMode;
+
+    @Column(name = "vocal_language")
+    private String vocalLanguage;
+
 	@Column(name = "is_remix")
 	private Boolean isRemix = false;
 
@@ -88,6 +106,14 @@ public class Song implements Serializable {
 		map.put("parentId", this.getParentId());
 		map.put("coverUrl", this.getCoverUrl());
 		map.put("listenCount", this.getListenCount() != null ? this.getListenCount() : 0);
+
+		map.put("generationProvider", this.getGenerationProvider());
+		map.put("providerTaskId", this.getProviderTaskId());
+		map.put("providerStatus", this.getProviderStatus());
+		map.put("generationDurationSeconds", this.getGenerationDurationSeconds());
+		map.put("vocalMode", this.getVocalMode());
+		map.put("vocalLanguage", this.getVocalLanguage());
+		map.put("lyrics", this.getLyrics());
 		map.put("genres", this.getGenres() == null ? List.of() : this.getGenres().stream()
 				.map(genre -> Map.of("id", genre.getId(), "name", genre.getName()))
 				.toList());

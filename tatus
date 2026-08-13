@@ -1,0 +1,11 @@
+warning: in the working copy of 'src/main/java/com/fpoly/webmusicai/controller/SongRestController.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/fpoly/webmusicai/dto/GenerateSongRequest.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/fpoly/webmusicai/entity/Song.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/fpoly/webmusicai/service/GeneratedMusic.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/fpoly/webmusicai/service/MusicGeneratorService.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/fpoly/webmusicai/service/MusicJobService.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/fpoly/webmusicai/service/SongGenerationService.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/resources/application.properties', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/resources/static/js/main.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/resources/static/js/modules/wizard.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/resources/templates/create.html', LF will be replaced by CRLF the next time Git touches it

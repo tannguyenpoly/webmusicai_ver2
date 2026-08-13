@@ -10,6 +10,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import com.fpoly.webmusicai.service.music.GenerationSpec;
 
 @Service
 @Slf4j
@@ -32,9 +33,9 @@ public class MusicJobService {
         this.musicTaskExecutor = musicTaskExecutor;
     }
 
-    public void submit(Integer songId, String prompt, String requestedTitle, boolean instrumental) {
+    public void submit(Integer songId, String prompt, String requestedTitle, GenerationSpec spec) {
         FutureTask<Void> task = new FutureTask<>(() -> {
-            runGeneration(songId, prompt, requestedTitle, instrumental);
+            runGeneration(songId, prompt, requestedTitle, spec);
             return null;
         });
         if (runningJobs.putIfAbsent(songId, task) != null) {
@@ -53,12 +54,13 @@ public class MusicJobService {
         return future != null && future.cancel(true);
     }
 
-    private void runGeneration(Integer songId, String prompt, String requestedTitle, boolean instrumental) {
+    private void runGeneration(Integer songId, String prompt, String requestedTitle, GenerationSpec spec) {
         try {
             if (Thread.currentThread().isInterrupted()) {
                 return;
             }
-            GeneratedMusic generatedMusic = musicGeneratorService.generateMusic(prompt, instrumental);
+            songGenerationService.markProcessing(songId);
+            GeneratedMusic generatedMusic = musicGeneratorService.generateMusic(spec);
             boolean completed = songGenerationService.complete(songId, generatedMusic, requestedTitle);
             if (completed) {
                 try {

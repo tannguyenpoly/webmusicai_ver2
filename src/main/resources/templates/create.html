@@ -191,6 +191,14 @@
                     </div>
 
                     <div v-if="wizardStep === 1">
+                        <div class="wizard-section-title fw-bold mb-3">Chọn mô hình AI</div>
+                        <div class="row g-2 mb-4">
+                            <div v-for="provider in musicProviders" :key="provider.code" class="col-md-6">
+                                <button @click="selectMusicProvider(provider)" class="wizard-choice w-100 h-100 text-start" :class="{ 'is-selected': musicBrief.provider === provider.code }">
+                                    <div class="d-flex align-items-start gap-2"><i class="ti ti-cpu-2 text-success" style="font-size:22px;"></i><span><span class="d-flex align-items-center gap-1 fw-bold" style="font-size:14px;">{{ provider.name }} <small class="badge" :class="provider.available ? 'bg-success' : 'bg-secondary'">{{ provider.available ? 'Sẵn sàng' : 'Chưa cấu hình' }}</small></span><span class="d-block text-muted-sync mt-1" style="font-size:11px;">{{ provider.description }}</span></span><i v-if="musicBrief.provider === provider.code" class="ti ti-circle-check ms-auto text-success" style="font-size:18px;"></i></div>
+                                </button>
+                            </div>
+                        </div>
                         <div class="wizard-section-title fw-bold mb-4">Bạn tạo nhạc cho ai?</div>
                         <div class="row g-2">
                             <div class="col-12">
@@ -262,8 +270,8 @@
                         <div class="wizard-section-title fw-bold mb-4">Giọng hát và lời nhạc</div>
                         <div class="d-grid gap-2 mb-3">
                             <button @click="selectWizardVocalMode('instrumental')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'instrumental' }"><i class="ti ti-music-off me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Nhạc không lời</span><span class="d-block text-muted-sync ms-4" style="font-size:11px;">Phù hợp làm nhạc nền và không gian quán</span></button>
-                            <button @click="selectWizardVocalMode('ai-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'ai-lyrics' }"><i class="ti ti-sparkles me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">AI gợi ý lời</span><span class="d-block text-muted-sync ms-4" style="font-size:11px;">Sẽ tích hợp cùng ACE-Step ở giai đoạn sau</span></button>
-                            <button @click="selectWizardVocalMode('own-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'own-lyrics' }"><i class="ti ti-pencil me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Tôi tự nhập lời</span><span class="d-block text-muted-sync ms-4" style="font-size:11px;">Chủ động nội dung và thông điệp bài hát</span></button>
+                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('ai-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'ai-lyrics' }"><i class="ti ti-sparkles me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">AI gợi ý lời</span></button>
+                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('own-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'own-lyrics' }"><i class="ti ti-pencil me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Tôi tự nhập lời</span></button>
                         </div>
                         <div v-if="musicBrief.vocalMode !== 'instrumental'" class="mb-3">
                             <label class="small fw-semibold text-muted-sync mb-2">NGÔN NGỮ GIỌNG HÁT</label>

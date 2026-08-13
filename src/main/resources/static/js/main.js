@@ -51,7 +51,12 @@ new Vue({
             title: '',
             prompt: '',
             instrumental: true,
-            genreId: null
+            genreId: null,
+            provider: 'audiocraft',
+            lyrics: '',
+            vocalMode: 'instrumental',
+            vocalLanguage: 'Tiếng Việt',
+            durationSeconds: 30
         },
         // Wizard tạo nhạc: ghép các lựa chọn thành prompt cho API hiện tại.
         // Brief được lưu tạm trên trình duyệt để người dùng tạo phiên bản chỉnh sửa.
@@ -63,7 +68,14 @@ new Vue({
             { label: 'Giọng & lời', icon: 'ti-microphone' },
             { label: 'Xác nhận', icon: 'ti-circle-check' }
         ],
+        musicProviders: [
+            { code: 'audiocraft', name: 'AudioCraft', badge: 'Colab', description: 'Nhạc không lời cho bản demo ngắn.', supportsLyrics: false, available: false },
+            { code: 'ace-step', name: 'ACE-Step', badge: 'Colab GPU', description: 'Có lời và tiếng Việt khi worker GPU sẵn sàng.', supportsLyrics: true, available: false },
+            { code: 'musicapi', name: 'MusicAPI.ai', badge: 'API', description: 'Tạo bài hát hoàn chỉnh qua API khi còn credit.', supportsLyrics: true, available: false },
+            { code: 'suno', name: 'Suno', badge: 'API', description: 'Tạo nhạc và lời qua Suno API khi đã có key.', supportsLyrics: true, available: false }
+        ],
         musicBrief: {
+            provider: 'audiocraft',
             audience: '',
             useCase: '',
             venueStyle: '',
@@ -578,6 +590,7 @@ new Vue({
         });
 
         this.loadWizardBriefs();
+        this.loadMusicProviderStatus();
 
         const urlParams = new URLSearchParams(window.location.search);
         const paymentStatus = urlParams.get('status');
