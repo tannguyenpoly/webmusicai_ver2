@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +27,6 @@ import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.repository.AuthorityRepository;
 import com.fpoly.webmusicai.repository.RoleRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
-import com.fpoly.webmusicai.repository.SongRepository;
-import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.service.MailService;
 import com.fpoly.webmusicai.service.PresenceService;
 
@@ -43,8 +40,6 @@ public class AuthController {
 	@Autowired
 	UserRepository userRepo;
 
-	@Autowired
-	SongRepository songRepo;
 
 	@Autowired
 	RoleRepository roleRepo;
@@ -273,33 +268,4 @@ public class AuthController {
 		return ResponseEntity.ok(Map.of("message", "Đặt lại mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới."));
 	}
 
-	@PostMapping("/migrate")
-	@org.springframework.transaction.annotation.Transactional
-	public ResponseEntity<?> migrateGuestSongs(@RequestParam String guestId, @RequestParam String username) {
-		if (guestId == null || !guestId.startsWith("guest_")) {
-			return ResponseEntity.badRequest().body("Mã khách hàng không hợp lệ!");
-		}
-		Optional<User> userOpt = userRepo.findById(username);
-		if (!userOpt.isPresent()) {
-			return ResponseEntity.badRequest().body("Người dùng không tồn tại!");
-		}
-		User user = userOpt.get();
-
-		Optional<User> guestUserOpt = userRepo.findById(guestId);
-		if (guestUserOpt.isPresent()) {
-			List<Song> guestSongs = songRepo.findByUserUsernameOrderByCreatedAtDesc(guestId);
-			if (!guestSongs.isEmpty()) {
-				for (Song song : guestSongs) {
-					song.setUser(user);
-					songRepo.save(song);
-				}
-				// Deduct 1 token from the user's balance because they already used 1 free guest creation
-				user.setTokenBalance(Math.max(0, user.getTokenBalance() - 1));
-				userRepo.save(user);
-			}
-			org.slf4j.LoggerFactory.getLogger(AuthController.class)
-				.info("Đã chuyển {} bài hát từ khách {} sang tài khoản {}", guestSongs.size(), guestId, username);
-		}
-		return ResponseEntity.ok(Map.of("message", "Chuyển quyền sở hữu nhạc thành công!"));
-	}
 }

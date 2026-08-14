@@ -20,10 +20,6 @@ window.MusicAIModules.account = {
             }
             axios.post('/api/auth/login', this.loginForm)
                 .then(response => {
-                    const guestId = localStorage.getItem('music_guest_id');
-                    if (guestId) {
-                        this.migrateGuestSongs(guestId, response.data.username);
-                    }
                     localStorage.setItem('music_username', response.data.username);
                     localStorage.setItem('music_is_admin', response.data.isAdmin);
                     if (btn) {

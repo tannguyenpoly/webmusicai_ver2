@@ -96,11 +96,9 @@ public class UserRestController {
 	}
 
 	@GetMapping("/{username}/profile")
-	public ResponseEntity<?> getProfile(@PathVariable String username,
-			@RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
+	public ResponseEntity<?> getProfile(@PathVariable String username) {
 		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 		boolean isOwnerOrAdmin = username.equals(currentUsername)
-				|| (username.startsWith("guest_") && username.equals(guestId))
 				|| SecurityContextHolder.getContext().getAuthentication().getAuthorities()
 				.stream().anyMatch(a -> a.getAuthority().contains("ADMIN"));
 
@@ -334,12 +332,10 @@ public class UserRestController {
 
 	@GetMapping("/{username}/songs")
 	public ResponseEntity<?> getMySongs(@PathVariable String username, @RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size,
-			@RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
+			@RequestParam(defaultValue = "10") int size) {
 
 		String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 		boolean isOwnerOrAdmin = username.equals(currentUsername)
-				|| (username.startsWith("guest_") && username.equals(guestId))
 				|| SecurityContextHolder.getContext().getAuthentication().getAuthorities()
 				.stream().anyMatch(a -> a.getAuthority().contains("ADMIN"));
 

@@ -1,6 +1,21 @@
 window.MusicAIModules = window.MusicAIModules || {};
 window.MusicAIModules.navigation = {
     methods: {
+        compactPagination(currentPage, totalPages) {
+            const total = Number(totalPages) || 0;
+            const current = Number(currentPage) || 0;
+            if (total <= 7) return Array.from({ length: total }, (_, index) => index);
+
+            const pages = [0];
+            const start = Math.max(1, current - 1);
+            const end = Math.min(total - 2, current + 1);
+            if (start > 1) pages.push(-1);
+            for (let page = start; page <= end; page += 1) pages.push(page);
+            if (end < total - 2) pages.push(-2);
+            pages.push(total - 1);
+            return pages;
+        },
+
         isTrackPlaying(songId) {
             return this.currentTrack && this.currentTrack.id === songId && this.isPlaying;
         },
@@ -18,17 +33,18 @@ window.MusicAIModules.navigation = {
 
         openExploreSection(section) {
             this.exploreReturnScrollY = window.scrollY || window.pageYOffset || 0;
-            sessionStorage.setItem('music_explore_return_scroll', String(this.exploreReturnScrollY));
+            // Mỗi luồng quay lại dùng khóa riêng, tránh Collection ghi đè vị trí của Xem tất cả.
+            sessionStorage.setItem('music_explore_section_scroll', String(this.exploreReturnScrollY));
             this.exploreSection = section;
             this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
         },
 
         closeExploreSection() {
             this.exploreSection = '';
-            const savedPosition = Number(sessionStorage.getItem('music_explore_return_scroll')) || this.exploreReturnScrollY || 0;
+            const savedPosition = Number(sessionStorage.getItem('music_explore_section_scroll')) || this.exploreReturnScrollY || 0;
             this.$nextTick(() => {
                 window.scrollTo({ top: savedPosition, behavior: 'auto' });
-                sessionStorage.removeItem('music_explore_return_scroll');
+                sessionStorage.removeItem('music_explore_section_scroll');
             });
         },
 
@@ -246,12 +262,64 @@ window.MusicAIModules.navigation = {
 
         goToSongDetail(songId) {
             const source = window.location.pathname + window.location.search;
+            if (window.location.pathname === '/explore') {
+                sessionStorage.setItem('music_explore_song_scroll', String(window.scrollY || window.pageYOffset || 0));
+                sessionStorage.setItem('music_explore_return_pending', 'song');
+            }
             window.location.href = `/song/${songId}?from=${encodeURIComponent(source)}`;
+        },
+
+        openCreatorProfile(username) {
+            if (!username) return;
+            if (window.location.pathname === '/explore') {
+                sessionStorage.setItem('music_explore_profile_scroll', String(window.scrollY || window.pageYOffset || 0));
+                sessionStorage.setItem('music_explore_return_pending', 'profile');
+                window.location.href = `/profile?username=${encodeURIComponent(username)}&from=explore`;
+                return;
+            }
+            window.location.href = `/profile?username=${encodeURIComponent(username)}`;
+        },
+
+        isProfileOpenedFromExplore() {
+            return window.location.pathname === '/profile'
+                && new URLSearchParams(window.location.search).get('from') === 'explore'
+                && sessionStorage.getItem('music_explore_return_pending') === 'profile';
+        },
+
+        returnToExploreFromProfile() {
+            if (this.isProfileOpenedFromExplore()) {
+                window.location.href = '/explore?restore=profile';
+                return;
+            }
+            window.history.back();
+        },
+
+        toggleHomeVideoSound(event) {
+            const button = event?.currentTarget;
+            const video = button?.closest('.home-video-card')?.querySelector('video');
+            if (!button || !video) return;
+
+            // Trình duyệt chỉ cho phép âm thanh sau thao tác trực tiếp của người dùng.
+            video.volume = 0.3;
+            video.muted = !video.muted;
+            const enabled = !video.muted;
+            const icon = button.querySelector('i');
+            const label = button.querySelector('span');
+            if (icon) icon.className = `ti ${enabled ? 'ti-volume' : 'ti-volume-off'}`;
+            if (label) label.textContent = enabled ? 'Tắt âm thanh' : 'Bật âm thanh';
+            button.setAttribute('aria-label', enabled ? 'Tắt âm thanh video' : 'Bật âm thanh video');
+            button.setAttribute('title', enabled ? 'Tắt âm thanh video' : 'Bật âm thanh video');
+            video.play().catch(() => {});
         },
 
         returnFromSongDetail() {
             const source = new URLSearchParams(window.location.search).get('from');
             const isSafeInternalPath = source && source.startsWith('/') && !source.startsWith('//') && !source.startsWith('/song/');
+            if (isSafeInternalPath && source.startsWith('/explore')
+                && sessionStorage.getItem('music_explore_return_pending') === 'song') {
+                window.location.href = '/explore?restore=song';
+                return;
+            }
             window.location.href = isSafeInternalPath ? source : '/explore';
         },
 
@@ -463,9 +531,6 @@ window.MusicAIModules.navigation = {
                 })
                 .catch(error => {
                     console.error("Lỗi tải thông tin số dư token:", error);
-                    if (this.isGuest) {
-                        this.userTokens = 5;
-                    }
                 });
         },
 
@@ -495,10 +560,23 @@ window.MusicAIModules.navigation = {
         },
 
         openCollection(type, id) {
+            if (window.location.pathname === '/explore') {
+                sessionStorage.setItem('music_explore_collection_scroll', String(window.scrollY));
+                sessionStorage.setItem('music_explore_return_pending', 'collection');
+                window.location.href = `/${type === 'PLAYLIST' ? 'playlists' : 'albums'}/${id}?from=explore`;
+                return;
+            }
             window.location.href = `/${type === 'PLAYLIST' ? 'playlists' : 'albums'}/${id}`;
         },
 
         goBack() {
+            if (new URLSearchParams(window.location.search).get('from') === 'explore') {
+                const restoreType = sessionStorage.getItem('music_explore_return_pending') === 'collection'
+                    ? 'collection'
+                    : 'song';
+                window.location.href = `/explore?restore=${restoreType}`;
+                return;
+            }
             window.history.back();
         },
 

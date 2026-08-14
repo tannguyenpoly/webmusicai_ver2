@@ -181,6 +181,12 @@ public class AlbumRestController {
                 return ResponseEntity.badRequest().body(Map.of("message", "Bài nhạc không tồn tại!"));
             }
 
+            // Album là bộ sưu tập tác phẩm của chính tác giả, không phải nơi lưu nhạc cộng đồng.
+            if (song.getUser() == null || !username.equals(song.getUser().getUsername())) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Album chỉ có thể chứa bài nhạc do bạn tạo."));
+            }
+
             if (albumSongRepo.existsByAlbumIdAndSongId(albumId, songId)) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Bài nhạc đã có trong album!"));
             }

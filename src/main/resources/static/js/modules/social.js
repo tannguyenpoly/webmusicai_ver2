@@ -478,7 +478,12 @@ window.MusicAIModules.social = {
                 isPublic: !!this.newPlaylistForm.isPublic
             }).then(res => {
                 this.myPlaylists.unshift(res.data);
+                const created = res.data;
                 this.newPlaylistForm = { name: '', isPublic: false };
+                if (this.playlistTargetSong) {
+                    return axios.post(`/api/playlists/${created.id}/songs/${this.playlistTargetSong.id}`)
+                        .then(() => this.Toast.fire({ icon: 'success', title: `Đã tạo và thêm vào ${created.name}` }));
+                }
                 this.Toast.fire({ icon: 'success', title: 'Đã tạo danh sách phát' });
             }).catch(err => Swal.fire('Lỗi', err.response?.data?.message || 'Không thể tạo danh sách phát', 'error'));
         },
@@ -496,6 +501,20 @@ window.MusicAIModules.social = {
                     playlist.isPublic = res.data.isPublic;
                     this.Toast.fire({ icon: 'success', title: playlist.isPublic ? 'Danh sách phát đã công khai' : 'Danh sách phát đã chuyển riêng tư' });
                 });
+        },
+
+        editPersistentPlaylist(playlist) {
+            Swal.fire({ title: 'Đổi tên playlist', input: 'text', inputValue: playlist.name,
+                inputAttributes: { maxlength: 100 }, showCancelButton: true,
+                confirmButtonText: 'Lưu', cancelButtonText: 'Hủy',
+                inputValidator: value => !value || !value.trim() ? 'Hãy nhập tên playlist.' : undefined
+            }).then(result => {
+                if (!result.isConfirmed) return;
+                axios.put(`/api/playlists/${playlist.id}`, { name: result.value.trim() }).then(res => {
+                    playlist.name = res.data.name;
+                    this.Toast.fire({ icon: 'success', title: 'Đã đổi tên playlist' });
+                }).catch(err => Swal.fire('Lỗi', err.response?.data?.message || 'Không thể cập nhật playlist', 'error'));
+            });
         },
 
         deletePersistentPlaylist(playlist) {

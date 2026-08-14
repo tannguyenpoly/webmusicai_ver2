@@ -2,12 +2,16 @@ window.MusicAIModules = window.MusicAIModules || {};
 window.MusicAIModules.music = {
     methods: {
         generateMusic() {
+            if (!this.currentUser) {
+                window.location.href = '/login';
+                return;
+            }
             if (!this.generationForm.prompt.trim()) {
                 Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập mô tả ý tưởng để AI tạo giai điệu!', confirmButtonColor: '#16a34a' });
                 return;
             }
             this.isGenerating = true;
-            this.generationForm.username = this.currentUser || this.guestUsername;
+            this.generationForm.username = this.currentUser;
             axios.post('/api/songs/generate', this.generationForm)
                 .then(response => {
                     const data = response.data;

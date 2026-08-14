@@ -131,27 +131,31 @@ window.MusicAIModules.library = {
                 .finally(() => { this.isLoadingLibraryAlbums = false; });
         },
 
+        openAlbumModal() {
+            this.newAlbumForm = { title: '', description: '', isPublic: false };
+            const modalElement = document.getElementById('albumManagerModal');
+            if (modalElement && window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        },
+
         createLibraryAlbum() {
-            Swal.fire({
-                title: 'Tạo album mới',
-                html: '<input id="album-title" class="swal2-input" placeholder="Tên album">'
-                    + '<textarea id="album-description" class="swal2-textarea" placeholder="Mô tả ngắn (không bắt buộc)"></textarea>'
-                    + '<label style="display:flex;gap:8px;align-items:center;justify-content:center;margin-top:8px;font-size:14px;"><input id="album-public" type="checkbox"> Công khai album này</label>',
-                showCancelButton: true,
-                confirmButtonText: 'Tạo album', cancelButtonText: 'Hủy', confirmButtonColor: '#16a34a',
-                preConfirm: () => {
-                    const title = document.getElementById('album-title').value.trim();
-                    const description = document.getElementById('album-description').value.trim();
-                    if (!title) { Swal.showValidationMessage('Hãy nhập tên album'); return false; }
-                    return { title, description, isPublic: document.getElementById('album-public').checked };
-                }
-            }).then(result => {
-                if (!result.isConfirmed) return;
-                axios.post('/api/albums', result.value).then(res => {
-                    this.libraryAlbums.unshift(res.data);
-                    this.Toast.fire({ icon: 'success', title: 'Đã tạo album' });
-                }).catch(err => Swal.fire('Lỗi', err.response?.data?.message || 'Không thể tạo album', 'error'));
-            });
+            const title = (this.newAlbumForm.title || '').trim();
+            if (!title) {
+                this.Toast.fire({ icon: 'warning', title: 'Hãy nhập tên album' });
+                return;
+            }
+            this.isCreatingLibraryAlbum = true;
+            axios.post('/api/albums', {
+                title,
+                description: (this.newAlbumForm.description || '').trim(),
+                isPublic: !!this.newAlbumForm.isPublic
+            }).then(res => {
+                this.libraryAlbums.unshift(res.data);
+                const modalElement = document.getElementById('albumManagerModal');
+                if (modalElement && window.bootstrap) window.bootstrap.Modal.getInstance(modalElement)?.hide();
+                this.Toast.fire({ icon: 'success', title: 'Đã tạo album' });
+            }).catch(err => {
+                Swal.fire('Lỗi', err.response?.data?.message || 'Không thể tạo album', 'error');
+            }).finally(() => { this.isCreatingLibraryAlbum = false; });
         },
 
         deleteLibraryAlbum(album) {
@@ -245,7 +249,7 @@ window.MusicAIModules.library = {
                 prompt: prompt,
                 status: 'PENDING',
                 audioUrl: '',
-                username: this.currentUser || this.guestUsername
+                username: this.currentUser
             };
 
             if (window.location.pathname === '/' || window.location.pathname === '/profile' || window.location.pathname === '/create') {
@@ -255,7 +259,7 @@ window.MusicAIModules.library = {
                     prompt: prompt,
                     status: 'PENDING',
                     audioUrl: '',
-                    username: this.currentUser || this.guestUsername,
+                    username: this.currentUser,
                     created_at: new Date().toISOString()
                 });
             }

@@ -51,7 +51,7 @@ public class SongGenerationService {
         song.setVocalLanguage(spec.vocalLanguage());
         song.setLyrics(spec.hasLyrics() ? spec.lyrics() : null);
         song.setModelVer(spec.provider());
-        song.setIsPublic(isFreeTier(user) && !username.startsWith("guest_"));
+        song.setIsPublic(isFreeTier(user));
         song.setUser(user);
         songRepository.save(song);
 
@@ -102,7 +102,7 @@ public class SongGenerationService {
         remix.setVocalLanguage(spec.vocalLanguage());
         remix.setLyrics(spec.hasLyrics() ? spec.lyrics() : null);
         remix.setModelVer(spec.provider());
-        remix.setIsPublic(isFreeTier(user) && !username.startsWith("guest_"));
+        remix.setIsPublic(isFreeTier(user));
         remix.setIsRemix(true);
         remix.setParentId(original.getId());
         remix.setUser(user);

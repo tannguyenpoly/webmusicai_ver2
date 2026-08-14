@@ -8,7 +8,7 @@
             <textarea v-model="newComment.content" @input="newComment.content = $event.target.value" class="form-control custom-theme-input" rows="3" placeholder="Viết bình luận của bạn..."></textarea>
             <div class="comment-send-row"><button @click="postComment(currentTrack.id)" :disabled="isSubmittingComment || !newComment.content.trim()" :class="{ 'is-ready': !isSubmittingComment && newComment.content.trim().length > 0 }" class="btn btn-main-sync px-4"><span v-if="isSubmittingComment" class="spinner-border spinner-border-sm me-1"></span><i v-else class="ti ti-send me-1"></i>Gửi bình luận</button></div>
         </div>
-        <div v-else class="comment-guest"><a href="/login" class="text-success fw-bold">Đăng nhập</a> để tham gia bình luận.</div>
+        <div v-else class="comment-anonymous"><a href="/login" class="text-success fw-bold">Đăng nhập</a> để tham gia bình luận.</div>
 
         <div v-if="isLoadingComments" class="text-center py-4"><span class="spinner-border text-success"></span></div>
         <div v-else>
