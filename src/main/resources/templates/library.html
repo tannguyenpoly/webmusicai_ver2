@@ -44,14 +44,34 @@
                 <div class="section-heading-row"><div class="section-title-wrapper"><div class="title-glow-dot"></div><h2 class="section-title mb-0">Playlist của tôi</h2></div><button class="btn btn-success rounded-pill fw-semibold" @click="openPlaylistModal()"><i class="ti ti-plus me-1"></i>Tạo playlist</button></div>
                 <div v-if="isLoadingPlaylists" class="text-center py-5"><div class="spinner-border text-success"></div></div>
                 <div v-else-if="myPlaylists.length === 0" class="app-empty-state text-center"><i class="ti ti-playlist-off" style="font-size:38px;"></i><h3 class="h5 mt-3">Chưa có playlist</h3><button class="btn btn-success" @click="openPlaylistModal()">Tạo playlist</button></div>
-                <div v-else class="row g-3"><div v-for="playlist in myPlaylists" :key="playlist.id" class="col-md-6 col-xl-4"><article class="library-collection-card"><span class="library-collection-icon"><i class="ti ti-playlist"></i></span><h3 class="library-collection-title">{{ playlist.name }}</h3><p class="library-collection-description">{{ playlist.isPublic ? 'Công khai' : 'Riêng tư' }}</p><div class="library-collection-actions"><button class="btn library-action-btn" @click="togglePlaylistPrivacy(playlist)"><i :class="playlist.isPublic ? 'ti ti-lock' : 'ti ti-world'"></i>{{ playlist.isPublic ? 'Chuyển riêng tư' : 'Công khai' }}</button><a v-if="playlist.isPublic" :href="'/playlists/' + playlist.id" class="btn library-action-btn"><i class="ti ti-external-link"></i>Xem công khai</a><button class="btn library-delete-btn" @click="deletePersistentPlaylist(playlist)" title="Xóa playlist"><i class="ti ti-trash"></i></button></div></article></div></div>
+                <div v-else class="row g-3">
+                    <div v-for="playlist in myPlaylists" :key="playlist.id" class="col-md-6 col-xl-4">
+                        <article class="library-collection-card playlist-collection-card">
+                            <div class="library-collection-topline"><span class="library-collection-icon"><i class="ti ti-playlist"></i></span><span class="library-collection-kind"><i class="ti ti-playlist me-1"></i>Playlist</span></div>
+                            <h3 class="library-collection-title">{{ playlist.name }}</h3>
+                            <p class="library-collection-description">Danh sách phát do bạn tự sắp xếp để nghe lại hoặc chia sẻ với cộng đồng.</p>
+                            <div class="library-collection-meta"><span><i class="ti ti-music me-1"></i>{{ playlist.songCount || 0 }} bài hát</span><span :class="playlist.isPublic ? 'is-public' : ''"><i :class="playlist.isPublic ? 'ti ti-world me-1' : 'ti ti-lock me-1'"></i>{{ playlist.isPublic ? 'Công khai' : 'Riêng tư' }}</span></div>
+                            <div class="library-collection-actions"><a :href="'/playlists/' + playlist.id" class="btn library-open-btn"><i class="ti ti-folder-open"></i>Mở playlist</a><button class="btn library-action-btn" @click="editPersistentPlaylist(playlist)"><i class="ti ti-pencil"></i>Đổi tên</button><button class="btn library-action-btn" @click="togglePlaylistPrivacy(playlist)"><i :class="playlist.isPublic ? 'ti ti-lock' : 'ti ti-world'"></i>{{ playlist.isPublic ? 'Riêng tư' : 'Công khai' }}</button><button class="btn library-delete-btn" @click="deletePersistentPlaylist(playlist)" title="Xóa playlist"><i class="ti ti-trash"></i></button></div>
+                        </article>
+                    </div>
+                </div>
             </section>
 
             <section v-else class="app-surface-card p-3 p-md-4">
-                <div class="section-heading-row"><div class="section-title-wrapper"><div class="title-glow-dot"></div><h2 class="section-title mb-0">Album của tôi</h2></div><button class="btn btn-success rounded-pill fw-semibold" @click="createLibraryAlbum()"><i class="ti ti-plus me-1"></i>Tạo album</button></div>
+                <div class="section-heading-row"><div class="section-title-wrapper"><div class="title-glow-dot"></div><h2 class="section-title mb-0">Album của tôi</h2></div><button class="btn btn-success rounded-pill fw-semibold" @click="openAlbumModal()"><i class="ti ti-plus me-1"></i>Tạo album</button></div>
                 <div v-if="isLoadingLibraryAlbums" class="text-center py-5"><div class="spinner-border text-success"></div></div>
-                <div v-else-if="libraryAlbums.length === 0" class="app-empty-state text-center"><i class="ti ti-disc-off" style="font-size:38px;"></i><h3 class="h5 mt-3">Chưa có album</h3></div>
-                <div v-else class="row g-3"><div v-for="album in libraryAlbums" :key="album.id" class="col-md-6 col-xl-4"><article class="library-collection-card"><span class="library-collection-icon"><i class="ti ti-disc"></i></span><h3 class="library-collection-title">{{ album.title }}</h3><p class="library-collection-description">{{ album.description || 'Chưa có mô tả album.' }}</p><div class="library-collection-actions"><button class="btn library-action-btn" @click="toggleLibraryAlbumPrivacy(album)"><i :class="album.isPublic ? 'ti ti-lock' : 'ti ti-world'"></i>{{ album.isPublic ? 'Chuyển riêng tư' : 'Công khai' }}</button><a v-if="album.isPublic" :href="'/albums/' + album.id" class="btn library-action-btn"><i class="ti ti-external-link"></i>Xem công khai</a><button class="btn library-delete-btn" @click="deleteLibraryAlbum(album)" title="Xóa album"><i class="ti ti-trash"></i></button></div></article></div></div>
+                <div v-else-if="libraryAlbums.length === 0" class="app-empty-state text-center"><i class="ti ti-disc-off" style="font-size:38px;"></i><h3 class="h5 mt-3">Chưa có album</h3><button class="btn btn-success mt-2" @click="openAlbumModal()">Tạo album</button></div>
+                <div v-else class="row g-3">
+                    <div v-for="album in libraryAlbums" :key="album.id" class="col-md-6 col-xl-4">
+                        <article class="library-collection-card album-collection-card">
+                            <div class="library-collection-topline"><span class="library-collection-icon"><i class="ti ti-disc"></i></span><span class="library-collection-kind"><i class="ti ti-disc me-1"></i>Album</span></div>
+                            <h3 class="library-collection-title">{{ album.title }}</h3>
+                            <p class="library-collection-description">{{ album.description || 'Bộ sưu tập những bản nhạc do bạn sáng tạo.' }}</p>
+                            <div class="library-collection-meta"><span><i class="ti ti-music me-1"></i>{{ album.songCount || 0 }} bài hát</span><span :class="album.isPublic ? 'is-public' : ''"><i :class="album.isPublic ? 'ti ti-world me-1' : 'ti ti-lock me-1'"></i>{{ album.isPublic ? 'Công khai' : 'Riêng tư' }}</span></div>
+                            <div class="library-collection-actions"><a :href="'/albums/' + album.id" class="btn library-open-btn"><i class="ti ti-folder-open"></i>Mở album</a><button class="btn library-action-btn" @click="toggleLibraryAlbumPrivacy(album)"><i :class="album.isPublic ? 'ti ti-lock' : 'ti ti-world'"></i>{{ album.isPublic ? 'Riêng tư' : 'Công khai' }}</button><button class="btn library-delete-btn" @click="deleteLibraryAlbum(album)" title="Xóa album"><i class="ti ti-trash"></i></button></div>
+                        </article>
+                    </div>
+                </div>
             </section>
         </div>
     </div>

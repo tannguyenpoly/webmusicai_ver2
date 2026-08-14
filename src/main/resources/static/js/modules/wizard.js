@@ -1,17 +1,6 @@
 window.MusicAIModules = window.MusicAIModules || {};
 window.MusicAIModules.wizard = {
     methods: {
-        migrateGuestSongs(guestId, username) {
-            if (!guestId || !username) return;
-            axios.post(`/api/auth/migrate?guestId=${guestId}&username=${username}`)
-                .then(response => {
-                    console.log("Đã chuyển quyền sở hữu nhạc:", response.data.message);
-                    localStorage.removeItem('music_guest_id');
-                })
-                .catch(error => {
-                    console.error("Lỗi chuyển quyền sở hữu nhạc:", error);
-                });
-        },
         randomizePrompt() {
             const prompts = [
                 "Một bản pop ballad buồn bằng tiếng piano du dương, kể về câu chuyện tình cũ dưới mưa...",
@@ -129,6 +118,57 @@ window.MusicAIModules.wizard = {
             if (mode === 'instrumental') this.musicBrief.lyrics = '';
         },
 
+        onReferenceAudioSelected(event) {
+            this.referenceAnalysis.file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            this.referenceAnalysis.result = null;
+        },
+
+        analyzeReferenceAudio() {
+            if (!this.referenceAnalysis.configured) {
+                this.Toast.fire({ icon: 'info', title: 'Máy phân tích chưa được cấu hình.' });
+                return;
+            }
+            if (!this.currentUser) {
+                Swal.fire({ icon: 'info', title: 'Cần đăng nhập', text: 'Hãy đăng nhập để lưu lịch sử phân tích nhạc tham khảo.', confirmButtonColor: '#16a34a' });
+                return;
+            }
+            if (!this.referenceAnalysis.file) {
+                this.Toast.fire({ icon: 'info', title: 'Hãy chọn file nhạc trước.' });
+                return;
+            }
+            const data = new FormData();
+            data.append('file', this.referenceAnalysis.file);
+            this.referenceAnalysis.isLoading = true;
+            axios.post('/api/music-analysis/reference', data)
+                .then(response => {
+                    this.referenceAnalysis.result = response.data;
+                    this.loadReferenceAnalysisHistory();
+                    const genre = response.data.genre;
+                    if (genre && genre.id) this.selectWizardGenre(genre);
+                    this.Toast.fire({ icon: 'success', title: response.data.cached ? 'Đã dùng lại kết quả đã phân tích.' : 'Đã nhận diện nhạc tham khảo.' });
+                })
+                .catch(error => {
+                    Swal.fire({ icon: 'error', title: 'Không thể phân tích', text: error.response?.data?.message || 'Vui lòng kiểm tra máy phân tích thể loại và thử lại.', confirmButtonColor: '#dc3545' });
+                })
+                .finally(() => { this.referenceAnalysis.isLoading = false; });
+        },
+
+        loadReferenceAnalysisHistory() {
+            if (!this.currentUser) return;
+            axios.get('/api/music-analysis/history')
+                .then(response => { this.referenceAnalysis.history = Array.isArray(response.data) ? response.data : []; })
+                .catch(() => { this.referenceAnalysis.history = []; });
+        },
+
+        useReferenceAnalysis(result) {
+            if (result && result.genre && result.genre.id) {
+                this.selectWizardGenre(result.genre);
+                this.Toast.fire({ icon: 'success', title: `Đã chọn thể loại ${result.genre.name}.` });
+            } else {
+                this.Toast.fire({ icon: 'info', title: 'Kết quả này chưa khớp thể loại hệ thống. Hãy chọn thủ công.' });
+            }
+        },
+
         selectMusicProvider(provider) {
             this.musicBrief.provider = provider.code;
             this.generationForm.provider = provider.code;
@@ -149,6 +189,9 @@ window.MusicAIModules.wizard = {
                     provider.available = Boolean(statusByCode[provider.code]?.available);
                 });
             }).catch(() => {});
+            axios.get('/api/music-analysis/status')
+                .then(response => { this.referenceAnalysis.configured = Boolean(response.data?.configured); })
+                .catch(() => { this.referenceAnalysis.configured = false; });
         },
 
         canMoveWizardForward() {

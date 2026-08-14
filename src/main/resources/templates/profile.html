@@ -229,6 +229,9 @@
 
         <!-- ĐÃ ĐĂNG NHẬP -->
         <div v-if="currentUser" v-cloak class="profile-container">
+            <button v-if="isProfileOpenedFromExplore()" @click="returnToExploreFromProfile" class="explore-see-all explore-back-button mb-3">
+                <i class="ti ti-arrow-left me-1"></i>Quay lại Khám phá
+            </button>
 
             <!-- HEADER BIA & AVATAR -->
             <div class="profile-cover mb-3"
@@ -398,10 +401,6 @@
                                     <i :class="['ti', (currentTrack.id === song.id && isPlaying) ? 'ti-player-pause' : 'ti-player-play']"></i>
                                 </div>
 
-                                <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
-                                    <i class="ti ti-share"></i>
-                                </div>
-
                                 <!-- Lock icon overlay if private -->
                                 <div v-if="!song.isPublic && song.status === 'COMPLETED'" class="position-absolute" style="top: 12px; left: 45px; z-index: 10;">
                                     <span class="badge bg-black bg-opacity-75 text-warning px-2 py-1 border border-warning-subtle" style="font-size: 10px; border-radius: 20px;">
@@ -449,6 +448,7 @@
                                         <i class="ti ti-dots-vertical" style="font-size: 14px;"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark border border-secondary shadow-lg py-1 m-0" style="background: rgba(17, 22, 18, 0.95); backdrop-filter: blur(10px); border-radius: 12px; z-index: 100; font-size: 11.5px;">
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="openShareModal(song)"><i class="ti ti-share text-success" style="font-size: 12px;"></i> Chia sẻ</a></li>
                                         <!-- Edit post details only for owner/admin -->
                                         <li v-if="profileUsername === currentUser || isAdmin">
                                             <a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="openSongEditModal(song)">
@@ -457,7 +457,7 @@
                                         </li>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="openPlaylistModal(song)">
-                                                <i class="ti ti-playlist-add text-success" style="font-size: 12px;"></i> Thêm vào danh sách tạm
+                                                <i class="ti ti-playlist-add text-success" style="font-size: 12px;"></i> Thêm vào playlist
                                             </a>
                                         </li>
                                         <li v-if="song.status === 'COMPLETED'">
@@ -514,10 +514,6 @@
                                     <i :class="['ti', (currentTrack.id === song.id && isPlaying) ? 'ti-player-pause' : 'ti-player-play']"></i>
                                 </div>
 
-                                <div class="suno-top-share-btn" @click.stop="openShareModal(song)" title="Chia sẻ bài hát">
-                                    <i class="ti ti-share"></i>
-                                </div>
-
                                 <!-- Play icon hover overlay -->
                                 <div class="suno-play-overlay" @click.stop="playTrack(song)">
                                     <div class="suno-play-btn-circle">
@@ -548,9 +544,10 @@
                                         <i class="ti ti-dots-vertical" style="font-size: 14px;"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark border border-secondary shadow-lg py-1 m-0" style="background: rgba(17, 22, 18, 0.95); backdrop-filter: blur(10px); border-radius: 12px; z-index: 100; font-size: 11.5px;">
+                                        <li><a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="openShareModal(song)"><i class="ti ti-share text-success" style="font-size: 12px;"></i> Chia sẻ</a></li>
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center gap-2 py-1.5 px-3 fw-semibold text-white-50" href="#" @click.prevent.stop="openPlaylistModal(song)">
-                                                <i class="ti ti-playlist-add text-success" style="font-size: 12px;"></i> Thêm vào danh sách tạm
+                                                <i class="ti ti-playlist-add text-success" style="font-size: 12px;"></i> Thêm vào playlist
                                             </a>
                                         </li>
                                         <li><hr class="dropdown-divider border-secondary-subtle my-1"></li>

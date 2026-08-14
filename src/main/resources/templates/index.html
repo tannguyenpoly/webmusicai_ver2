@@ -3,35 +3,38 @@
 
 <body>
     <div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;" v-cloak>
+        <div class="home-page-watermark" aria-hidden="true">
+            <i class="ti ti-wand home-page-watermark-icon"></i>
+            <span>MusicAI</span>
+        </div>
         <section class="home-hero-shell">
             <div class="home-hero-copy">
                 <div class="home-eyebrow"><i class="ti ti-sparkles"></i> MusicAI Studio</div>
-                <h1 class="home-title">Nhạc riêng cho nội dung<br>và không gian của bạn</h1>
+                <h1 class="home-title"><span>Nhạc riêng cho nội dung</span><span>và không gian của bạn</span></h1>
                 <p class="home-subtitle">Chọn điều bạn cần, chọn gu âm nhạc, rồi để MusicAI biến lựa chọn đó thành một bản nhạc mang dấu ấn riêng.</p>
-                <div class="home-proof-row" aria-label="Lợi ích của MusicAI">
-                    <div class="home-proof-item"><i class="ti ti-click"></i><span>Chọn theo nhu cầu</span></div>
-                    <div class="home-proof-item"><i class="ti ti-wand"></i><span>AI ghép ý tưởng</span></div>
-                    <div class="home-proof-item"><i class="ti ti-adjustments"></i><span>Tạo phiên bản mới</span></div>
+                <div class="home-creation-flow" aria-label="Quy trình sáng tạo cùng MusicAI">
+                    <div class="home-flow-step"><i class="ti ti-click"></i><span>Chọn theo nhu cầu</span></div>
+                    <span class="home-flow-connector flow-connector-down" aria-hidden="true"><i class="ti ti-arrow-down-right"></i></span>
+                    <div class="home-flow-step"><i class="ti ti-wand"></i><span>AI ghép ý tưởng</span></div>
+                    <span class="home-flow-connector flow-connector-up" aria-hidden="true"><i class="ti ti-arrow-up-right"></i></span>
+                    <div class="home-flow-step"><i class="ti ti-adjustments"></i><span>Tạo phiên bản mới</span></div>
                 </div>
                 <div class="d-flex flex-column flex-sm-row gap-3 mt-4">
-                    <a href="/create" class="app-large-action btn btn-success px-4 d-inline-flex align-items-center justify-content-center" style="background: var(--brand-green); border: 0;"><i class="ti ti-wand me-2"></i>Tạo nhạc ngay</a>
-                    <a href="/explore" class="app-large-action btn btn-outline-secondary px-4 d-inline-flex align-items-center justify-content-center"><i class="ti ti-compass me-2"></i>Nghe từ cộng đồng</a>
+                    <a href="/create" class="app-large-action home-create-cta btn btn-success px-4 d-inline-flex align-items-center justify-content-center" style="background: var(--brand-green); border: 0;"><i class="ti ti-wand me-2"></i>Tạo nhạc ngay</a>
+                    <a href="/explore" class="app-large-action home-explore-cta btn px-4 d-inline-flex align-items-center justify-content-center"><i class="ti ti-compass me-2"></i>Nghe từ cộng đồng</a>
                 </div>
                 <p class="home-cta-note"><i class="ti ti-circle-check me-1"></i>Không cần biết cách viết prompt</p>
             </div>
 
-            <div class="home-video-card home-intro-demo" aria-label="Hoạt ảnh giới thiệu MusicAI 10 giây">
-                <div class="intro-demo-scene" aria-hidden="true">
-                    <div class="intro-demo-orb intro-demo-orb-one"></div><div class="intro-demo-orb intro-demo-orb-two"></div>
-                    <div class="intro-demo-brand"><i class="ti ti-sparkles"></i> MusicAI</div>
-                    <div class="intro-demo-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-                    <div class="intro-demo-step intro-demo-step-one"><b>01</b><i class="ti ti-adjustments"></i><span>Chọn mục đích</span></div>
-                    <div class="intro-demo-step intro-demo-step-two"><b>02</b><i class="ti ti-music"></i><span>AI ghép giai điệu</span></div>
-                    <div class="intro-demo-step intro-demo-step-three"><b>03</b><i class="ti ti-circle-check"></i><span>Nhận bản nhạc riêng</span></div>
-                    <div class="intro-demo-progress"><span></span></div>
-                </div>
+            <div class="home-video-card" aria-label="Video giới thiệu MusicAI">
+                <video autoplay muted loop playsinline preload="metadata" aria-label="Video giới thiệu không gian sáng tạo âm nhạc">
+                    <source src="/videos/musicai-home-loop.mp4" type="video/mp4">
+                </video>
                 <div class="home-video-shade"></div>
-                <div class="home-video-copy"><span class="home-video-play"><i class="ti ti-player-play-filled"></i></span><h2>Từ lựa chọn đến bản nhạc</h2><p>Quy trình 3 bước đơn giản để bắt đầu sáng tạo.</p></div>
+                <button type="button" class="home-video-sound" @click="toggleHomeVideoSound($event)" aria-label="Bật âm thanh video" title="Bật âm thanh video">
+                    <i class="ti ti-volume-off"></i><span>Bật âm thanh</span>
+                </button>
+                <div class="home-video-copy"><h2>5 bước đến bản nhạc riêng</h2><p>Chọn nhu cầu, tinh chỉnh phong cách, giọng &amp; lời rồi tạo phiên bản phù hợp.</p></div>
             </div>
         </section>
 

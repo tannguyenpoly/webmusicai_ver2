@@ -231,40 +231,14 @@ public class SongRestController {
     }
 
     @PostMapping("/generate")
-    public ResponseEntity<?> generateMusic(@Valid @RequestBody GenerateSongRequest requestData,
-                                           @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        String finalUsername;
-        if (username != null && !"anonymousUser".equals(username)) {
-            finalUsername = username;
-        } else {
-            if (guestId == null || guestId.trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("message", "Vui lòng đăng nhập hoặc cung cấp mã khách hàng!"));
-            }
-            String cleanedGuestId = guestId.trim();
-            if (!cleanedGuestId.startsWith("guest_")) {
-                cleanedGuestId = "guest_" + cleanedGuestId;
-            }
-            if (cleanedGuestId.length() > 50) {
-                cleanedGuestId = cleanedGuestId.substring(0, 50);
-            }
-            finalUsername = cleanedGuestId;
-
-            // Automatically create temporary user in DB if not exist
-            if (!userRepo.existsById(finalUsername)) {
-                User guestUser = new User();
-                guestUser.setUsername(finalUsername);
-                guestUser.setPassword("{noop}guest_nopass_" + UUID.randomUUID().toString().substring(0, 10));
-                guestUser.setFullname("Guest " + finalUsername.substring(Math.min(finalUsername.length(), 14)));
-                guestUser.setEnabled(true);
-                guestUser.setTokenBalance(1); // 1 free token
-                guestUser.setAccountTier("FREE");
-                guestUser.setAuthProvider("LOCAL");
-                guestUser.setTokenVersion(0);
-                userRepo.save(guestUser);
-            }
+    public ResponseEntity<?> generateMusic(@Valid @RequestBody GenerateSongRequest requestData) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Vui lòng đăng nhập để tạo nhạc."));
         }
+        String finalUsername = authentication.getName();
 
         try {
             Genre selectedGenre = null;
@@ -300,20 +274,15 @@ public class SongRestController {
                     "songId", ticket.songId(),
                     "remaining_tokens", ticket.remainingTokens()));
         } catch (IllegalArgumentException | IllegalStateException e) {
-            String msg = e.getMessage();
-            if (finalUsername.startsWith("guest_") && "Bạn không đủ Token!".equals(msg)) {
-                msg = "Bạn đã dùng hết 5 lượt tạo nhạc miễn phí dành cho khách. Vui lòng đăng nhập hoặc đăng ký để tiếp tục tạo nhạc!";
-            }
-            return ResponseEntity.badRequest().body(Map.of("message", msg));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
     @GetMapping("/{id}/status")
-    public ResponseEntity<?> getSongStatus(@PathVariable Integer id,
-                                           @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
+    public ResponseEntity<?> getSongStatus(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUser = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
-        String finalUsername = currentUser != null ? currentUser : guestId;
+        String finalUsername = currentUser;
 
         return songRepo.findById(id).map(song -> {
             boolean isOwner = finalUsername != null && song.getUser().getUsername().equals(finalUsername);
@@ -481,14 +450,13 @@ public class SongRestController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelGeneration(@PathVariable Integer id,
-                                              @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
+    public ResponseEntity<?> cancelGeneration(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         
-        String finalUsername = (username != null && !"anonymousUser".equals(username)) ? username : guestId;
+        String finalUsername = (username != null && !"anonymousUser".equals(username)) ? username : null;
         try {
             SongCancellationResult result =
                     songGenerationService.cancelAndRefund(id, finalUsername, isAdmin);
@@ -513,11 +481,10 @@ public class SongRestController {
 
     @Transactional(rollbackFor = Exception.class)
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteSong(@PathVariable Integer id,
-                                        @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
+    public ResponseEntity<?> deleteSong(@PathVariable Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
-        String finalUsername = username != null ? username : guestId;
+        String finalUsername = username;
 
         if (finalUsername == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập!"));
@@ -954,11 +921,10 @@ public class SongRestController {
 
     @PostMapping("/{id}/tags")
     @Transactional
-    public ResponseEntity<?> setTags(@PathVariable Integer id, @RequestBody Map<String, Object> body,
-                                     @RequestHeader(value = "X-Guest-ID", required = false) String guestId) {
+    public ResponseEntity<?> setTags(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
-        String finalUsername = username != null ? username : guestId;
+        String finalUsername = username;
 
         if (finalUsername == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));

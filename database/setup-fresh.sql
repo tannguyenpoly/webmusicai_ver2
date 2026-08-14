@@ -4,6 +4,7 @@
   CẢNH BÁO: Script này XÓA toàn bộ MusicAI_DB hiện có rồi tạo lại từ đầu.
   Chỉ chạy khi cài mới hoặc khi chắc chắn không cần giữ dữ liệu cũ.
   Nếu database đang có dữ liệu cần giữ, hãy chạy upgrade-existing.sql thay thế.
+  Dữ liệu mẫu chỉ gồm tài khoản người dùng thật; hệ thống không có tài khoản khách.
 */
 
 -- =============================================
@@ -306,7 +307,23 @@ CREATE TABLE Genres (
 );
 GO
 
--- [16] SongGenres
+-- [16] Lịch sử phân tích nhạc tham khảo. Chỉ lưu kết quả và mã băm, không giữ file tải lên.
+CREATE TABLE music_analysis_history (
+    id             INT IDENTITY(1,1) PRIMARY KEY,
+    username       VARCHAR(50) NOT NULL,
+    file_name      NVARCHAR(255) NOT NULL,
+    file_hash      VARCHAR(64) NOT NULL,
+    detected_label NVARCHAR(100) NOT NULL,
+    confidence     FLOAT NULL,
+    genre_id       INT NULL,
+    created_at     DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT UQ_MusicAnalysisHistory_UserFile UNIQUE(username, file_hash),
+    FOREIGN KEY(username) REFERENCES Users(username),
+    FOREIGN KEY(genre_id) REFERENCES Genres(id)
+);
+GO
+
+-- [17] SongGenres
 CREATE TABLE SongGenres(
     song_id INT,
     genre_id INT,
@@ -775,10 +792,10 @@ GO
 INSERT INTO Playlist_Songs (playlist_id, song_id, sort_order)
 SELECT p.id, s.id, seed.sort_order
 FROM (VALUES
-    (N'Vlog du lịch đầu năm', N'Bình minh Tây Bắc', 1), (N'Vlog du lịch đầu năm', N'Hè trên biển', 2),
-    (N'Nhạc làm việc nhẹ', N'Góc làm việc tập trung', 1), (N'Nhạc làm việc nhẹ', N'Một phút nghỉ ngơi', 2),
-    (N'Quán Mộc - Buổi sáng', N'Sớm mai ở quán Mộc', 1), (N'Quán Mộc - Buổi sáng', N'Giai điệu cửa hàng', 2),
-    (N'Chill tháng 7', N'Ký ức vinyl', 1), (N'Chill tháng 7', N'Lặng giữa thành phố', 2),
+    (N'Vlog du lịch đầu năm', N'Bình minh Tây Bắc', 1), (N'Vlog du lịch đầu năm', N'Hè trên biển', 2), (N'Vlog du lịch đầu năm', N'Chạm vào hoàng hôn', 3), (N'Vlog du lịch đầu năm', N'Con đường xanh', 4),
+    (N'Nhạc làm việc nhẹ', N'Góc làm việc tập trung', 1), (N'Nhạc làm việc nhẹ', N'Một phút nghỉ ngơi', 2), (N'Nhạc làm việc nhẹ', N'Bản tin buổi sáng', 3), (N'Nhạc làm việc nhẹ', N'Mưa trên phím đàn', 4),
+    (N'Quán Mộc - Buổi sáng', N'Sớm mai ở quán Mộc', 1), (N'Quán Mộc - Buổi sáng', N'Giai điệu cửa hàng', 2), (N'Quán Mộc - Buổi sáng', N'Cà phê chiều mưa', 3),
+    (N'Chill tháng 7', N'Ký ức vinyl', 1), (N'Chill tháng 7', N'Lặng giữa thành phố', 2), (N'Chill tháng 7', N'Đêm mưa Sài Gòn', 3),
     (N'Workout sáng', N'Bước chân tự do', 1), (N'Âm nhạc sự kiện', N'Nhịp phố cuối tuần', 1),
     (N'Reel ẩm thực', N'Nắng qua ô cửa', 1), (N'Phim ngắn mùa hè', N'Chạm vào hoàng hôn', 1)
 ) AS seed(playlist_name, song_title, sort_order)
@@ -838,7 +855,9 @@ INSERT INTO Songs (title, prompt, audio_url, status, is_public, lyrics, model_ve
 (N'Điều hành buổi sớm', N'Nhạc piano điện tử nhẹ cho phần mở đầu ngày làm việc', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', 'COMPLETED', 1, N'[Verse] Một ngày mới bắt đầu, nhịp điệu khẽ gọi tên', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85', 860, '2026-03-12T08:30:00', 'admin_core'),
 (N'Góc kiểm thử riêng', N'Ambient không lời cho không gian tập trung, bản nội bộ', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3', 'COMPLETED', 0, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=85', 42, '2026-04-20T14:15:00', 'admin_core'),
 (N'Bản tin MusicAI', N'Corporate pop tích cực cho video giới thiệu sản phẩm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3', 'COMPLETED', 1, N'[Chorus] MusicAI cùng bạn tạo nên dấu ấn riêng', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=900&q=85', 1120, '2026-06-08T10:00:00', 'admin_core'),
-(N'Bản phối đang hoàn thiện', N'Chillhop thử nghiệm cho video tổng kết', NULL, 'PENDING', 0, NULL, 'sonic-v4', 0, NULL, 'https://images.unsplash.com/photo-1519608487953-e999c86e7450?auto=format&fit=crop&w=900&q=85', 0, '2026-08-05T16:00:00', 'admin_core');
+(N'Bản phối đang hoàn thiện', N'Chillhop thử nghiệm cho video tổng kết', NULL, 'PENDING', 0, NULL, 'sonic-v4', 0, NULL, 'https://images.unsplash.com/photo-1519608487953-e999c86e7450?auto=format&fit=crop&w=900&q=85', 0, '2026-08-05T16:00:00', 'admin_core'),
+(N'Điểm hẹn sáng tạo', N'Indie pop truyền cảm hứng cho video giới thiệu đội nhóm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3', 'COMPLETED', 1, N'[Verse] Ta gặp nhau trong một giai điệu mới', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=85', 760, '2026-07-16T18:20:00', 'admin_core'),
+(N'Đêm vận hành yên tĩnh', N'Ambient nhẹ nhàng cho không gian làm việc muộn', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3', 'COMPLETED', 0, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85', 205, '2026-07-25T22:10:00', 'admin_core');
 GO
 
 INSERT INTO SongGenres (song_id, genre_id)
@@ -847,7 +866,9 @@ FROM (VALUES
     (N'Điều hành buổi sớm', N'Synthwave'),
     (N'Góc kiểm thử riêng', N'Ambient'),
     (N'Bản tin MusicAI', N'Pop'),
-    (N'Bản phối đang hoàn thiện', N'Chillhop')
+    (N'Bản phối đang hoàn thiện', N'Chillhop'),
+    (N'Điểm hẹn sáng tạo', N'Indie'),
+    (N'Đêm vận hành yên tĩnh', N'Ambient')
 ) AS seed(song_title, genre_name)
 JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin_core'
 JOIN Genres g ON g.name = seed.genre_name;
@@ -863,8 +884,11 @@ SELECT p.id, s.id, seed.sort_order
 FROM (VALUES
     (N'Playlist demo quản trị', N'Điều hành buổi sớm', 1),
     (N'Playlist demo quản trị', N'Bản tin MusicAI', 2),
+    (N'Playlist demo quản trị', N'Điểm hẹn sáng tạo', 3),
     (N'Bản nháp nội bộ', N'Góc kiểm thử riêng', 1),
-    (N'Bản nháp nội bộ', N'Bản phối đang hoàn thiện', 2)
+    (N'Bản nháp nội bộ', N'Bản phối đang hoàn thiện', 2),
+    (N'Bản nháp nội bộ', N'Điều hành buổi sớm', 3),
+    (N'Bản nháp nội bộ', N'Đêm vận hành yên tĩnh', 4)
 ) AS seed(playlist_name, song_title, sort_order)
 JOIN Playlists p ON p.name = seed.playlist_name AND p.username = 'admin_core'
 JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin_core';
@@ -880,8 +904,10 @@ SELECT a.id, s.id, seed.track_number
 FROM (VALUES
     (N'Nhịp điệu điều hành', N'Điều hành buổi sớm', 1),
     (N'Nhịp điệu điều hành', N'Bản tin MusicAI', 2),
+    (N'Nhịp điệu điều hành', N'Điểm hẹn sáng tạo', 3),
     (N'Kho thử nghiệm quản trị', N'Góc kiểm thử riêng', 1),
-    (N'Kho thử nghiệm quản trị', N'Bản phối đang hoàn thiện', 2)
+    (N'Kho thử nghiệm quản trị', N'Bản phối đang hoàn thiện', 2),
+    (N'Kho thử nghiệm quản trị', N'Đêm vận hành yên tĩnh', 3)
 ) AS seed(album_title, song_title, track_number)
 JOIN Albums a ON a.title = seed.album_title AND a.username = 'admin_core'
 JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin_core';

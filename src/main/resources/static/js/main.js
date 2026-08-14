@@ -1,13 +1,4 @@
 axios.interceptors.request.use(config => {
-    const guestId = localStorage.getItem('music_guest_id');
-    if (guestId) {
-        if (config.headers && typeof config.headers.set === 'function') {
-            config.headers.set('X-Guest-ID', guestId);
-        } else {
-            config.headers = config.headers || {};
-            config.headers['X-Guest-ID'] = guestId;
-        }
-    }
     return config;
 }, error => {
     return Promise.reject(error);
@@ -19,8 +10,6 @@ new Vue({
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
         currentPage: window.location.pathname,
         currentUser: null,
-        isGuest: false,
-        guestUsername: null,
         userPhoto: null,
         isAdmin: false,
         userTokens: 0,
@@ -92,6 +81,13 @@ new Vue({
             lyrics: '',
             title: '',
             note: ''
+        },
+        referenceAnalysis: {
+            file: null,
+            result: null,
+            history: [],
+            isLoading: false,
+            configured: false
         },
         wizardCreatorUseCases: [
             { id: 'TikTok / Reels', icon: 'ti-device-mobile', description: 'Video ngắn, bắt tai' },
@@ -189,6 +185,8 @@ new Vue({
         librarySongFilter: 'all',
         libraryAlbums: [],
         isLoadingLibraryAlbums: false,
+        newAlbumForm: { title: '', description: '', isPublic: false },
+        isCreatingLibraryAlbum: false,
 
         chatOpen: false,
         chatContacts: [],
@@ -541,10 +539,9 @@ new Vue({
             localStorage.removeItem('music_username');
             localStorage.removeItem('music_is_admin');
 
-            // Các trang này cho phép dùng với tư cách khách. Đừng ép người dùng
-            // từ trang chủ sang login chỉ vì metadata của phiên cũ còn trong localStorage.
-            const publicGuestPages = ['/', '/explore', '/create'];
-            if (publicGuestPages.includes(window.location.pathname)) {
+            // Các trang công khai vẫn xem được khi phiên cũ đã hết hạn.
+            const publicPages = ['/', '/explore', '/create'];
+            if (publicPages.includes(window.location.pathname)) {
                 window.location.replace(window.location.pathname);
             } else {
                 window.location.href = '/login?error=expired';
@@ -611,10 +608,6 @@ new Vue({
         if (oauthStatus === 'success' && userParam) {
             localStorage.setItem('music_username', userParam);
             localStorage.setItem('music_is_admin', isAdminParam === 'true');
-            const guestId = localStorage.getItem('music_guest_id');
-            if (guestId) {
-                this.migrateGuestSongs(guestId, userParam);
-            }
             window.history.replaceState(null, null, window.location.pathname);
             this.Toast.fire({ icon: 'success', title: `Chào mừng ${userParam} đã đăng nhập!` });
         }
@@ -643,18 +636,9 @@ new Vue({
             localStorage.removeItem('jwt_token');
             localStorage.removeItem('music_is_admin');
 
-            // Setup Guest
-            let guestId = localStorage.getItem('music_guest_id');
-            if (!guestId) {
-                const randomHex = Math.random().toString(16).substring(2, 14);
-                guestId = 'guest_' + randomHex;
-                localStorage.setItem('music_guest_id', guestId);
-            }
-            this.isGuest = true;
-            this.guestUsername = guestId;
-            this.generationForm.username = guestId;
-            this.userTokens = 1; // Default tokens for guest
-            this.loadUserTokenBalance(guestId);
+            // Không tạo tài khoản khách: chỉ người dùng đăng nhập mới có thể tạo nhạc.
+            this.generationForm.username = '';
+            this.userTokens = 0;
         }
 
         if (window.location.pathname === '/' || window.location.pathname === '/home') {
@@ -664,15 +648,31 @@ new Vue({
         else if (window.location.pathname === '/explore') {
             this.loadPublicSongs();
             this.loadCommunityCollections();
+            const restoreType = urlParams.get('restore');
+            const canRestoreExploreScroll = ['collection', 'song', 'profile'].includes(restoreType)
+                && sessionStorage.getItem('music_explore_return_pending') === restoreType;
+            if (canRestoreExploreScroll) {
+                const savedScroll = Number(sessionStorage.getItem(`music_explore_${restoreType}_scroll`) || 0);
+                // Dùng toạ độ trực tiếp để tương thích cả Chrome lẫn các trình duyệt khác.
+                const restoreExploreScroll = () => window.scrollTo(0, savedScroll);
+                this.$nextTick(restoreExploreScroll);
+                setTimeout(restoreExploreScroll, 300);
+                setTimeout(() => {
+                    restoreExploreScroll();
+                    sessionStorage.removeItem('music_explore_return_pending');
+                    sessionStorage.removeItem(`music_explore_${restoreType}_scroll`);
+                    window.history.replaceState({}, '', '/explore');
+                    document.documentElement.classList.remove('explore-restoring');
+                }, 900);
+            }
         }
         else if (window.location.pathname === '/create') {
-            if (this.currentUser || this.isGuest) {
+            if (this.currentUser) {
                 this.loadGenres();
-                this.profileUsername = this.currentUser || this.guestUsername;
+                this.loadReferenceAnalysisHistory();
+                this.profileUsername = this.currentUser;
                 this.loadProfileGeneratedSongs();
-                if (this.currentUser) {
-                    this.loadProfileFavorites();
-                }
+                this.loadProfileFavorites();
                 const promptParam = urlParams.get('prompt');
                 if (promptParam) {
                     this.generationForm.prompt = promptParam;

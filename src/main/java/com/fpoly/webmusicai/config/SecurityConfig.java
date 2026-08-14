@@ -90,7 +90,7 @@ public class SecurityConfig {
         }
 
         if (path.equals("/") || path.equals("/explore") || path.equals("/create") || path.equals("/login") || path.equals("/register") || path.equals("/favorites") || path.equals("/profile") || path.equals("/orders") || path.equals("/payment-history")
-                || path.startsWith("/js/") || path.startsWith("/css/") || path.startsWith("/images/") || path.startsWith("/media/audio/") || path.startsWith("/song/")|| path.startsWith("/orders/")
+                || path.startsWith("/js/") || path.startsWith("/css/") || path.startsWith("/images/") || path.startsWith("/videos/") || path.startsWith("/media/audio/") || path.startsWith("/song/")|| path.startsWith("/orders/")
                 || path.startsWith("/playlists/") || path.startsWith("/albums/")
                 || path.equals("/favicon.ico")) {
             return true;
@@ -98,19 +98,7 @@ public class SecurityConfig {
         if (path.startsWith("/api/auth/") || path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
             return true;
         }
-        if ("POST".equals(method) && path.equals("/api/songs/generate")) {
-            return true;
-        }
-        if ("POST".equals(method) && path.matches("/api/songs/\\d+/cancel")) {
-            return true;
-        }
-        if ("DELETE".equals(method) && path.matches("/api/songs/\\d+")) {
-            return true;
-        }
         if ("POST".equals(method) && path.matches("/api/songs/\\d+/play")) {
-            return true;
-        }
-        if ("POST".equals(method) && path.matches("/api/songs/\\d+/tags")) {
             return true;
         }
         if ("GET".equals(method)) {

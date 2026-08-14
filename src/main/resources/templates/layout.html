@@ -21,6 +21,9 @@
         [v-cloak] {
             display: none !important;
         }
+        /* Khi rời chi tiết bộ sưu tập về Khám phá, chờ khôi phục vị trí rồi mới hiện nội dung.
+           Người dùng sẽ không thấy trang lóe ở đầu rồi mới bị kéo xuống. */
+        html.explore-restoring #workspace-area { visibility: hidden; }
 
         /* ĐỊNH NGHĨA BIẾN MÀU SẮC TOÀN CỤC CHO KHUNG HỆ THỐNG */
         :root {
@@ -31,8 +34,8 @@
             --border-color: rgba(255, 255, 255, 0.08);
             --text-muted: rgba(255, 255, 255, 0.4);
             --table-hover: rgba(255, 255, 255, 0.02);
-            --btn-outline-guest: rgba(255, 255, 255, 0.4);
-            --btn-outline-guest-hover: rgba(255, 255, 255, 0.1);
+            --btn-outline-anonymous: rgba(255, 255, 255, 0.4);
+            --btn-outline-anonymous-hover: rgba(255, 255, 255, 0.1);
             --brand-green: #22c55e;
 
             /* BOXCHAT VARIABLES - DARK MODE */
@@ -56,8 +59,8 @@
             --border-color: rgba(0, 0, 0, 0.08);
             --text-muted: rgba(0, 0, 0, 0.5);
             --table-hover: rgba(0, 0, 0, 0.02);
-            --btn-outline-guest: rgba(0, 0, 0, 0.4);
-            --btn-outline-guest-hover: rgba(0, 0, 0, 0.05);
+            --btn-outline-anonymous: rgba(0, 0, 0, 0.4);
+            --btn-outline-anonymous-hover: rgba(0, 0, 0, 0.05);
             --brand-green: #16a34a;
 
             /* BOXCHAT VARIABLES - LIGHT MODE */
@@ -174,7 +177,7 @@
         /* CSS Tùy biến cho nút Đăng ký thích ứng màu chữ theo Theme */
         .btn-register-sync {
             color: var(--text-color) !important;
-            border: 1px solid var(--btn-outline-guest) !important;
+            border: 1px solid var(--btn-outline-anonymous) !important;
             border-radius: 10px;
             font-size: 13px;
             font-weight: 500;
@@ -182,7 +185,7 @@
         }
 
         .btn-register-sync:hover {
-            background-color: var(--btn-outline-guest-hover) !important;
+            background-color: var(--btn-outline-anonymous-hover) !important;
         }
 
         /* ========================================================= */
@@ -1594,17 +1597,36 @@
         #workspace-area .profile-container .btn { min-height: 40px; font-size: 13px; }
 
         /* Home landing page and optional promotional video. */
+        #workspace-area:has(.home-page-watermark) { position: relative; isolation: isolate; }
+        #workspace-area .home-page-watermark { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; color: #68e39a; opacity: .055; }
+        #workspace-area .home-page-watermark::before { content: ''; position: absolute; width: min(88vw, 1500px); height: min(88vw, 1500px); top: 50%; left: 54%; transform: translate(-50%, -50%); border: 1px solid currentColor; border-radius: 50%; box-shadow: 0 0 180px 80px rgba(22,163,74,.11), inset 0 0 180px rgba(22,163,74,.08); }
+        #workspace-area .home-page-watermark span { position: absolute; top: 51%; left: 52%; transform: translate(-50%, -50%) rotate(-13deg); font-size: clamp(120px, 20vw, 360px); line-height: .9; font-weight: 800; letter-spacing: -0.08em; white-space: nowrap; text-shadow: 0 0 80px rgba(34,197,94,.5); }
+        #workspace-area .home-page-watermark-icon { position: absolute; top: 18%; left: 12%; font-size: clamp(90px, 13vw, 220px); transform: rotate(-16deg); }
+        #workspace-area .home-page-watermark ~ * { position: relative; z-index: 1; }
         #workspace-area .home-hero-shell { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(340px,.95fr); gap: 28px; align-items: stretch; margin-bottom: 52px; }
         #workspace-area .home-hero-copy, #workspace-area .home-video-card { border: 1px solid var(--border-color); border-radius: 28px; overflow: hidden; }
         #workspace-area .home-hero-copy { padding: clamp(30px,5vw,60px); background: radial-gradient(circle at 82% 18%, rgba(34,197,94,.20), transparent 33%), linear-gradient(135deg, rgba(22,163,74,.11), rgba(255,255,255,.012) 60%), var(--card-bg); }
         #workspace-area .home-eyebrow { display: inline-flex; gap: 7px; align-items: center; padding: 8px 12px; border-radius: 999px; color: var(--brand-green); background: rgba(22,163,74,.12); font-size: 12px; font-weight: 800; letter-spacing: .45px; }
-        #workspace-area .home-title { margin: 18px 0 14px; color: var(--text-color); font-size: clamp(34px,4vw,56px); line-height: 1.12; letter-spacing: -.7px; font-weight: 700; }
+        #workspace-area .home-title { margin: 18px 0 14px; color: var(--text-color); font-size: clamp(34px,3.45vw,52px); line-height: 1.12; letter-spacing: -.7px; font-weight: 700; }
+        #workspace-area .home-title span { display: block; white-space: nowrap; }
         #workspace-area .home-subtitle { max-width: 590px; color: var(--text-muted); font-size: 17px; line-height: 1.65; }
         #workspace-area .home-feature-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 25px 0; }
         #workspace-area .home-feature-chip { display: inline-flex; align-items: center; gap: 7px; padding: 10px 13px; border-radius: 12px; color: var(--text-color); background: rgba(255,255,255,.045); border: 1px solid var(--border-color); font-size: 13px; font-weight: 600; }
-        #workspace-area .home-proof-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 28px; }
-        #workspace-area .home-proof-item { display: flex; flex-direction: column; gap: 8px; min-height: 92px; padding: 14px; border: 1px solid var(--border-color); border-radius: 15px; color: var(--text-color); background: rgba(255,255,255,.032); font-size: 13px; font-weight: 750; line-height: 1.25; }
-        #workspace-area .home-proof-item i { color: #4ade80; font-size: 20px; }
+        #workspace-area .home-creation-flow { display: flex; align-items: center; gap: 5px; margin-top: 30px; max-width: 720px; }
+        #workspace-area .home-flow-step { display: flex; flex: 1 1 0; min-width: 112px; flex-direction: column; align-items: flex-start; gap: 10px; color: var(--text-color); font-size: 13px; font-weight: 750; line-height: 1.25; }
+        #workspace-area .home-flow-step > i { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 15px; color: #4ade80; border: 1px solid rgba(74,222,128,.28); background: linear-gradient(145deg, rgba(34,197,94,.18), rgba(255,255,255,.025)); font-size: 22px; box-shadow: 0 8px 22px rgba(0,0,0,.14); }
+        #workspace-area .home-flow-step span { display: block; width: 100%; }
+        #workspace-area .home-flow-connector { position: relative; flex: 0 0 54px; height: 54px; align-self: center; color: #4ade80; }
+        #workspace-area .home-flow-connector::before { position: absolute; content: ''; right: 3px; left: 3px; border-color: rgba(74,222,128,.64); border-style: solid; }
+        #workspace-area .home-flow-connector i { position: absolute; right: 0; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; color: #4ade80; background: #102217; font-size: 16px; }
+        #workspace-area .flow-connector-down::before { top: 9px; height: 31px; border-width: 0 0 2px; border-radius: 0 0 0 34px; }
+        #workspace-area .flow-connector-down i { right: -2px; bottom: 4px; }
+        #workspace-area .flow-connector-up::before { bottom: 9px; height: 31px; border-width: 2px 0 0; border-radius: 0 34px 0 0; }
+        #workspace-area .flow-connector-up i { right: -2px; top: 4px; }
+        #workspace-area .home-create-cta { animation: homeCreatePulse 2.8s ease-in-out infinite; box-shadow: 0 10px 24px rgba(34,197,94,.20); }
+        #workspace-area .home-explore-cta { color: #d9fbe4; border: 1px solid rgba(74,222,128,.62); background: rgba(34,197,94,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.035), 0 8px 20px rgba(0,0,0,.12); }
+        #workspace-area .home-explore-cta:hover { color: #fff; border-color: #4ade80; background: rgba(34,197,94,.16); transform: translateY(-1px); }
+        @keyframes homeCreatePulse { 0%, 100% { transform: translateY(0); box-shadow: 0 10px 24px rgba(34,197,94,.20); } 50% { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(34,197,94,.36); } }
         #workspace-area .home-cta-note { margin: 15px 0 0; color: var(--text-muted); font-size: 12px; font-weight: 600; }
         #workspace-area .home-cta-note i { color: #4ade80; }
         #workspace-area .home-community-kicker { color: #4ade80; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
@@ -1619,6 +1641,15 @@
         #workspace-area .explore-search { max-width: 660px; margin: 0 auto; padding: 5px 8px 5px 16px; border: 1px solid var(--border-color); border-radius: 999px; background: rgba(255,255,255,.035); }
         #workspace-area .explore-search input { min-height: 42px; box-shadow: none !important; color: var(--text-color) !important; }
         #workspace-area .explore-search-count { flex: 0 0 auto; padding: 8px 13px; border-radius: 999px; background: rgba(34,197,94,.13); color: #4ade80; font-size: 12px; font-weight: 800; }
+        #workspace-area .explore-result-summary { margin: 11px auto 0; color: var(--text-muted); font-size: 12px; font-weight: 650; }
+        #workspace-area .explore-result-summary strong { color: #4ade80; }
+        #workspace-area .explore-song-playlist { position: absolute; z-index: 12; top: 10px; left: 10px; width: 31px; height: 31px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; background: rgba(8,15,11,.78); color: #f8fafc; }
+        #workspace-area .explore-song-playlist:hover { background: #15803d; color: #fff; }
+        #workspace-area .reference-file-input { background: #111a14 !important; border-color: rgba(74,222,128,.38) !important; color: var(--text-color) !important; }
+        #workspace-area .reference-file-input::file-selector-button { margin: -0.375rem .75rem -0.375rem -0.75rem; padding: .56rem .85rem; border: 0; border-right: 1px solid rgba(74,222,128,.28); background: #183521; color: #dcfce7; font-weight: 700; }
+        #workspace-area .provider-status-badge { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 5px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1; }
+        #workspace-area .provider-status-badge.available { color: #bbf7d0; background: rgba(22,163,74,.16); border-color: rgba(74,222,128,.34); }
+        #workspace-area .provider-status-badge.unavailable { color: #d1d5db; background: rgba(148,163,184,.14); border-color: rgba(148,163,184,.24); }
         #workspace-area .explore-genre-filter { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 18px 0 40px; }
         #workspace-area .explore-filter-panel { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; margin: 18px 0 40px; }
         #workspace-area .explore-filter-panel-inline { margin: 14px auto 0; max-width: 900px; }
@@ -1637,6 +1668,11 @@
         #workspace-area .payment-history-reset { min-height: 44px; border: 1px solid rgba(148,163,184,.28); color: var(--text-muted); background: rgba(255,255,255,.025); }
         #workspace-area .payment-history-reset:hover { border-color: rgba(34,197,94,.65); color: #4ade80; background: rgba(34,197,94,.09); }
         #workspace-area .payment-history-table-wrap { border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
+        #workspace-area .app-pagination { display: flex; justify-content: center; align-items: center; gap: 7px; flex-wrap: wrap; }
+        #workspace-area .app-page-btn { min-width: 38px; height: 36px; padding: 0 11px; border: 1px solid var(--border-color); border-radius: 9px; background: rgba(255,255,255,.02); color: var(--text-muted); font-size: .84rem; font-weight: 700; display: inline-flex; gap: 5px; align-items: center; justify-content: center; }
+        #workspace-area .app-page-btn:hover:not(:disabled), #workspace-area .app-page-btn.active { border-color: rgba(34,197,94,.65); background: #16a34a; color: #fff; }
+        #workspace-area .app-page-btn:disabled { opacity: .42; cursor: not-allowed; }
+        #workspace-area .app-page-ellipsis { min-width: 22px; text-align: center; color: var(--text-muted); font-weight: 800; }
         #workspace-area .payment-history-table { --bs-table-bg: transparent; --bs-table-color: var(--text-color); --bs-table-border-color: var(--border-color); margin-bottom: 0; }
         #workspace-area .payment-history-table thead, #workspace-area .payment-history-table thead tr, #workspace-area .payment-history-table thead th { background: #101713 !important; color: var(--text-muted) !important; }
         #workspace-area .payment-history-table th { padding: 13px 14px; border: 0 !important; font-size: 11px; font-weight: 800; letter-spacing: .045em; text-transform: uppercase; white-space: nowrap; }
@@ -1655,6 +1691,11 @@
         #workspace-area .explore-song-grid { padding-bottom: 4px; }
         #workspace-area .explore-song-card { min-width: 0; cursor: pointer; }
         #workspace-area .explore-song-art { position: relative; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--border-color); border-radius: 19px; background: #101712; }
+        #workspace-area .explore-rank { position: absolute; z-index: 3; top: 10px; left: 10px; width: 27px; height: 27px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: rgba(8,15,11,.78); border: 1px solid rgba(255,255,255,.18); color: #f8fafc; font-size: .78rem; font-weight: 800; box-shadow: 0 5px 14px rgba(0,0,0,.24); }
+        #workspace-area .explore-song-card:nth-child(1) .explore-rank { color: #facc15; }
+        #workspace-area .explore-song-card:nth-child(2) .explore-rank { color: #cbd5e1; }
+        #workspace-area .explore-song-card:nth-child(3) .explore-rank { color: #dca56c; }
+        #workspace-area .explore-section-note { margin: 5px 0 0; color: var(--text-muted); font-size: .88rem; }
         #workspace-area .explore-song-art img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
         #workspace-area .explore-song-card:hover .explore-song-art img { transform: scale(1.05); }
         #workspace-area .explore-song-art::after { position: absolute; inset: 35% 0 0; content: ''; background: linear-gradient(transparent, rgba(0,0,0,.75)); pointer-events: none; }
@@ -1695,7 +1736,8 @@
         #workspace-area .home-video-card video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .72; }
         #workspace-area .home-video-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.72)); }
         #workspace-area .home-video-copy { position: absolute; right: 26px; bottom: 25px; left: 26px; color: #fff; }
-        #workspace-area .home-video-play { display: inline-flex; align-items: center; justify-content: center; width: 54px; height: 54px; margin-bottom: 16px; border-radius: 50%; color: #fff; background: rgba(34,197,94,.92); box-shadow: 0 10px 25px rgba(0,0,0,.25); font-size: 22px; }
+        #workspace-area .home-video-sound { position: absolute; z-index: 2; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,.32); border-radius: 999px; padding: 9px 12px; color: #fff; background: rgba(5,16,10,.62); backdrop-filter: blur(8px); font-size: 12px; font-weight: 750; transition: .2s ease; }
+        #workspace-area .home-video-sound:hover { border-color: #4ade80; background: rgba(15,74,36,.78); transform: translateY(-1px); }
         #workspace-area .home-video-copy h2 { margin: 0 0 7px; font-size: 25px; font-weight: 800; }
         #workspace-area .home-video-copy p { margin: 0; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.55; }
         /* Hoạt ảnh giới thiệu 10 giây trên Trang chủ: không có media nặng để thuận tiện demo/Git. */
@@ -1751,7 +1793,7 @@
         #workspace-area .comment-replies .comment-item { margin-top: 14px; }
         #workspace-area .comment-replies .comment-avatar { width: 34px; height: 34px; }
         #workspace-area .comment-reply-form, #workspace-area .comment-edit { margin-top: 10px; }
-        #workspace-area .comment-guest { margin-top: 18px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.035); color: var(--text-muted); text-align: center; }
+        #workspace-area .comment-anonymous { margin-top: 18px; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.035); color: var(--text-muted); text-align: center; }
         #workspace-area .suggested-track-list { display: grid; gap: 4px; }
         #workspace-area .suggested-track { display: grid; grid-template-columns: 44px minmax(0, 1fr) 34px; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
         #workspace-area .suggested-track:last-child { border-bottom: 0; }
@@ -1760,9 +1802,9 @@
         #workspace-area .suggested-track > div span { display: block; overflow: hidden; margin-top: 2px; color: var(--text-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
         #workspace-area .suggested-track-play { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%; background: rgba(34,197,94,.14); color: #4ade80; }
         #workspace-area .suggested-track-play:hover { background: #16a34a; color: #fff; }
-        #playlistManagerModal .modal-content { background: #101712 !important; color: var(--text-color); border-color: rgba(74,222,128,.25) !important; }
-        #playlistManagerModal .modal-header { background: linear-gradient(135deg, rgba(34,197,94,.12), transparent); }
-        #playlistManagerModal .playlist-create-box { padding: 16px; border: 1px solid rgba(74,222,128,.18); border-radius: 16px; background: rgba(34,197,94,.055); }
+        #playlistManagerModal .modal-content, #albumManagerModal .modal-content { background: #101712 !important; color: var(--text-color); border-color: rgba(74,222,128,.25) !important; }
+        #playlistManagerModal .modal-header, #albumManagerModal .modal-header { background: linear-gradient(135deg, rgba(34,197,94,.12), transparent); }
+        #playlistManagerModal .playlist-create-box, #albumManagerModal .playlist-create-box { padding: 16px; border: 1px solid rgba(74,222,128,.18); border-radius: 16px; background: rgba(34,197,94,.055); }
         #playlistManagerModal .playlist-row { border: 1px solid var(--border-color); border-radius: 13px; background: rgba(255,255,255,.025); }
         #workspace-area .library-hero { padding: 28px; background: linear-gradient(135deg, rgba(22,163,74,.17), rgba(9,40,25,.35)); }
         #workspace-area .library-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 24px; }
@@ -1776,10 +1818,18 @@
         #workspace-area .library-song-cover { width: 56px; height: 56px; border-radius: 13px; object-fit: cover; }
         #workspace-area .library-item-title { overflow: hidden; color: var(--text-color); font-size: 16px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
         #workspace-area .library-item-meta { overflow: hidden; margin-top: 4px; color: var(--text-muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-        #workspace-area .library-collection-card { min-height: 228px; padding: 20px; border: 1px solid var(--border-color); border-radius: 16px; background: rgba(255,255,255,.018); display: flex; flex-direction: column; }
-        #workspace-area .library-collection-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 14px; margin-bottom: 18px; background: rgba(34,197,94,.15); color: #22c55e; font-size: 24px; }
+        #workspace-area .library-collection-card { min-height: 278px; padding: 22px; border: 1px solid var(--border-color); border-radius: 20px; background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); box-shadow: 0 12px 28px rgba(0,0,0,.13); display: flex; flex-direction: column; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        #workspace-area .library-collection-card:hover { transform: translateY(-3px); border-color: rgba(74,222,128,.4); box-shadow: 0 18px 34px rgba(0,0,0,.2); }
+        #workspace-area .library-collection-topline { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+        #workspace-area .library-collection-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 15px; background: rgba(34,197,94,.15); color: #4ade80; font-size: 25px; }
+        #workspace-area .album-collection-card .library-collection-icon { background: rgba(168,85,247,.14); color: #c084fc; }
+        #workspace-area .library-collection-kind { display: inline-flex; align-items: center; min-height: 27px; padding: 5px 9px; border: 1px solid rgba(34,197,94,.18); border-radius: 999px; background: rgba(34,197,94,.07); color: #6ee7a0; font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+        #workspace-area .album-collection-card .library-collection-kind { border-color: rgba(192,132,252,.2); background: rgba(168,85,247,.08); color: #d8b4fe; }
         #workspace-area .library-collection-title { min-height: 48px; margin: 0 0 6px; color: var(--text-color); font-size: 18px; font-weight: 750; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         #workspace-area .library-collection-description { min-height: 42px; margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.55; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        #workspace-area .library-collection-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+        #workspace-area .library-collection-meta span { display: inline-flex; align-items: center; min-height: 26px; padding: 4px 8px; border: 1px solid rgba(148,163,184,.19); border-radius: 999px; color: var(--text-muted); background: rgba(255,255,255,.025); font-size: 11px; font-weight: 700; }
+        #workspace-area .library-collection-meta .is-public { border-color: rgba(34,197,94,.26); color: #6ee7a0; background: rgba(34,197,94,.07); }
         #workspace-area .library-collection-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 14px; }
         #workspace-area .library-row-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; }
         #workspace-area .library-status, #workspace-area .library-visibility { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 4px 8px; border: 1px solid rgba(148,163,184,.2); border-radius: 7px; color: var(--text-muted); background: rgba(255,255,255,.02); font-size: 11px; font-weight: 750; white-space: nowrap; }
@@ -1788,16 +1838,41 @@
         #workspace-area .library-status.is-closed { color: #b6c0cb; }
         #workspace-area .library-action-btn, #workspace-area .library-delete-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; padding: 5px 9px; border: 1px solid rgba(148,163,184,.24); border-radius: 7px; color: var(--text-muted); background: transparent; font-size: 11px; font-weight: 750; text-decoration: none; }
         #workspace-area .library-action-btn:hover { border-color: rgba(34,197,94,.6); color: #6ee7a0; background: rgba(34,197,94,.07); }
+        #workspace-area .library-open-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 32px; padding: 5px 10px; border: 1px solid rgba(34,197,94,.46); border-radius: 8px; color: #d9ffe7; background: rgba(22,163,74,.16); font-size: 11px; font-weight: 800; text-decoration: none; }
+        #workspace-area .library-open-btn:hover { border-color: #22c55e; background: #15803d; color: #fff; }
+        #workspace-area .favorite-song-row { display: grid; grid-template-columns: minmax(260px, 1.35fr) minmax(180px, 1fr) auto; align-items: center; gap: 22px; padding: 16px 18px; transition: background .18s ease; }
+        #workspace-area .favorite-song-row:hover { background: rgba(255,255,255,.025) !important; }
+        #workspace-area .favorite-song-main { display: grid; grid-template-columns: 20px 40px minmax(0,1fr); align-items: center; gap: 14px; min-width: 0; }
+        #workspace-area .favorite-song-description { overflow: hidden; color: var(--text-muted); font-size: 12px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+        #workspace-area .favorite-song-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; white-space: nowrap; }
         #workspace-area .library-delete-btn { color: #d5a2a2; border-color: rgba(239,68,68,.28); }
         #workspace-area .library-delete-btn:hover { color: #fca5a5; border-color: rgba(239,68,68,.55); background: rgba(239,68,68,.07); }
+        #workspace-area .profile-container .suno-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; }
+        #workspace-area .profile-container .suno-cover-wrapper { aspect-ratio: 1 / 1; border-radius: 19px; }
+        #workspace-area .profile-container .suno-card-title { margin-top: 10px; }
+        #workspace-area .profile-container .suno-stats-overlay { bottom: 10px; left: 10px; right: 10px; gap: 5px; }
+        #workspace-area .profile-container .suno-stat-badge { padding: 4px 6px; font-size: 10px; }
+        #workspace-area .profile-container .suno-top-share-btn { top: 10px; right: 10px; }
+        #workspace-area .creator-card-clickable { cursor: pointer; }
+        #workspace-area .creator-card-clickable:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 4px; }
+        @media (max-width: 991.98px) { #workspace-area .profile-container .suno-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        @media (max-width: 767px) { #workspace-area .profile-container .suno-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; } }
+        @media (max-width: 1200px) and (min-width: 992px) { #workspace-area .home-title span { white-space: normal; } }
         @media (max-width: 991.98px) { #workspace-area .home-hero-shell { grid-template-columns: 1fr; } #workspace-area .home-video-card { min-height: 320px; } }
         @media (max-width: 767px) { #workspace-area .explore-section-head { align-items: start; } #workspace-area .explore-page-hero p { white-space: normal; } #workspace-area .explore-song-row, #workspace-area .explore-song-grid, #workspace-area .community-collection-grid, #workspace-area .profile-collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; } #workspace-area .creator-row { grid-auto-columns: minmax(180px, 1fr); grid-template-columns: repeat(5, minmax(180px, 1fr)); gap: 13px; } #workspace-area .collection-detail-hero { grid-template-columns: 1fr; } #workspace-area .collection-detail-cover { width: 130px; } }
-        @media (max-width: 575.98px) { #workspace-area .home-hero-copy, #workspace-area .home-video-card { border-radius: 22px; } #workspace-area .home-hero-copy { padding: 28px 22px; } #workspace-area .home-title { font-size: 35px; } #workspace-area .home-proof-row { grid-template-columns: 1fr; } #workspace-area .home-proof-item { min-height: auto; flex-direction: row; align-items: center; } #workspace-area .section-heading-row { align-items: flex-start; } #workspace-area .explore-see-all { padding: 9px 11px; font-size: 12px; } #workspace-area .library-song-row { grid-template-columns: 48px minmax(0,1fr); gap: 12px; } #workspace-area .library-song-cover { width: 48px; height: 48px; } #workspace-area .library-song-row > :last-child { grid-column: 2; justify-self: start; } }
+        @media (max-width: 767px) { #workspace-area .favorite-song-row { grid-template-columns: minmax(0,1fr) auto; gap: 10px 14px; } #workspace-area .favorite-song-description { grid-column: 1 / -1; padding-left: 74px; white-space: normal; } }
+        @media (max-width: 575.98px) { #workspace-area .home-hero-copy, #workspace-area .home-video-card { border-radius: 22px; } #workspace-area .home-hero-copy { padding: 28px 22px; } #workspace-area .home-title { font-size: 35px; } #workspace-area .home-creation-flow { gap: 2px; } #workspace-area .home-flow-step { min-width: 0; font-size: 11px; } #workspace-area .home-flow-step > i { width: 38px; height: 38px; font-size: 18px; } #workspace-area .home-flow-connector { flex-basis: 29px; height: 46px; } #workspace-area .home-flow-connector i { width: 18px; height: 18px; font-size: 13px; } #workspace-area .section-heading-row { align-items: flex-start; } #workspace-area .explore-see-all { padding: 9px 11px; font-size: 12px; } #workspace-area .library-song-row { grid-template-columns: 48px minmax(0,1fr); gap: 12px; } #workspace-area .library-song-cover { width: 48px; height: 48px; } #workspace-area .library-song-row > :last-child { grid-column: 2; justify-self: start; } #workspace-area .favorite-song-main { gap: 10px; } #workspace-area .favorite-song-actions { gap: 5px; } }
     </style>
 
     <script>
         const savedTheme = localStorage.getItem('music_theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
+        const exploreRestoreType = new URLSearchParams(window.location.search).get('restore');
+        if (window.location.pathname === '/explore'
+            && ['collection', 'song', 'profile'].includes(exploreRestoreType)
+            && sessionStorage.getItem('music_explore_return_pending') === exploreRestoreType) {
+            document.documentElement.classList.add('explore-restoring');
+        }
     </script>
 </head>
 
@@ -2248,7 +2323,7 @@
                 <div class="modal-content custom-theme-modal border border-secondary shadow-lg" style="border-radius: 20px;">
                     <div class="modal-header border-bottom border-secondary-subtle px-4 py-3">
                         <div class="min-w-0">
-                        <h5 class="modal-title fw-bold fs-6 mb-0">Lưu vào Playlist</h5>
+                        <h5 class="modal-title fw-bold fs-6 mb-0">{{ playlistTargetSong ? 'Lưu vào Playlist' : 'Quản lý Playlist' }}</h5>
                             <small v-if="playlistTargetSong" class="text-muted-sync d-block text-truncate" style="max-width: 340px;">
                                 {{ playlistTargetSong.title }}
                             </small>
@@ -2275,13 +2350,15 @@
                         </div>
                         <div v-else class="d-flex flex-column gap-2 overflow-y-auto pe-1" style="max-height: 300px;">
                             <div v-for="playlist in myPlaylists" :key="playlist.id" class="playlist-row d-flex align-items-center gap-2 p-2">
-                                <button type="button" @click="addSongToPersistentPlaylist(playlist)" class="btn btn-sm flex-grow-1 text-start border-0 min-w-0">
+                                <button type="button" @click="playlistTargetSong ? addSongToPersistentPlaylist(playlist) : null" class="btn btn-sm flex-grow-1 text-start border-0 min-w-0" :title="playlistTargetSong ? 'Thêm bài này vào playlist' : 'Playlist của bạn'">
                                     <span class="d-block fw-semibold text-truncate">{{ playlist.name }}</span>
                                     <small :class="playlist.isPublic ? 'text-success' : 'text-muted-sync'">
                                         <i :class="playlist.isPublic ? 'ti ti-world' : 'ti ti-lock'"></i>
                                         {{ playlist.isPublic ? 'Công khai' : 'Riêng tư' }}
                                     </small>
                                 </button>
+                                <a :href="'/playlists/' + playlist.id" class="btn btn-sm action-btn-gray" title="Mở playlist"><i class="ti ti-external-link"></i></a>
+                                <button type="button" class="btn btn-sm action-btn-gray" @click="editPersistentPlaylist(playlist)" title="Đổi tên playlist"><i class="ti ti-pencil"></i></button>
                                 <button type="button" class="btn btn-sm action-btn-gray" @click="togglePlaylistPrivacy(playlist)"
                                         :title="playlist.isPublic ? 'Chuyển sang riêng tư' : 'Chuyển sang công khai'">
                                     <i :class="playlist.isPublic ? 'ti ti-world' : 'ti ti-lock'"></i>
@@ -2294,6 +2371,39 @@
                                 Chưa có danh sách phát. Hãy tạo danh sách đầu tiên ở phía trên.
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="albumManagerModal" tabindex="-1" aria-hidden="true" v-cloak>
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content custom-theme-modal border border-secondary shadow-lg" style="border-radius: 20px;">
+                    <div class="modal-header border-bottom border-secondary-subtle px-4 py-3">
+                        <div>
+                            <h5 class="modal-title fw-bold fs-6 mb-0">Tạo album mới</h5>
+                            <small class="text-muted-sync">Sắp xếp những bài nhạc do bạn sáng tạo.</small>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <form @submit.prevent="createLibraryAlbum" class="playlist-create-box mb-0">
+                            <label class="form-label small fw-semibold" for="newAlbumTitle">Tên album</label>
+                            <input id="newAlbumTitle" v-model.trim="newAlbumForm.title" maxlength="120" class="form-control custom-theme-input mb-3" placeholder="Ví dụ: Giai điệu quán cà phê" required>
+                            <label class="form-label small fw-semibold" for="newAlbumDescription">Mô tả ngắn <span class="text-muted-sync fw-normal">(không bắt buộc)</span></label>
+                            <textarea id="newAlbumDescription" v-model.trim="newAlbumForm.description" maxlength="300" rows="3" class="form-control custom-theme-input mb-3" placeholder="Nội dung hoặc cảm hứng của album"></textarea>
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="newAlbumPublic" v-model="newAlbumForm.isPublic">
+                                <label class="form-check-label small" for="newAlbumPublic">Công khai để cộng đồng có thể xem</label>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn action-btn-gray px-3" data-bs-dismiss="modal">Hủy</button>
+                                <button class="btn btn-success px-3 fw-semibold" type="submit" :disabled="!newAlbumForm.title || isCreatingLibraryAlbum">
+                                    <span v-if="isCreatingLibraryAlbum" class="spinner-border spinner-border-sm me-1"></span>
+                                    {{ isCreatingLibraryAlbum ? 'Đang tạo...' : 'Tạo album' }}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

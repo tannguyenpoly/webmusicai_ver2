@@ -86,7 +86,11 @@
                                     :class="currentTrack.liked_by_me ? 'btn-danger' : 'btn-outline-secondary'"
                                     :title="currentTrack.liked_by_me ? 'Bỏ thích' : 'Thích bài hát này'">
                                     <i :class="['ti', currentTrack.liked_by_me ? 'ti-heart-filled' : 'ti-heart']"></i>
-                                    <span class="fw-bold">{{ currentTrack.total_likes }} Thích</span>
+                                    <span class="fw-bold">Lưu · {{ currentTrack.total_likes }}</span>
+                                </button>
+
+                                <button @click="openPlaylistModal(currentTrack)" class="btn btn-sm btn-outline-success d-flex align-items-center gap-2 rounded-pill px-3" title="Lưu bài hát vào playlist">
+                                    <i class="ti ti-playlist-add"></i><span>Playlist</span>
                                 </button>
 
                                 <!-- Download Button -->

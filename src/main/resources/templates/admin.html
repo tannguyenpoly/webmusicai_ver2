@@ -412,6 +412,7 @@
             opacity: 0.3;
             cursor: not-allowed;
         }
+        .pagination-custom .page-ellipsis { min-width: 22px; text-align: center; color: var(--text-muted); font-weight: 800; }
 
         @media (max-width: 768px) {
             .sidebar {
@@ -619,7 +620,7 @@
                         </tr>
                         <tr v-if="!usersPage.content || usersPage.content.length === 0"><td colspan="9" class="text-center text-muted-sync py-4">Không tìm thấy người dùng.</td></tr>
                     </tbody></table></div></div>
-                    <div class="pagination-custom" v-if="usersPage.totalPages > 1"><button class="page-btn" :disabled="usersPage.number === 0" @click="loadUsers(usersPage.number - 1)">Trước</button><button class="page-btn" v-for="p in usersPage.totalPages" :key="p" :class="{ active: p-1 === usersPage.number }" @click="loadUsers(p-1)">{{ p }}</button><button class="page-btn" :disabled="usersPage.number >= usersPage.totalPages - 1" @click="loadUsers(usersPage.number + 1)">Sau</button></div>
+                    <div class="pagination-custom" v-if="usersPage.totalPages > 1"><button class="page-btn" :disabled="usersPage.number === 0" @click="loadUsers(usersPage.number - 1)">Trước</button><template v-for="page in compactPagination(usersPage.number, usersPage.totalPages)" :key="page"><span v-if="page < 0" class="page-ellipsis">…</span><button v-else class="page-btn" :class="{ active: page === usersPage.number }" @click="loadUsers(page)">{{ page + 1 }}</button></template><button class="page-btn" :disabled="usersPage.number >= usersPage.totalPages - 1" @click="loadUsers(usersPage.number + 1)">Sau</button></div>
                 </div>
 
                 <div v-else>
@@ -645,7 +646,7 @@
                         <tr v-for="u in userSpendingPage.content" :key="u.username"><td><div class="fw-medium">@{{ u.username }}</div><small class="text-muted-sync">{{ u.fullname || u.email || '—' }}</small></td><td class="text-center"><span class="badge-status" :class="u.admin ? 'badge-pending' : 'badge-completed'">{{ u.admin ? 'Admin' : 'User' }}</span></td><td class="text-center">{{ tierLabel(u.accountTier) }}</td><td class="text-end fw-bold text-success">{{ formatPrice(u.totalSpent || 0) }}</td><td class="text-center">{{ u.successfulOrderCount || 0 }}</td><td class="text-center">{{ u.purchasedTokens || 0 }}</td><td class="text-center">{{ u.usedTokens || 0 }}</td><td class="text-center">{{ u.tokenBalance || 0 }}</td><td class="text-muted-sync" style="font-size:12px">{{ formatDate(u.lastPaidAt) }}</td></tr>
                         <tr v-if="!userSpendingPage.content || userSpendingPage.content.length === 0"><td colspan="9" class="text-center text-muted-sync py-4">Không có dữ liệu chi tiêu trong khoảng đã chọn.</td></tr>
                     </tbody></table></div></div>
-                    <div class="pagination-custom" v-if="userSpendingPage.totalPages > 1"><button class="page-btn" :disabled="userSpendingPage.number === 0" @click="loadUserSpending(userSpendingPage.number - 1)">Trước</button><button class="page-btn" v-for="p in userSpendingPage.totalPages" :key="p" :class="{ active: p-1 === userSpendingPage.number }" @click="loadUserSpending(p-1)">{{ p }}</button><button class="page-btn" :disabled="userSpendingPage.number >= userSpendingPage.totalPages - 1" @click="loadUserSpending(userSpendingPage.number + 1)">Sau</button></div>
+                    <div class="pagination-custom" v-if="userSpendingPage.totalPages > 1"><button class="page-btn" :disabled="userSpendingPage.number === 0" @click="loadUserSpending(userSpendingPage.number - 1)">Trước</button><template v-for="page in compactPagination(userSpendingPage.number, userSpendingPage.totalPages)" :key="page"><span v-if="page < 0" class="page-ellipsis">…</span><button v-else class="page-btn" :class="{ active: page === userSpendingPage.number }" @click="loadUserSpending(page)">{{ page + 1 }}</button></template><button class="page-btn" :disabled="userSpendingPage.number >= userSpendingPage.totalPages - 1" @click="loadUserSpending(userSpendingPage.number + 1)">Sau</button></div>
                 </div>
             </div>
 
@@ -720,7 +721,7 @@
 
                 <div class="pagination-custom" v-if="songsPage.totalPages > 1">
                     <button class="page-btn" :disabled="songsPage.number === 0" @click="loadSongs(songsPage.number - 1)">Trước</button>
-                    <button class="page-btn" v-for="p in songsPage.totalPages" :key="p" :class="{ active: p - 1 === songsPage.number }" @click="loadSongs(p - 1)">{{ p }}</button>
+                    <template v-for="page in compactPagination(songsPage.number, songsPage.totalPages)" :key="page"><span v-if="page < 0" class="page-ellipsis">…</span><button v-else class="page-btn" :class="{ active: page === songsPage.number }" @click="loadSongs(page)">{{ page + 1 }}</button></template>
                     <button class="page-btn" :disabled="songsPage.number >= songsPage.totalPages - 1" @click="loadSongs(songsPage.number + 1)">Sau</button>
                 </div>
             </div>
@@ -760,7 +761,7 @@
                         </table>
                     </div>
                 </div>
-                <div class="pagination-custom"><button class="page-btn" :disabled="genrePagination.page === 0" @click="genrePagination.page--">Trước</button><button class="page-btn" v-for="p in genreTotalPages" :key="p" :class="{ active: p - 1 === genrePagination.page }" @click="genrePagination.page = p - 1">{{ p }}</button><button class="page-btn" :disabled="genrePagination.page >= genreTotalPages - 1" @click="genrePagination.page++">Sau</button></div>
+                <div class="pagination-custom" v-if="genreTotalPages > 1"><button class="page-btn" :disabled="genrePagination.page === 0" @click="genrePagination.page--">Trước</button><template v-for="page in compactPagination(genrePagination.page, genreTotalPages)" :key="page"><span v-if="page < 0" class="page-ellipsis">…</span><button v-else class="page-btn" :class="{ active: page === genrePagination.page }" @click="genrePagination.page = page">{{ page + 1 }}</button></template><button class="page-btn" :disabled="genrePagination.page >= genreTotalPages - 1" @click="genrePagination.page++">Sau</button></div>
 
                 <!-- Genre Modal -->
                 <div v-if="showGenreModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
@@ -984,13 +985,9 @@
                     <tr v-if="!ordersPage.content || ordersPage.content.length === 0"><td colspan="7" class="text-center text-muted-sync py-4">Không có đơn phù hợp.</td></tr>
                 </tbody></table></div></div>
                 <div class="pagination-custom" v-if="ordersPage.totalPages > 1">
-                    <button class="page-btn" :disabled="ordersPage.number === 0" @click="loadOrders(0)" title="Trang đầu">Đầu</button>
                     <button class="page-btn" :disabled="ordersPage.number === 0" @click="loadOrders(ordersPage.number - 1)">Trước</button>
-                    <span v-if="orderPaginationPages[0] > 0" class="text-muted-sync px-1">…</span>
-                    <button class="page-btn" v-for="page in orderPaginationPages" :key="page" :class="{ active: page === ordersPage.number }" @click="loadOrders(page)">{{ page + 1 }}</button>
-                    <span v-if="orderPaginationPages[orderPaginationPages.length - 1] < ordersPage.totalPages - 1" class="text-muted-sync px-1">…</span>
+                    <template v-for="page in compactPagination(ordersPage.number, ordersPage.totalPages)" :key="page"><span v-if="page < 0" class="page-ellipsis">…</span><button v-else class="page-btn" :class="{ active: page === ordersPage.number }" @click="loadOrders(page)">{{ page + 1 }}</button></template>
                     <button class="page-btn" :disabled="ordersPage.number >= ordersPage.totalPages - 1" @click="loadOrders(ordersPage.number + 1)">Sau</button>
-                    <button class="page-btn" :disabled="ordersPage.number >= ordersPage.totalPages - 1" @click="loadOrders(ordersPage.totalPages - 1)" title="Trang cuối">Cuối</button>
                 </div>
             </div>
 
@@ -1074,7 +1071,7 @@
                     </div>
                     <div class="pagination-custom" v-if="transactionsPage.totalPages > 1">
                         <button class="page-btn" :disabled="transactionsPage.number === 0" @click="loadTransactions(transactionsPage.number - 1)">Trước</button>
-                        <button class="page-btn" v-for="p in transactionsPage.totalPages" :key="p" :class="{ active: p - 1 === transactionsPage.number }" @click="loadTransactions(p - 1)">{{ p }}</button>
+                        <template v-for="page in compactPagination(transactionsPage.number, transactionsPage.totalPages)" :key="page"><span v-if="page < 0" class="page-ellipsis">…</span><button v-else class="page-btn" :class="{ active: page === transactionsPage.number }" @click="loadTransactions(page)">{{ page + 1 }}</button></template>
                         <button class="page-btn" :disabled="transactionsPage.number >= transactionsPage.totalPages - 1" @click="loadTransactions(transactionsPage.number + 1)">Sau</button>
                     </div>
                 </div>
@@ -1131,7 +1128,7 @@
                     </div>
                     <div class="pagination-custom" v-if="paymentLogsPage.totalPages > 1">
                         <button class="page-btn" :disabled="paymentLogsPage.number === 0" @click="loadPaymentLogs(paymentLogsPage.number - 1)">Trước</button>
-                        <button class="page-btn" v-for="p in paymentLogsPage.totalPages" :key="p" :class="{ active: p - 1 === paymentLogsPage.number }" @click="loadPaymentLogs(p - 1)">{{ p }}</button>
+                        <template v-for="page in compactPagination(paymentLogsPage.number, paymentLogsPage.totalPages)" :key="page"><span v-if="page < 0" class="page-ellipsis">…</span><button v-else class="page-btn" :class="{ active: page === paymentLogsPage.number }" @click="loadPaymentLogs(page)">{{ page + 1 }}</button></template>
                         <button class="page-btn" :disabled="paymentLogsPage.number >= paymentLogsPage.totalPages - 1" @click="loadPaymentLogs(paymentLogsPage.number + 1)">Sau</button>
                     </div>
                 </div>
@@ -1355,6 +1352,21 @@ new Vue({
     },
 
     methods: {
+        compactPagination(currentPage, totalPages) {
+            const total = Number(totalPages) || 0;
+            const current = Number(currentPage) || 0;
+            if (total <= 7) return Array.from({ length: total }, (_, index) => index);
+
+            const pages = [0];
+            const start = Math.max(1, current - 1);
+            const end = Math.min(total - 2, current + 1);
+            if (start > 1) pages.push(-1);
+            for (let page = start; page <= end; page += 1) pages.push(page);
+            if (end < total - 2) pages.push(-2);
+            pages.push(total - 1);
+            return pages;
+        },
+
         toggleTheme() {
             this.isDarkMode = !this.isDarkMode;
             const t = this.isDarkMode ? 'dark' : 'light';
