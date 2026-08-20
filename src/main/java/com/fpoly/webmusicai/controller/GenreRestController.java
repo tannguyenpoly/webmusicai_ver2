@@ -34,10 +34,9 @@ public class GenreRestController {
 		Genre genre = new Genre();
 		genre.setName(name.trim());
 		genre.setDescription(body.get("description"));
-		genre.setMinTier(normalizeMinTier(body.get("minTier")));
 
 		genreRepo.save(genre);
-		log.info("Đã tạo thể loại mới: {} ({})", genre.getName(), genre.getMinTier());
+		log.info("Đã tạo thể loại mới: {}", genre.getName());
 
 		return ResponseEntity.ok(genre);
 	}
@@ -71,9 +70,6 @@ public class GenreRestController {
 			if (body.containsKey("description")) {
 				genre.setDescription(body.get("description"));
 			}
-			if (body.containsKey("minTier")) {
-				genre.setMinTier(normalizeMinTier(body.get("minTier")));
-			}
 
 			genreRepo.save(genre);
 			log.info("Đã cập nhật thể loại #{}", id);
@@ -81,14 +77,6 @@ public class GenreRestController {
 			return ResponseEntity.ok(genre);
 
 		}).orElse(ResponseEntity.notFound().build());
-	}
-
-	private String normalizeMinTier(String value) {
-		if (value == null || value.isBlank()) return "FREE";
-		String tier = value.trim().toUpperCase();
-		if ("CREATOR".equals(tier)) return "CREATOR";
-		if ("PRO".equals(tier) || "STUDIO".equals(tier)) return "PRO";
-		return "FREE";
 	}
 
 	@DeleteMapping("/{id}")

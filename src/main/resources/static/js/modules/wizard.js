@@ -92,39 +92,9 @@ window.MusicAIModules.wizard = {
         },
 
         selectWizardGenre(genre) {
-            if (this.isGenreLocked(genre)) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Thể loại cần nâng cấp gói',
-                    text: `Thể loại ${genre.name} yêu cầu gói ${this.genreRequiredTierLabel(genre.minTier)} trở lên.`,
-                    confirmButtonText: 'Nâng cấp gói',
-                    showCancelButton: true,
-                    cancelButtonText: 'Để sau',
-                    confirmButtonColor: '#16a34a',
-                    cancelButtonColor: '#6e7881'
-                }).then(result => { if (result.isConfirmed) window.location.href = '/orders'; });
-                return;
-            }
             this.musicBrief.genreId = genre.id;
             this.musicBrief.genreName = genre.name;
             this.generationForm.genreId = genre.id;
-        },
-
-        genreTierLevel(tier) {
-            const t = String(tier || 'FREE').toUpperCase();
-            if (t === 'CREATOR') return 1;
-            if (t === 'PRO' || t === 'STUDIO') return 2;
-            return 0;
-        },
-
-        genreRequiredTierLabel(tier) {
-            const labels = { FREE: 'Miễn phí', CREATOR: 'Nhà sáng tạo', PRO: 'Chuyên nghiệp', STUDIO: 'Phòng thu' };
-            return labels[String(tier || 'FREE').toUpperCase()] || 'Miễn phí';
-        },
-
-        isGenreLocked(genre) {
-            if (!genre || !genre.minTier) return false;
-            return this.genreTierLevel(genre.minTier) > this.userGenreLevel;
         },
 
         toggleWizardInstrument(instrument) {
@@ -154,19 +124,6 @@ window.MusicAIModules.wizard = {
         },
 
         analyzeReferenceAudio() {
-            if (!this.canUseReferenceAnalysis) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Chỉ dành cho gói trả phí',
-                    text: 'Chức năng phân tích nhạc tham khảo chỉ dành cho gói Chuyên nghiệp hoặc Phòng thu.',
-                    confirmButtonText: 'Nâng cấp gói',
-                    showCancelButton: true,
-                    cancelButtonText: 'Để sau',
-                    confirmButtonColor: '#16a34a',
-                    cancelButtonColor: '#6e7881'
-                }).then(result => { if (result.isConfirmed) window.location.href = '/orders'; });
-                return;
-            }
             if (!this.referenceAnalysis.configured) {
                 this.Toast.fire({ icon: 'info', title: 'Máy phân tích chưa được cấu hình.' });
                 return;

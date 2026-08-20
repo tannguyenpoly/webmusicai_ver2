@@ -31,8 +31,6 @@ import com.fpoly.webmusicai.entity.SongTag;
 import com.fpoly.webmusicai.entity.Tag;
 import com.fpoly.webmusicai.entity.User;
 import com.fpoly.webmusicai.entity.Genre;
-import com.fpoly.webmusicai.exception.TierRestrictedException;
-import com.fpoly.webmusicai.service.TierAccessService;
 import com.fpoly.webmusicai.dto.GenerateSongRequest;
 import com.fpoly.webmusicai.repository.FavoriteRepository;
 import com.fpoly.webmusicai.repository.SongCommentRepository;
@@ -116,9 +114,6 @@ public class SongRestController {
 
     @Autowired
     SpamProtectionService spamProtectionService;
-
-    @Autowired
-    TierAccessService tierAccessService;
 
     @GetMapping("/ai-status")
     public ResponseEntity<?> getAiStatus() {
@@ -251,9 +246,6 @@ public class SongRestController {
             if (requestData.getGenreId() != null) {
                 selectedGenre = genreRepo.findById(requestData.getGenreId())
                         .orElseThrow(() -> new IllegalArgumentException("Thể loại đã chọn không tồn tại"));
-                User user = userRepo.findById(finalUsername)
-                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
-                tierAccessService.requireGenreAccess(user, selectedGenre);
                 effectivePrompt = "Thể loại " + selectedGenre.getName() + ". " + effectivePrompt;
             }
             GenerationSpec spec = generationSpec(requestData);
@@ -283,8 +275,6 @@ public class SongRestController {
                     "remaining_tokens", ticket.remainingTokens()));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        } catch (TierRestrictedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
         }
     }
 

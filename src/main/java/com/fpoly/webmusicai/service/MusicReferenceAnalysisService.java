@@ -1,7 +1,6 @@
 package com.fpoly.webmusicai.service;
 
 import java.security.MessageDigest;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -13,7 +12,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fpoly.webmusicai.entity.Genre;
 import com.fpoly.webmusicai.entity.MusicAnalysisHistory;
 import com.fpoly.webmusicai.entity.User;
-import com.fpoly.webmusicai.exception.TierRestrictedException;
 import com.fpoly.webmusicai.repository.GenreRepository;
 import com.fpoly.webmusicai.repository.MusicAnalysisHistoryRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
@@ -41,14 +39,13 @@ public class MusicReferenceAnalysisService {
 
     @Transactional
     public Map<String, Object> analyze(String username, MultipartFile file) {
-        User user = userRepository.findById(username)
-                .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
-        requirePrivilegedTier(user);
         validate(file);
         String hash = sha256(file);
         MusicAnalysisHistory cached = historyRepository.findByUserUsernameAndFileHash(username, hash).orElse(null);
         if (cached != null) return toMap(cached, true);
 
+        User user = userRepository.findById(username)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
         MusicAnalysisService.AnalysisResult result = analysisService.analyze(file);
         MusicAnalysisHistory history = new MusicAnalysisHistory();
         history.setUser(user);
@@ -64,18 +61,6 @@ public class MusicReferenceAnalysisService {
     public List<Map<String, Object>> history(String username) {
         return historyRepository.findTop6ByUserUsernameOrderByCreatedAtDesc(username).stream()
                 .map(item -> toMap(item, true)).toList();
-    }
-
-    private void requirePrivilegedTier(User user) {
-        String tier = user.getAccountTier() == null ? "FREE" : user.getAccountTier().toUpperCase();
-        boolean allowed = "PRO".equals(tier) || "STUDIO".equals(tier);
-        if (allowed && user.getProExpiredAt() != null && user.getProExpiredAt().before(new Date())) {
-            allowed = false;
-        }
-        if (!allowed) {
-            throw new TierRestrictedException(
-                    "Chức năng phân tích nhạc tham khảo chỉ dành cho gói Chuyên nghiệp hoặc Phòng thu.");
-        }
     }
 
     private void validate(MultipartFile file) {

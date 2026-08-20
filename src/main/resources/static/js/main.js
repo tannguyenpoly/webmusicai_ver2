@@ -363,12 +363,6 @@ new Vue({
             };
             return labels[this.userTier] || this.userTier || 'Miễn phí';
         },
-        canUseReferenceAnalysis() {
-            const tier = String(this.userTier || 'FREE').toUpperCase();
-            if (!this.currentUser || (tier !== 'PRO' && tier !== 'STUDIO')) return false;
-            if (!this.userTierExpiresAt) return true;
-            return new Date(this.userTierExpiresAt).getTime() > Date.now();
-        },
         activeExploreSongs() {
             const catalog = this.exploreCatalogSongs;
             if (this.exploreSection === 'trending') {
@@ -501,11 +495,7 @@ new Vue({
         },
         wizardGenreOptions() {
             if (this.genres && this.genres.length > 0) {
-                return this.genres.map(genre => ({
-                    id: genre.id,
-                    name: genre.name,
-                    minTier: genre.minTier || 'FREE'
-                }));
+                return this.genres.map(genre => ({ id: genre.id, name: genre.name }));
             }
             return [
                 { id: null, name: 'Lofi' },
@@ -515,14 +505,6 @@ new Vue({
                 { id: null, name: 'Cinematic' },
                 { id: null, name: 'Jazz' }
             ];
-        },
-        userGenreLevel() {
-            let tier = String(this.userTier || 'FREE').toUpperCase();
-            if (tier === 'BASIC') tier = 'FREE';
-            if (this.userTierExpiresAt && new Date(this.userTierExpiresAt).getTime() <= Date.now()) tier = 'FREE';
-            if (tier === 'CREATOR') return 1;
-            if (tier === 'PRO' || tier === 'STUDIO') return 2;
-            return 0;
         },
         wizardGeneratedPrompt() {
             const brief = this.musicBrief;
