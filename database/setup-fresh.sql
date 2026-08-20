@@ -303,6 +303,7 @@ CREATE TABLE Genres (
     id          INT IDENTITY(1,1) PRIMARY KEY,
     name        NVARCHAR(50) NOT NULL UNIQUE,
     description NVARCHAR(255) NULL,
+    min_tier    NVARCHAR(20) NOT NULL DEFAULT 'FREE',
     created_at  DATETIME DEFAULT GETDATE()
 );
 GO
@@ -556,15 +557,18 @@ INSERT INTO Notifications (username, type, content, ref_id) VALUES
 GO
 
 -- [16] Thêm Thể Loại (Genres Data)
-INSERT INTO Genres (name, description) VALUES
-(N'Lofi',       N'Nhạc nhẹ nhàng, thư giãn, phù hợp học tập và làm việc'),
-(N'Cinematic',  N'Nhạc nền hoành tráng cho video, phim ảnh'),
-(N'Anime',      N'Nhạc theo phong cách anime Nhật Bản'),
-(N'EDM',        N'Nhạc điện tử sôi động'),
-(N'Acoustic',   N'Nhạc mộc với guitar, piano'),
-(N'Folk',       N'Nhạc dân gian và truyền thống'),
-(N'Jazz',       N'Nhạc Jazz thư giãn'),
-(N'Rock',       N'Nhạc Rock mạnh mẽ');
+-- Phân quyền thể loại theo thứ tự: 10 thể loại đầu miễn phí (FREE),
+-- 10 thể loại tiếp theo cần gói Nhà sáng tạo (CREATOR),
+-- 14 thể loại cuối cần gói Chuyên nghiệp/Phòng thu (PRO).
+INSERT INTO Genres (name, description, min_tier) VALUES
+(N'Lofi',        N'Nhạc nhẹ nhàng, thư giãn, phù hợp học tập và làm việc', 'FREE'),
+(N'Cinematic',   N'Nhạc nền hoành tráng cho video, phim ảnh', 'FREE'),
+(N'Anime',       N'Nhạc theo phong cách anime Nhật Bản', 'FREE'),
+(N'EDM',         N'Nhạc điện tử sôi động', 'FREE'),
+(N'Acoustic',    N'Nhạc mộc với guitar, piano', 'FREE'),
+(N'Folk',        N'Nhạc dân gian và truyền thống', 'FREE'),
+(N'Jazz',        N'Nhạc Jazz thư giãn', 'FREE'),
+(N'Rock',        N'Nhạc Rock mạnh mẽ', 'FREE');
 GO
 
 -- [17] Liên kết Nhạc - Thể Loại
@@ -694,37 +698,37 @@ INSERT INTO Songs (title, prompt, audio_url, status, is_public, lyrics, model_ve
 GO
 
 -- 19.4. Thể loại: 22 lựa chọn để kiểm tra phân trang 10 dòng/trang.
-INSERT INTO Genres (name, description) VALUES
-(N'Pop', N'Giai điệu đại chúng, dễ nghe và linh hoạt'),
-(N'Ballad', N'Nhẹ nhàng, giàu cảm xúc, phù hợp kể chuyện'),
-(N'Rap', N'Nhịp điệu mạnh với phần lời đọc'),
-(N'R&B', N'Giai điệu mềm mại, hiện đại và giàu groove'),
-(N'Ambient', N'Không gian âm thanh thư giãn, tập trung'),
-(N'Chillhop', N'Lofi hiện đại cho học tập và đêm muộn'),
-(N'Synthwave', N'Âm thanh điện tử retro, neon và hoài niệm'),
-(N'House', N'Nhạc điện tử nhịp đều cho không khí sôi động'),
-(N'Trap', N'Bass mạnh, nhịp hiện đại cho video ngắn'),
-(N'Classical', N'Nhạc cổ điển với piano và dàn dây'),
-(N'Country', N'Guitar mộc, gần gũi và kể chuyện'),
-(N'Reggae', N'Nhịp điệu thư thả, tích cực'),
-(N'Indie', N'Phong cách độc lập, mộc mạc và cá tính'),
-(N'Funk', N'Nhịp bass vui, phù hợp sự kiện cuối tuần');
+INSERT INTO Genres (name, description, min_tier) VALUES
+(N'Pop',       N'Giai điệu đại chúng, dễ nghe và linh hoạt', 'FREE'),
+(N'Ballad',    N'Nhẹ nhàng, giàu cảm xúc, phù hợp kể chuyện', 'FREE'),
+(N'Rap',       N'Nhịp điệu mạnh với phần lời đọc', 'CREATOR'),
+(N'R&B',       N'Giai điệu mềm mại, hiện đại và giàu groove', 'CREATOR'),
+(N'Ambient',   N'Không gian âm thanh thư giãn, tập trung', 'CREATOR'),
+(N'Chillhop',  N'Lofi hiện đại cho học tập và đêm muộn', 'CREATOR'),
+(N'Synthwave', N'Âm thanh điện tử retro, neon và hoài niệm', 'CREATOR'),
+(N'House',     N'Nhạc điện tử nhịp đều cho không khí sôi động', 'CREATOR'),
+(N'Trap',      N'Bass mạnh, nhịp hiện đại cho video ngắn', 'CREATOR'),
+(N'Classical', N'Nhạc cổ điển với piano và dàn dây', 'CREATOR'),
+(N'Country',   N'Guitar mộc, gần gũi và kể chuyện', 'CREATOR'),
+(N'Reggae',    N'Nhịp điệu thư thả, tích cực', 'CREATOR'),
+(N'Indie',     N'Phong cách độc lập, mộc mạc và cá tính', 'PRO'),
+(N'Funk',      N'Nhịp bass vui, phù hợp sự kiện cuối tuần', 'PRO');
 GO
 
 -- Thể loại mở rộng để thử phân trang và sắp xếp trong Admin.
-INSERT INTO Genres (name, description, created_at) VALUES
-(N'Bossa Nova', N'Nhẹ nhàng, phù hợp quán cà phê', '2024-02-12T09:00:00'),
-(N'Dream Pop', N'Âm thanh mơ màng cho video cảm xúc', '2024-04-18T10:00:00'),
-(N'Drill', N'Nhịp rap hiện đại, bass mạnh', '2024-06-22T11:00:00'),
-(N'Gospel', N'Giai điệu giàu cảm xúc, hợp xướng', '2024-08-14T12:00:00'),
-(N'Hyperpop', N'Điện tử nhanh, màu sắc táo bạo', '2024-10-09T13:00:00'),
-(N'Indie Pop', N'Pop độc lập, mộc mạc', '2025-01-17T14:00:00'),
-(N'K-Pop', N'Pop hiện đại, nhịp bắt tai', '2025-03-21T15:00:00'),
-(N'Latin Pop', N'Pop Latin sôi động', '2025-05-16T16:00:00'),
-(N'New Age', N'Không gian thư giãn và thiền', '2025-07-11T17:00:00'),
-(N'Afrobeats', N'Nhịp điệu hiện đại, sôi động và giàu năng lượng', '2025-09-05T18:00:00'),
-(N'Soul', N'Giọng hát ấm áp và sâu lắng', '2026-01-12T19:00:00'),
-(N'Techno', N'Điện tử mạnh cho sự kiện đêm', '2026-04-24T20:00:00');
+INSERT INTO Genres (name, description, min_tier, created_at) VALUES
+(N'Bossa Nova', N'Nhẹ nhàng, phù hợp quán cà phê', 'PRO', '2024-02-12T09:00:00'),
+(N'Dream Pop', N'Âm thanh mơ màng cho video cảm xúc', 'PRO', '2024-04-18T10:00:00'),
+(N'Drill', N'Nhịp rap hiện đại, bass mạnh', 'PRO', '2024-06-22T11:00:00'),
+(N'Gospel', N'Giai điệu giàu cảm xúc, hợp xướng', 'PRO', '2024-08-14T12:00:00'),
+(N'Hyperpop', N'Điện tử nhanh, màu sắc táo bạo', 'PRO', '2024-10-09T13:00:00'),
+(N'Indie Pop', N'Pop độc lập, mộc mạc', 'PRO', '2025-01-17T14:00:00'),
+(N'K-Pop', N'Pop hiện đại, nhịp bắt tai', 'PRO', '2025-03-21T15:00:00'),
+(N'Latin Pop', N'Pop Latin sôi động', 'PRO', '2025-05-16T16:00:00'),
+(N'New Age', N'Không gian thư giãn và thiền', 'PRO', '2025-07-11T17:00:00'),
+(N'Afrobeats', N'Nhịp điệu hiện đại, sôi động và giàu năng lượng', 'PRO', '2025-09-05T18:00:00'),
+(N'Soul', N'Giọng hát ấm áp và sâu lắng', 'PRO', '2026-01-12T19:00:00'),
+(N'Techno', N'Điện tử mạnh cho sự kiện đêm', 'PRO', '2026-04-24T20:00:00');
 GO
 
 -- Gắn thể loại cho các bài mới bằng tên, không phụ thuộc identity ID.
