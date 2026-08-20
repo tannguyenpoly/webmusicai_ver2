@@ -27,9 +27,6 @@ public class Genre implements Serializable {
 	@Column(length = 255)
 	private String description;
 
-	@Column(name = "min_tier", length = 20)
-	private String minTier = "FREE";
-
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name = "created_at")
 	private Date createdAt = new Date();
