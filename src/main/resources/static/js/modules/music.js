@@ -146,6 +146,9 @@ window.MusicAIModules.music = {
                 .then(response => {
                     this.currentTrack = response.data;
                     this.profileUsername = response.data.username;
+                    if (this.currentTrack.status === 'COMPLETED') {
+                        this.incrementListenCount(this.currentTrack);
+                    }
                     this.loadFollowStatus();
                     this.loadComments(songId);
                     this.loadSongTags(songId);
