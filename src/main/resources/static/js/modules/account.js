@@ -54,6 +54,11 @@ window.MusicAIModules.account = {
                 Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Vui lòng điền đủ thông tin!' });
                 return;
             }
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(this.registerForm.email.trim())) {
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Email không đúng định dạng!' });
+                return;
+            }
             if (this.registerForm.password !== this.registerForm.confirmPassword) {
                 Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Mật khẩu không trùng khớp!' });
                 return;
@@ -81,6 +86,11 @@ window.MusicAIModules.account = {
         sendForgotPasswordOtp() {
             if (!this.forgotPasswordForm.email || !this.forgotPasswordForm.email.trim()) {
                 Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Vui lòng nhập Email!' });
+                return;
+            }
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(this.forgotPasswordForm.email.trim())) {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: 'Email không đúng định dạng!' });
                 return;
             }
             this.forgotPasswordForm.isSending = true;

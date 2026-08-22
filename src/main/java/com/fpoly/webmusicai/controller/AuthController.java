@@ -209,12 +209,15 @@ public class AuthController {
 	public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> data) {
 		String email = data.get("email");
 		if (email == null || email.trim().isEmpty()) {
-			return ResponseEntity.badRequest().body("Email không được để trống!");
+			return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống!"));
+		}
+		if (!email.trim().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Email không đúng định dạng!"));
 		}
 
 		List<User> users = userRepo.findByEmailIgnoreCase(email.trim());
 		if (users.isEmpty()) {
-			return ResponseEntity.badRequest().body("Email không tồn tại trong hệ thống!");
+			return ResponseEntity.badRequest().body(Map.of("message", "Email không tồn tại trong hệ thống!"));
 		}
 
 		String otp = String.format("%06d", new Random().nextInt(900000) + 100000);

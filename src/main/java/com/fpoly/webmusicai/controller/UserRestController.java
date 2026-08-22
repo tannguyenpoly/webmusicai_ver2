@@ -207,6 +207,9 @@ public class UserRestController {
 		if (requestedEmail.isBlank()) {
 			return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống!"));
 		}
+		if (!requestedEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Email không đúng định dạng!"));
+		}
 		Optional<User> emailOwner = userRepo.findFirstByEmailIgnoreCase(requestedEmail);
 		if (emailOwner.isPresent() && !emailOwner.get().getUsername().equals(username)) {
 			return ResponseEntity.badRequest().body(Map.of("message", "Email đã được sử dụng bởi tài khoản khác!"));
