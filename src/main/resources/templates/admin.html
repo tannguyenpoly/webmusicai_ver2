@@ -484,6 +484,11 @@
                     <i class="ti ti-history"></i>
                     <span class="nav-label">Lịch sử Giao dịch</span>
                 </a>
+                <hr style="border-color: var(--border-color); margin: 8px 10px; opacity: .5;">
+                <a href="#" @click.prevent="handleLogout" class="nav-item" style="color: #ef4444;">
+                    <i class="ti ti-logout"></i>
+                    <span class="nav-label">Đăng xuất</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -1346,6 +1351,26 @@ new Vue({
     },
 
     methods: {
+        handleLogout() {
+            Swal.fire({
+                title: 'Đăng xuất khỏi trang quản trị?',
+                text: 'Bạn có thể đăng nhập lại bất cứ lúc nào.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#16a34a',
+                confirmButtonText: 'Đăng xuất',
+                cancelButtonText: 'Ở lại'
+            }).then(result => {
+                if (!result.isConfirmed) return;
+                axios.post('/api/auth/logout').finally(() => {
+                    localStorage.removeItem('music_username');
+                    localStorage.removeItem('jwt_token');
+                    localStorage.removeItem('music_is_admin');
+                    window.location.href = '/login';
+                });
+            });
+        },
+
         compactPagination(currentPage, totalPages) {
             const total = Number(totalPages) || 0;
             const current = Number(currentPage) || 0;

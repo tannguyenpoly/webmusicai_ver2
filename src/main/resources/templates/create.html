@@ -343,7 +343,7 @@
                             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                                 <span class="fw-bold"><i class="ti ti-file-music me-1 text-success"></i>Phân tích nhạc tham khảo</span>
                                 <span class="provider-status-badge" :class="referenceAnalysis.configured ? 'available' : 'unavailable'">{{ referenceAnalysis.configured ? 'Sẵn sàng' : 'Chưa sẵn sàng' }}</span>
-                                <span class="small text-muted-sync">MP3, WAV, M4A, OGG, AAC, FLAC · tối đa 25 MB</span>
+                                <span class="small text-muted-sync">MP3, WAV, M4A, OGG, AAC, FLAC · tối đa 50 MB</span>
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center">
                                 <input type="file" accept="audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/ogg,audio/aac,audio/flac,.mp3,.wav,.m4a,.ogg,.aac,.flac" @change="onReferenceAudioSelected" class="form-control custom-theme-input reference-file-input flex-grow-1" style="max-width:420px;">
