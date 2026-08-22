@@ -1624,12 +1624,12 @@
         #workspace-area .flow-connector-up::before { bottom: 9px; height: 31px; border-width: 2px 0 0; border-radius: 0 34px 0 0; }
         #workspace-area .flow-connector-up i { right: -2px; top: 4px; }
         #workspace-area .home-create-cta { animation: homeCreatePulse 2.8s ease-in-out infinite; box-shadow: 0 10px 24px rgba(34,197,94,.20); }
-        #workspace-area .home-explore-cta { color: #d9fbe4; border: 1px solid rgba(74,222,128,.62); background: rgba(34,197,94,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.035), 0 8px 20px rgba(0,0,0,.12); }
-        #workspace-area .home-explore-cta:hover { color: #fff; border-color: #4ade80; background: rgba(34,197,94,.16); transform: translateY(-1px); }
+        #workspace-area .home-explore-cta { color: var(--brand-green); border: 1px solid rgba(74,222,128,.62); background: rgba(34,197,94,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.035), 0 8px 20px rgba(0,0,0,.12); }
+        #workspace-area .home-explore-cta:hover { color: var(--brand-green); border-color: var(--brand-green); background: rgba(34,197,94,.16); transform: translateY(-1px); }
         @keyframes homeCreatePulse { 0%, 100% { transform: translateY(0); box-shadow: 0 10px 24px rgba(34,197,94,.20); } 50% { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(34,197,94,.36); } }
         #workspace-area .home-cta-note { margin: 15px 0 0; color: var(--text-muted); font-size: 12px; font-weight: 600; }
-        #workspace-area .home-cta-note i { color: #4ade80; }
-        #workspace-area .home-community-kicker { color: #4ade80; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+        #workspace-area .home-cta-note i { color: var(--brand-green); }
+        #workspace-area .home-community-kicker { color: var(--brand-green); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
         #workspace-area .home-community-title { margin: 5px 0 0; color: var(--text-color); font-size: clamp(24px, 2.2vw, 30px); font-weight: 700; letter-spacing: -.3px; }
         #workspace-area .home-song-play { position: absolute; z-index: 12; bottom: 12px; left: 12px; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 0; border-radius: 50%; background: #22c55e; color: #fff; box-shadow: 0 8px 20px rgba(0,0,0,.28); font-size: 18px; }
         #workspace-area .home-community-song-row { margin-bottom: 0; }
@@ -1662,11 +1662,11 @@
         #workspace-area .explore-filter-loading { color: var(--text-muted); font-size: 12px; font-weight: 700; }
         #workspace-area .payment-history-filter-card { background: rgba(255,255,255,.018); border: 1px solid var(--border-color); }
         #workspace-area .payment-history-filter-card .form-label { color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-        #workspace-area .payment-history-select { min-height: 44px; background-color: #101713 !important; border: 1px solid rgba(148, 163, 184, .24) !important; color: var(--text-color) !important; border-radius: 8px; box-shadow: none !important; }
+        #workspace-area .payment-history-select { min-height: 44px; background-color: var(--card-bg) !important; border: 1px solid var(--border-color) !important; color: var(--text-color) !important; border-radius: 8px; box-shadow: none !important; }
         #workspace-area .payment-history-select:focus { border-color: rgba(34,197,94,.7) !important; box-shadow: 0 0 0 .18rem rgba(34,197,94,.12) !important; }
-        #workspace-area .payment-history-select option { background: #101a13; color: #f8fafc; }
-        #workspace-area .payment-history-reset { min-height: 44px; border: 1px solid rgba(148,163,184,.28); color: var(--text-muted); background: rgba(255,255,255,.025); }
-        #workspace-area .payment-history-reset:hover { border-color: rgba(34,197,94,.65); color: #4ade80; background: rgba(34,197,94,.09); }
+        #workspace-area .payment-history-select option { background: var(--card-bg); color: var(--text-color); }
+        #workspace-area .payment-history-reset { min-height: 44px; border: 1px solid var(--border-color); color: var(--text-muted); background: transparent; }
+        #workspace-area .payment-history-reset:hover { border-color: var(--brand-green); color: var(--brand-green); background: rgba(34,197,94,.09); }
         #workspace-area .payment-history-table-wrap { border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
         #workspace-area .app-pagination { display: flex; justify-content: center; align-items: center; gap: 7px; flex-wrap: wrap; }
         #workspace-area .app-page-btn { min-width: 38px; height: 36px; padding: 0 11px; border: 1px solid var(--border-color); border-radius: 9px; background: rgba(255,255,255,.02); color: var(--text-muted); font-size: .84rem; font-weight: 700; display: inline-flex; gap: 5px; align-items: center; justify-content: center; }
@@ -1674,10 +1674,10 @@
         #workspace-area .app-page-btn:disabled { opacity: .42; cursor: not-allowed; }
         #workspace-area .app-page-ellipsis { min-width: 22px; text-align: center; color: var(--text-muted); font-weight: 800; }
         #workspace-area .payment-history-table { --bs-table-bg: transparent; --bs-table-color: var(--text-color); --bs-table-border-color: var(--border-color); margin-bottom: 0; }
-        #workspace-area .payment-history-table thead, #workspace-area .payment-history-table thead tr, #workspace-area .payment-history-table thead th { background: #101713 !important; color: var(--text-muted) !important; }
+        #workspace-area .payment-history-table thead, #workspace-area .payment-history-table thead tr, #workspace-area .payment-history-table thead th { background: var(--table-hover) !important; color: var(--text-muted) !important; }
         #workspace-area .payment-history-table th { padding: 13px 14px; border: 0 !important; font-size: 11px; font-weight: 800; letter-spacing: .045em; text-transform: uppercase; white-space: nowrap; }
         #workspace-area .payment-history-table td { padding: 14px; background: transparent !important; border-color: var(--border-color) !important; }
-        #workspace-area .payment-history-table tbody tr:hover td { background: rgba(255,255,255,.025) !important; }
+        #workspace-area .payment-history-table tbody tr:hover td { background: var(--table-hover) !important; }
         #workspace-area .payment-status { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 9px; border: 1px solid transparent; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
         #workspace-area .payment-status.is-success { color: #6ee7a0; border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.1); }
         #workspace-area .payment-status.is-pending, #workspace-area .payment-status.is-review { color: #f4ce75; border-color: rgba(234,179,8,.25); background: rgba(234,179,8,.09); }
