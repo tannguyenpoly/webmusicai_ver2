@@ -41,7 +41,7 @@ new Vue({
             prompt: '',
             instrumental: true,
             genreId: null,
-            provider: 'audiocraft',
+            provider: '',
             lyrics: '',
             vocalMode: 'instrumental',
             vocalLanguage: 'Tiếng Việt',
@@ -51,6 +51,8 @@ new Vue({
         // Wizard tạo nhạc: ghép các lựa chọn thành prompt cho API hiện tại.
         // Brief được lưu tạm trên trình duyệt để người dùng tạo phiên bản chỉnh sửa.
         wizardStep: 1,
+        // Bước xa nhất đã đi tới: giữ thanh tiến trình khi người dùng quay lại sửa lựa chọn trước đó.
+        wizardFurthestStep: 1,
         wizardSteps: [
             { label: 'Nhu cầu', icon: 'ti-user-heart' },
             { label: 'Bối cảnh', icon: 'ti-target-arrow' },
@@ -59,13 +61,13 @@ new Vue({
             { label: 'Xác nhận', icon: 'ti-circle-check' }
         ],
         musicProviders: [
-            { code: 'audiocraft', name: 'AudioCraft', badge: 'Colab', description: 'Nhạc không lời cho bản demo ngắn.', supportsLyrics: false, supportsVocalLanguage: false, supportsVocalGender: false, available: false },
-            { code: 'ace-step', name: 'ACE-Step', badge: 'Colab GPU', description: 'Có lời và chọn ngôn ngữ khi worker GPU sẵn sàng.', supportsLyrics: true, supportsVocalLanguage: true, supportsVocalGender: false, available: false },
-            { code: 'musicapi', name: 'MusicAPI.ai', badge: 'API', description: 'Tạo bài hát hoàn chỉnh và chọn giọng nam/nữ qua API.', supportsLyrics: true, supportsVocalLanguage: false, supportsVocalGender: true, available: false },
-            { code: 'suno', name: 'Suno', badge: 'API', description: 'Tạo nhạc có lời và chọn giọng nam/nữ khi đã có key.', supportsLyrics: true, supportsVocalLanguage: false, supportsVocalGender: true, available: false }
+            { code: 'audiocraft', name: 'AudioCraft', badge: 'Colab', description: 'Tạo nhạc không lời.', supportsLyrics: false, supportsVocalLanguage: false, supportsVocalGender: false, available: false },
+            { code: 'ace-step', name: 'ACE-Step', badge: 'Colab GPU', description: 'Tạo nhạc có lời.', supportsLyrics: true, supportsVocalLanguage: true, supportsVocalGender: false, available: false },
+            { code: 'musicapi', name: 'MusicAPI.ai', badge: 'API', description: 'Tạo nhạc có lời, chọn giọng.', supportsLyrics: true, supportsVocalLanguage: false, supportsVocalGender: true, available: false },
+            { code: 'suno', name: 'Suno', badge: 'API', description: 'Tạo nhạc có lời, chọn giọng.', supportsLyrics: true, supportsVocalLanguage: false, supportsVocalGender: true, available: false }
         ],
         musicBrief: {
-            provider: 'audiocraft',
+            provider: '',
             audience: '',
             useCase: '',
             venueStyle: '',
@@ -485,6 +487,11 @@ new Vue({
 
             return result;
         },
+        workspaceLatestSongs() {
+            return [...this.profileGeneratedSongs]
+                .sort((a, b) => new Date(b.created_at || b.createdAt || 0) - new Date(a.created_at || a.createdAt || 0))
+                .slice(0, 8);
+        },
         exploreCatalogSongs() {
             let result = [...this.publicSongs];
             if (this.selectedExploreGenreId !== null) {
@@ -578,14 +585,13 @@ new Vue({
         }
         this.Toast = Swal.mixin({
             toast: true,
-            position: 'top-end',
+            position: 'top',
             showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer)
-                toast.addEventListener('mouseleave', Swal.resumeTimer)
-            }
+            timer: 2400,
+            timerProgressBar: false,
+            customClass: { popup: 'music-note-toast' },
+            showClass: { popup: 'music-note-slide-in' },
+            hideClass: { popup: 'music-note-slide-out' },
         });
 
         this.loadWizardBriefs();

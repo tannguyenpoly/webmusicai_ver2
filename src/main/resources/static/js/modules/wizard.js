@@ -16,6 +16,7 @@ window.MusicAIModules.wizard = {
         },
 
         selectWizardAudience(audience) {
+            if (this.musicBrief.audience === audience) return;
             this.musicBrief.audience = audience;
             this.musicBrief.useCase = '';
             this.musicBrief.venueStyle = '';
@@ -28,11 +29,13 @@ window.MusicAIModules.wizard = {
             } else {
                 this.musicBrief.duration = '30 giây';
             }
+            // Bối cảnh và các bước sau cần được chọn lại khi đổi đối tượng tạo nhạc.
+            this.wizardFurthestStep = Math.min(this.wizardFurthestStep, 1);
         },
 
         createEmptyMusicBrief() {
             return {
-                provider: 'audiocraft', audience: '', useCase: '', venueStyle: '', platform: '', timeOfDay: '',
+                provider: '', audience: '', useCase: '', venueStyle: '', platform: '', timeOfDay: '',
                 duration: '30 giây', genreId: null, genreName: '', mood: '', energy: 'Vừa phải',
                 instruments: [], vocalMode: 'instrumental', vocalLanguage: 'Tiếng Việt', vocalGender: 'auto',
                 lyrics: '', title: '', note: ''
@@ -59,7 +62,7 @@ window.MusicAIModules.wizard = {
             this.musicBrief = this.createEmptyMusicBrief();
             this.generationForm.genreId = null;
             this.generationForm.instrumental = true;
-            this.generationForm.provider = 'audiocraft';
+            this.generationForm.provider = '';
             this.generationForm.lyrics = '';
             this.generationForm.vocalMode = 'instrumental';
             this.generationForm.vocalLanguage = 'Tiếng Việt';
@@ -68,6 +71,7 @@ window.MusicAIModules.wizard = {
             this.wizardEditingSongId = null;
             this.wizardEditingSongTitle = '';
             this.wizardStep = 1;
+            this.wizardFurthestStep = 1;
         },
 
         editSongWithWizard(song) {
@@ -85,6 +89,7 @@ window.MusicAIModules.wizard = {
             this.wizardEditingSongId = song.id;
             this.wizardEditingSongTitle = song.title || 'bài nhạc này';
             this.wizardStep = 5;
+            this.wizardFurthestStep = 5;
             window.scrollTo({ top: 0, behavior: 'smooth' });
             this.Toast.fire({
                 icon: 'info',
@@ -137,6 +142,14 @@ window.MusicAIModules.wizard = {
                 return `${provider.name} không hỗ trợ chọn giọng nam hoặc nữ.`;
             }
             return `${provider.name} không hỗ trợ chức năng này.`;
+        },
+
+        providerCapabilitySummary() {
+            const provider = this.selectedMusicProvider();
+            if (!provider.supportsLyrics) return `${provider.name}: chỉ hỗ trợ nhạc không lời.`;
+            if (provider.supportsVocalGender) return `${provider.name}: hỗ trợ lời nhạc và chọn giọng hát.`;
+            if (provider.supportsVocalLanguage) return `${provider.name}: hỗ trợ lời nhạc và chọn ngôn ngữ giọng hát.`;
+            return `${provider.name}: hỗ trợ lời nhạc.`;
         },
 
         normalizeProviderVocalOptions(provider) {
@@ -199,10 +212,13 @@ window.MusicAIModules.wizard = {
         },
 
         selectMusicProvider(provider) {
+            if (this.musicBrief.provider === provider.code) return;
             const wasVocalMode = this.musicBrief.vocalMode !== 'instrumental';
             this.musicBrief.provider = provider.code;
             this.generationForm.provider = provider.code;
             this.normalizeProviderVocalOptions(provider);
+            // Khả năng giọng hát/lời nhạc khác theo mô hình, nên cần chọn lại từ bước 4.
+            this.wizardFurthestStep = Math.min(this.wizardFurthestStep, 3);
             if (!provider.supportsLyrics && wasVocalMode) {
                 this.Toast.fire({ icon: 'info', title: this.providerUnsupportedMessage('lyrics') });
             }
@@ -223,7 +239,12 @@ window.MusicAIModules.wizard = {
                     provider.supportsVocalLanguage = Boolean(capabilities.supportsVocalLanguage);
                     provider.supportsVocalGender = Boolean(capabilities.supportsVocalGender);
                 });
-                this.normalizeProviderVocalOptions(this.selectedMusicProvider());
+                if (!this.musicBrief.provider) {
+                    const firstAvailable = this.musicProviders.find(provider => provider.available);
+                    this.musicBrief.provider = firstAvailable ? firstAvailable.code : '';
+                    this.generationForm.provider = this.musicBrief.provider;
+                }
+                if (this.musicBrief.provider) this.normalizeProviderVocalOptions(this.selectedMusicProvider());
             }).catch(() => {});
             axios.get('/api/music-analysis/status')
                 .then(response => { this.referenceAnalysis.configured = Boolean(response.data?.configured); })
@@ -232,18 +253,18 @@ window.MusicAIModules.wizard = {
 
         canMoveWizardForward() {
             if (this.wizardStep === 1 && !this.musicBrief.provider) {
-                this.Toast.fire({ icon: 'info', title: 'Hãy chọn mô hình AI trước.' });
+                this.showWizardNote('Mời bạn chọn mô hình AI để bắt đầu nhé.');
                 return false;
             }
             if (this.wizardStep === 1 && !this.musicBrief.audience) {
-                this.Toast.fire({ icon: 'info', title: 'Hãy chọn nhóm nhu cầu trước.' });
+                this.showWizardNote('Mời bạn chọn nhóm nhu cầu phù hợp nhé.');
                 return false;
             }
             if (this.wizardStep === 2) {
                 const isCreatorReady = this.musicBrief.audience === 'creator' && this.musicBrief.useCase;
                 const isCafeReady = this.musicBrief.audience === 'cafe' && this.musicBrief.venueStyle;
                 if (!isCreatorReady && !isCafeReady) {
-                    this.Toast.fire({ icon: 'info', title: 'Hãy chọn một bối cảnh sử dụng.' });
+                    this.showWizardNote('Mời bạn chọn một bối cảnh sử dụng nhé.');
                     return false;
                 }
             }
@@ -252,7 +273,10 @@ window.MusicAIModules.wizard = {
 
         nextWizardStep() {
             if (!this.canMoveWizardForward()) return;
-            if (this.wizardStep < this.wizardSteps.length) this.wizardStep++;
+            if (this.wizardStep < this.wizardSteps.length) {
+                this.wizardStep++;
+                this.wizardFurthestStep = Math.max(this.wizardFurthestStep, this.wizardStep);
+            }
         },
 
         previousWizardStep() {
@@ -260,13 +284,17 @@ window.MusicAIModules.wizard = {
         },
 
         goToWizardStep(step) {
-            if (step <= this.wizardStep) this.wizardStep = step;
+            if (step <= this.wizardFurthestStep) this.wizardStep = step;
+        },
+
+        showWizardNote(message) {
+            this.Toast.fire({ title: message });
         },
 
         submitWizardMusic() {
             const prompt = this.wizardGeneratedPrompt;
             if (!this.musicBrief.audience) {
-                this.Toast.fire({ icon: 'info', title: 'Hãy chọn nhu cầu tạo nhạc trước.' });
+                this.showWizardNote('Mời bạn hoàn thiện nhóm nhu cầu trước khi tạo nhạc nhé.');
                 this.wizardStep = 1;
                 return;
             }
