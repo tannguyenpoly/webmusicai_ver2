@@ -161,7 +161,15 @@ window.MusicAIModules.wizard = {
         },
 
         onReferenceAudioSelected(event) {
-            this.referenceAnalysis.file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            const maxFileSize = 50 * 1000 * 1000;
+            if (file && file.size > maxFileSize) {
+                event.target.value = '';
+                this.referenceAnalysis.file = null;
+                this.Toast.fire({ icon: 'info', title: 'Bạn hãy chọn file nhạc không quá 50 MB nhé.' });
+                return;
+            }
+            this.referenceAnalysis.file = file;
             this.referenceAnalysis.result = null;
         },
 

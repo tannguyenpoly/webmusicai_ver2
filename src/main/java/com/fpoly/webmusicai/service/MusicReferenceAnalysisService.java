@@ -18,7 +18,7 @@ import com.fpoly.webmusicai.repository.UserRepository;
 
 @Service
 public class MusicReferenceAnalysisService {
-    private static final long MAX_FILE_SIZE = 25L * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 50L * 1000 * 1000;
     private final MusicAnalysisService analysisService;
     private final MusicAnalysisHistoryRepository historyRepository;
     private final GenreRepository genreRepository;
@@ -65,7 +65,7 @@ public class MusicReferenceAnalysisService {
 
     private void validate(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new IllegalArgumentException("Hãy chọn một file nhạc.");
-        if (file.getSize() > MAX_FILE_SIZE) throw new IllegalArgumentException("File nhạc tối đa 25 MB.");
+        if (file.getSize() > MAX_FILE_SIZE) throw new IllegalArgumentException("File nhạc tối đa 50 MB.");
         String name = safeFileName(file.getOriginalFilename()).toLowerCase(Locale.ROOT);
         boolean validExtension = name.endsWith(".mp3") || name.endsWith(".wav") || name.endsWith(".m4a")
                 || name.endsWith(".ogg") || name.endsWith(".aac") || name.endsWith(".flac");

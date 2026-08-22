@@ -26,7 +26,7 @@ window.MusicAIModules.account = {
                         btn.innerHTML = '<i class="ti ti-check"></i> Kích hoạt thành công!';
                         btn.style.background = '#15803d';
                     }
-                    this.Toast.fire({ icon: 'success', title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.` });
+                    this.Toast.fire({ position: 'top-end', icon: 'success', title: `Khởi động hệ thống thành công! Chào mừng ${response.data.username}.` });
                     setTimeout(() => {
                         if (response.data.isAdmin) window.location.href = '/admin';
                         else window.location.href = '/';

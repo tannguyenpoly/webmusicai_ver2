@@ -204,6 +204,61 @@ public class OrderRestController {
         }
     }
 
+    /**
+     * VNPay calls this endpoint server-to-server to confirm a transaction.  The
+     * browser return handler below remains responsible for redirecting the user.
+     */
+    @GetMapping("/vnpay-ipn")
+    public ResponseEntity<?> handleVNPayIPN(HttpServletRequest request) {
+        Map<String, String> fields = new HashMap<>();
+        request.getParameterNames().asIterator().forEachRemaining(name -> fields.put(name, request.getParameter(name)));
+        String secureHash = fields.remove("vnp_SecureHash");
+        fields.remove("vnp_SecureHashType");
+
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder hashData = new StringBuilder();
+        for (String fieldName : fieldNames) {
+            try {
+                hashData.append(fieldName).append('=')
+                        .append(URLEncoder.encode(fields.get(fieldName), StandardCharsets.US_ASCII.toString()));
+                if (!fieldName.equals(fieldNames.get(fieldNames.size() - 1))) hashData.append('&');
+            } catch (Exception ignored) {
+                return ResponseEntity.ok(Map.of("RspCode", "99", "Message", "Invalid request"));
+            }
+        }
+
+        if (!vnpayConfig.isConfigured()
+                || !vnpayConfig.hmacSHA512(vnpayConfig.getSecretKey(), hashData.toString()).equals(secureHash)) {
+            return ResponseEntity.ok(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
+        }
+
+        Order order = orderRepo.findByOrderCode(request.getParameter("vnp_TxnRef")).orElse(null);
+        if (order == null) return ResponseEntity.ok(Map.of("RspCode", "01", "Message", "Order not found"));
+        if (!"PENDING".equals(order.getStatus())) {
+            return ResponseEntity.ok(Map.of("RspCode", "02", "Message", "Order already confirmed"));
+        }
+
+        if (!"00".equals(request.getParameter("vnp_ResponseCode"))) {
+            order.setStatus("FAILED");
+            orderRepo.save(order);
+            return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Order Failed"));
+        }
+
+        try {
+            String transactionId = request.getParameter("vnp_TransactionNo");
+            int receivedAmount = Integer.parseInt(request.getParameter("vnp_Amount")) / 100;
+            PaymentCompletionResult result = paymentService.complete(
+                    order.getOrderCode(), "VNPAY", transactionId, receivedAmount, fields.toString());
+            return ResponseEntity.ok(Map.of(
+                    "RspCode", "SUCCESS".equals(result.status()) ? "00" : "04",
+                    "Message", result.message()));
+        } catch (Exception error) {
+            log.error("Lỗi xử lý VNPay IPN", error);
+            return ResponseEntity.ok(Map.of("RspCode", "99", "Message", "Unknown error"));
+        }
+    }
+
     @GetMapping("/vnpay-return")
     public void vnpayReturn(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Map<String, String> fields = new HashMap<>();

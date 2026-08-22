@@ -82,7 +82,7 @@ public class SecurityConfig {
     }
 
     private boolean isPublicPath(String path, String method) {
-        if ("GET".equals(method) && path.equals("/api/orders/vnpay-return")) {
+        if ("GET".equals(method) && (path.equals("/api/orders/vnpay-return") || path.equals("/api/orders/vnpay-ipn"))) {
             return true;
         }
         if ("POST".equals(method) && path.equals("/api/orders/sepay-ipn")) {
