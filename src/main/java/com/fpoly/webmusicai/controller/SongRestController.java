@@ -249,6 +249,7 @@ public class SongRestController {
                 effectivePrompt = "Thể loại " + selectedGenre.getName() + ". " + effectivePrompt;
             }
             GenerationSpec spec = generationSpec(requestData);
+            musicGeneratorService.validateCapabilities(spec);
             if (!musicGeneratorService.isAvailable(spec.provider())) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                         .body(Map.of("message",
@@ -724,9 +725,11 @@ public class SongRestController {
         boolean instrumental = Boolean.parseBoolean(body.getOrDefault("instrumental", "true"));
         GenerationSpec spec = new GenerationSpec(body.getOrDefault("provider", "audiocraft"), remixPrompt.trim(), instrumental,
                 body.get("lyrics"), body.getOrDefault("vocalMode", instrumental ? "instrumental" : "own-lyrics"),
-                body.getOrDefault("vocalLanguage", "Tiếng Việt"), parseDurationSeconds(body.get("durationSeconds")));
+                body.getOrDefault("vocalLanguage", "Tiếng Việt"), body.getOrDefault("vocalGender", "auto"),
+                parseDurationSeconds(body.get("durationSeconds")));
 
         try {
+            musicGeneratorService.validateCapabilities(spec);
             if (!musicGeneratorService.isAvailable(spec.provider())) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                         .body(Map.of("message",
@@ -1015,7 +1018,8 @@ public class SongRestController {
         String provider = request.getProvider() == null || request.getProvider().isBlank()
                 ? "audiocraft" : request.getProvider().trim();
         return new GenerationSpec(provider, request.getPrompt().trim(), request.isInstrumental(), request.getLyrics(),
-                request.getVocalMode(), request.getVocalLanguage(), normalizeDuration(request.getDurationSeconds()));
+                request.getVocalMode(), request.getVocalLanguage(), request.getVocalGender(),
+                normalizeDuration(request.getDurationSeconds()));
     }
 
     private Integer parseDurationSeconds(String value) {

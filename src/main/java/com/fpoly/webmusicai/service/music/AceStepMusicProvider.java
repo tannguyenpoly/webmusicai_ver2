@@ -28,6 +28,7 @@ public class AceStepMusicProvider extends AbstractHttpMusicProvider implements M
 
     @Override public String code() { return "ace-step"; }
     @Override public String displayName() { return "ACE-Step (Colab)"; }
+    @Override public boolean supportsVocalLanguage() { return true; }
 
     @Override
     public boolean isAvailable() {

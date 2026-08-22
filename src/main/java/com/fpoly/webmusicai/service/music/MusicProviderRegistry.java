@@ -28,9 +28,10 @@ public class MusicProviderRegistry {
                 "code", provider.code(),
                 "name", provider.displayName(),
                 "available", provider.isAvailable(),
-                "supportsInstrumental", true,
-                "supportsLyrics", !"audiocraft".equals(provider.code()),
-                "supportsVocalLanguage", "ace-step".equals(provider.code()),
+                "supportsInstrumental", provider.supportsInstrumental(),
+                "supportsLyrics", provider.supportsLyrics(),
+                "supportsVocalLanguage", provider.supportsVocalLanguage(),
+                "supportsVocalGender", provider.supportsVocalGender(),
                 "supportsShortPreview", !"suno".equals(provider.code()))));
         return result;
     }

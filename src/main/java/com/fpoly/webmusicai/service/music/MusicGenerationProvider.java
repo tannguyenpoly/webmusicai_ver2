@@ -12,5 +12,13 @@ public interface MusicGenerationProvider {
     /** Kiểm tra URL/key trước khi trừ token của người dùng. */
     boolean isAvailable();
 
+    default boolean supportsInstrumental() { return true; }
+
+    default boolean supportsLyrics() { return true; }
+
+    default boolean supportsVocalLanguage() { return false; }
+
+    default boolean supportsVocalGender() { return false; }
+
     GeneratedMusic generate(GenerationSpec spec);
 }

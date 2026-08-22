@@ -102,6 +102,40 @@
                 background: rgba(22,163,74,.11) !important;
                 box-shadow: 0 0 0 1px rgba(22,163,74,.16);
             }
+            .wizard-choice.is-unsupported,
+            .wizard-choice:disabled {
+                opacity: .48;
+                cursor: not-allowed;
+                filter: grayscale(.7);
+                border-color: var(--border-color) !important;
+                background: rgba(120, 120, 120, .025) !important;
+                transform: none !important;
+            }
+            .wizard-choice.is-unsupported:hover,
+            .wizard-choice:disabled:hover { transform: none; border-color: var(--border-color) !important; }
+            .provider-capability-note {
+                display: flex;
+                align-items: flex-start;
+                gap: 7px;
+                margin: -6px 0 14px;
+                padding: 9px 11px;
+                border: 1px solid rgba(234, 179, 8, .28);
+                border-radius: 10px;
+                background: rgba(234, 179, 8, .07);
+                color: var(--text-muted);
+                font-size: 12px;
+                line-height: 1.45;
+            }
+            .provider-capability-note i { color: #eab308; margin-top: 1px; }
+            .provider-unsupported-label {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                margin-left: 8px;
+                color: var(--text-muted);
+                font-size: 10px;
+                font-weight: 700;
+            }
             .wizard-choice .fw-bold { font-size: 16px !important; }
             .wizard-choice .text-muted-sync { color: var(--text-muted) !important; font-size: 13px !important; line-height: 1.45; }
             .wizard-pill {
@@ -294,15 +328,29 @@
                     </div>
 
                     <div v-else-if="wizardStep === 4">
-                        <div class="wizard-section-title fw-bold mb-4">Giọng hát và lời nhạc</div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div class="wizard-section-title fw-bold">Giọng hát và lời nhạc</div>
+                            <span class="small text-muted-sync"><i class="ti ti-cpu-2 me-1"></i>{{ selectedMusicProvider().name }}</span>
+                        </div>
+                        <div v-if="!selectedMusicProvider().supportsLyrics" class="provider-capability-note">
+                            <i class="ti ti-info-circle"></i>
+                            <span><strong>{{ selectedMusicProvider().name }}</strong> chỉ hỗ trợ nhạc không lời. Các chức năng lời nhạc bên dưới không khả dụng — hãy kiểm tra lại mô hình AI.</span>
+                        </div>
                         <div class="d-grid gap-2 mb-3">
                             <button @click="selectWizardVocalMode('instrumental')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'instrumental' }"><i class="ti ti-music-off me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Nhạc không lời</span><span class="d-block text-muted-sync ms-4" style="font-size:11px;">Phù hợp làm nhạc nền và không gian quán</span></button>
-                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('ai-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'ai-lyrics' }"><i class="ti ti-sparkles me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">AI gợi ý lời</span></button>
-                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('own-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'own-lyrics' }"><i class="ti ti-pencil me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Tôi tự nhập lời</span></button>
+                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('ai-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'ai-lyrics', 'is-unsupported': !selectedMusicProvider().supportsLyrics }" :title="!selectedMusicProvider().supportsLyrics ? providerUnsupportedMessage('lyrics') : ''"><i class="ti ti-sparkles me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">AI gợi ý lời</span><span v-if="!selectedMusicProvider().supportsLyrics" class="provider-unsupported-label"><i class="ti ti-lock"></i>Mô hình AI không hỗ trợ</span></button>
+                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('own-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'own-lyrics', 'is-unsupported': !selectedMusicProvider().supportsLyrics }" :title="!selectedMusicProvider().supportsLyrics ? providerUnsupportedMessage('lyrics') : ''"><i class="ti ti-pencil me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Tôi tự nhập lời</span><span v-if="!selectedMusicProvider().supportsLyrics" class="provider-unsupported-label"><i class="ti ti-lock"></i>Mô hình AI không hỗ trợ</span></button>
                         </div>
                         <div v-if="musicBrief.vocalMode !== 'instrumental'" class="mb-3">
-                            <label class="small fw-semibold text-muted-sync mb-2">NGÔN NGỮ GIỌNG HÁT</label>
-                            <div class="d-flex gap-2"><button v-for="language in ['Tiếng Việt', 'Tiếng Anh']" :key="language" @click="musicBrief.vocalLanguage = language" class="wizard-pill" :class="{ 'is-selected': musicBrief.vocalLanguage === language }">{{ language }}</button></div>
+                            <label class="small fw-semibold text-muted-sync mb-2">GIỌNG HÁT</label>
+                            <div v-if="selectedMusicProvider().supportsVocalGender" class="d-flex flex-wrap gap-2 mb-3">
+                                <button v-for="voice in [{ value: 'auto', label: 'Tự động', icon: 'ti-wand' }, { value: 'male', label: 'Giọng nam', icon: 'ti-user' }, { value: 'female', label: 'Giọng nữ', icon: 'ti-user-heart' }]" :key="voice.value" @click="selectWizardVocalGender(voice.value)" class="wizard-pill" :class="{ 'is-selected': musicBrief.vocalGender === voice.value }"><i :class="['ti', voice.icon, 'me-1']"></i>{{ voice.label }}</button>
+                            </div>
+                            <div v-else class="provider-capability-note mb-3"><i class="ti ti-info-circle"></i><span>{{ providerUnsupportedMessage('gender') }} Hệ thống sẽ để mô hình tự chọn giọng phù hợp.</span></div>
+
+                            <label v-if="selectedMusicProvider().supportsVocalLanguage" class="small fw-semibold text-muted-sync mb-2">NGÔN NGỮ GIỌNG HÁT</label>
+                            <div v-if="selectedMusicProvider().supportsVocalLanguage" class="d-flex gap-2"><button v-for="language in ['Tiếng Việt', 'Tiếng Anh']" :key="language" @click="musicBrief.vocalLanguage = language" class="wizard-pill" :class="{ 'is-selected': musicBrief.vocalLanguage === language }">{{ language }}</button></div>
+                            <div v-else class="provider-capability-note mb-0"><i class="ti ti-info-circle"></i><span>{{ selectedMusicProvider().name }} không hỗ trợ chọn ngôn ngữ giọng hát thủ công. Hệ thống sẽ dùng ngôn ngữ phù hợp từ prompt/lời nhạc.</span></div>
                         </div>
                         <div v-if="musicBrief.vocalMode === 'own-lyrics'">
                             <label class="small fw-semibold text-muted-sync mb-2">LỜI NHẠC CỦA BẠN</label>

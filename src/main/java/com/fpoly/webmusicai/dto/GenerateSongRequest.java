@@ -30,5 +30,8 @@ public class GenerateSongRequest {
     @Size(max = 30, message = "Ngôn ngữ giọng hát không hợp lệ")
     private String vocalLanguage = "Tiếng Việt";
 
+    @Size(max = 10, message = "Lựa chọn giọng hát không hợp lệ")
+    private String vocalGender = "auto";
+
     private Integer durationSeconds = 30;
 }

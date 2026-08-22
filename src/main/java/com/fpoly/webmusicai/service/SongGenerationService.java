@@ -49,6 +49,7 @@ public class SongGenerationService {
         song.setGenerationDurationSeconds(spec.durationSeconds());
         song.setVocalMode(spec.vocalMode());
         song.setVocalLanguage(spec.vocalLanguage());
+        song.setVocalGender(spec.vocalGender());
         song.setLyrics(spec.hasLyrics() ? spec.lyrics() : null);
         song.setModelVer(spec.provider());
         song.setIsPublic(isFreeTier(user));
@@ -100,6 +101,7 @@ public class SongGenerationService {
         remix.setGenerationDurationSeconds(spec.durationSeconds());
         remix.setVocalMode(spec.vocalMode());
         remix.setVocalLanguage(spec.vocalLanguage());
+        remix.setVocalGender(spec.vocalGender());
         remix.setLyrics(spec.hasLyrics() ? spec.lyrics() : null);
         remix.setModelVer(spec.provider());
         remix.setIsPublic(isFreeTier(user));
@@ -119,7 +121,7 @@ public class SongGenerationService {
 
     private GenerationSpec legacyGenerationSpec(String prompt) {
         return new GenerationSpec("audiocraft", prompt, true, null,
-                "instrumental", "vi", 30);
+                "instrumental", "Tiếng Việt", "auto", 30);
     }
 
     @Transactional

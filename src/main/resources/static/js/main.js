@@ -45,6 +45,7 @@ new Vue({
             lyrics: '',
             vocalMode: 'instrumental',
             vocalLanguage: 'Tiếng Việt',
+            vocalGender: 'auto',
             durationSeconds: 30
         },
         // Wizard tạo nhạc: ghép các lựa chọn thành prompt cho API hiện tại.
@@ -58,10 +59,10 @@ new Vue({
             { label: 'Xác nhận', icon: 'ti-circle-check' }
         ],
         musicProviders: [
-            { code: 'audiocraft', name: 'AudioCraft', badge: 'Colab', description: 'Nhạc không lời cho bản demo ngắn.', supportsLyrics: false, available: false },
-            { code: 'ace-step', name: 'ACE-Step', badge: 'Colab GPU', description: 'Có lời và tiếng Việt khi worker GPU sẵn sàng.', supportsLyrics: true, available: false },
-            { code: 'musicapi', name: 'MusicAPI.ai', badge: 'API', description: 'Tạo bài hát hoàn chỉnh qua API khi còn credit.', supportsLyrics: true, available: false },
-            { code: 'suno', name: 'Suno', badge: 'API', description: 'Tạo nhạc và lời qua Suno API khi đã có key.', supportsLyrics: true, available: false }
+            { code: 'audiocraft', name: 'AudioCraft', badge: 'Colab', description: 'Nhạc không lời cho bản demo ngắn.', supportsLyrics: false, supportsVocalLanguage: false, supportsVocalGender: false, available: false },
+            { code: 'ace-step', name: 'ACE-Step', badge: 'Colab GPU', description: 'Có lời và chọn ngôn ngữ khi worker GPU sẵn sàng.', supportsLyrics: true, supportsVocalLanguage: true, supportsVocalGender: false, available: false },
+            { code: 'musicapi', name: 'MusicAPI.ai', badge: 'API', description: 'Tạo bài hát hoàn chỉnh và chọn giọng nam/nữ qua API.', supportsLyrics: true, supportsVocalLanguage: false, supportsVocalGender: true, available: false },
+            { code: 'suno', name: 'Suno', badge: 'API', description: 'Tạo nhạc có lời và chọn giọng nam/nữ khi đã có key.', supportsLyrics: true, supportsVocalLanguage: false, supportsVocalGender: true, available: false }
         ],
         musicBrief: {
             provider: 'audiocraft',
@@ -78,6 +79,7 @@ new Vue({
             instruments: [],
             vocalMode: 'instrumental',
             vocalLanguage: 'Tiếng Việt',
+            vocalGender: 'auto',
             lyrics: '',
             title: '',
             note: ''

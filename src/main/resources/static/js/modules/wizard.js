@@ -34,7 +34,7 @@ window.MusicAIModules.wizard = {
             return {
                 provider: 'audiocraft', audience: '', useCase: '', venueStyle: '', platform: '', timeOfDay: '',
                 duration: '30 giây', genreId: null, genreName: '', mood: '', energy: 'Vừa phải',
-                instruments: [], vocalMode: 'instrumental', vocalLanguage: 'Tiếng Việt',
+                instruments: [], vocalMode: 'instrumental', vocalLanguage: 'Tiếng Việt', vocalGender: 'auto',
                 lyrics: '', title: '', note: ''
             };
         },
@@ -63,6 +63,7 @@ window.MusicAIModules.wizard = {
             this.generationForm.lyrics = '';
             this.generationForm.vocalMode = 'instrumental';
             this.generationForm.vocalLanguage = 'Tiếng Việt';
+            this.generationForm.vocalGender = 'auto';
             this.generationForm.durationSeconds = 30;
             this.wizardEditingSongId = null;
             this.wizardEditingSongTitle = '';
@@ -113,9 +114,37 @@ window.MusicAIModules.wizard = {
         },
 
         selectWizardVocalMode(mode) {
+            if (mode !== 'instrumental' && !this.selectedMusicProvider().supportsLyrics) return;
             this.musicBrief.vocalMode = mode;
             this.generationForm.instrumental = mode === 'instrumental';
-            if (mode === 'instrumental') this.musicBrief.lyrics = '';
+            if (mode === 'instrumental') {
+                this.musicBrief.lyrics = '';
+                this.musicBrief.vocalGender = 'auto';
+            }
+        },
+
+        selectWizardVocalGender(gender) {
+            if (!this.selectedMusicProvider().supportsVocalGender) return;
+            this.musicBrief.vocalGender = gender;
+        },
+
+        providerUnsupportedMessage(feature) {
+            const provider = this.selectedMusicProvider();
+            if (feature === 'lyrics') {
+                return `${provider.name} không hỗ trợ giọng hát và lời nhạc. Hãy kiểm tra lại mô hình AI.`;
+            }
+            if (feature === 'gender') {
+                return `${provider.name} không hỗ trợ chọn giọng nam hoặc nữ.`;
+            }
+            return `${provider.name} không hỗ trợ chức năng này.`;
+        },
+
+        normalizeProviderVocalOptions(provider) {
+            if (!provider.supportsLyrics && this.musicBrief.vocalMode !== 'instrumental') {
+                this.selectWizardVocalMode('instrumental');
+            }
+            if (!provider.supportsVocalGender) this.musicBrief.vocalGender = 'auto';
+            if (!provider.supportsVocalLanguage) this.musicBrief.vocalLanguage = 'Tiếng Việt';
         },
 
         onReferenceAudioSelected(event) {
@@ -170,11 +199,12 @@ window.MusicAIModules.wizard = {
         },
 
         selectMusicProvider(provider) {
+            const wasVocalMode = this.musicBrief.vocalMode !== 'instrumental';
             this.musicBrief.provider = provider.code;
             this.generationForm.provider = provider.code;
-            if (!provider.supportsLyrics && this.musicBrief.vocalMode !== 'instrumental') {
-                this.selectWizardVocalMode('instrumental');
-                this.Toast.fire({ icon: 'info', title: 'AudioCraft hiện chỉ tạo nhạc không lời.' });
+            this.normalizeProviderVocalOptions(provider);
+            if (!provider.supportsLyrics && wasVocalMode) {
+                this.Toast.fire({ icon: 'info', title: this.providerUnsupportedMessage('lyrics') });
             }
         },
 
@@ -186,8 +216,14 @@ window.MusicAIModules.wizard = {
             axios.get('/api/songs/ai-status').then(response => {
                 const statusByCode = response.data?.providers || {};
                 this.musicProviders.forEach(provider => {
-                    provider.available = Boolean(statusByCode[provider.code]?.available);
+                    const capabilities = statusByCode[provider.code];
+                    if (!capabilities) return;
+                    provider.available = Boolean(capabilities.available);
+                    provider.supportsLyrics = Boolean(capabilities.supportsLyrics);
+                    provider.supportsVocalLanguage = Boolean(capabilities.supportsVocalLanguage);
+                    provider.supportsVocalGender = Boolean(capabilities.supportsVocalGender);
                 });
+                this.normalizeProviderVocalOptions(this.selectedMusicProvider());
             }).catch(() => {});
             axios.get('/api/music-analysis/status')
                 .then(response => { this.referenceAnalysis.configured = Boolean(response.data?.configured); })
@@ -242,6 +278,7 @@ window.MusicAIModules.wizard = {
             this.generationForm.lyrics = this.musicBrief.vocalMode === 'own-lyrics' ? this.musicBrief.lyrics : '';
             this.generationForm.vocalMode = this.musicBrief.vocalMode;
             this.generationForm.vocalLanguage = this.musicBrief.vocalLanguage;
+            this.generationForm.vocalGender = this.musicBrief.vocalGender;
             this.generationForm.durationSeconds = this.durationToSeconds(this.musicBrief.duration);
 
             if (this.wizardEditingSongId && this.currentUser) {
@@ -264,6 +301,7 @@ window.MusicAIModules.wizard = {
                 lyrics: this.generationForm.lyrics,
                 vocalMode: this.generationForm.vocalMode,
                 vocalLanguage: this.generationForm.vocalLanguage,
+                vocalGender: this.generationForm.vocalGender,
                 durationSeconds: this.generationForm.durationSeconds
             }).then(response => {
                 const data = response.data;

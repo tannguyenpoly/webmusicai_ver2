@@ -31,6 +31,7 @@ public class SunoMusicProvider extends AbstractHttpMusicProvider implements Musi
 
     @Override public String code() { return "suno"; }
     @Override public String displayName() { return "Suno API"; }
+    @Override public boolean supportsVocalGender() { return true; }
     @Override public boolean isAvailable() { return apiKey != null && !apiKey.isBlank(); }
 
     @Override
@@ -43,6 +44,9 @@ public class SunoMusicProvider extends AbstractHttpMusicProvider implements Musi
         request.put("instrumental", spec.instrumental());
         request.put("model", model);
         if (spec.hasLyrics()) request.put("lyrics", spec.lyrics());
+        if (!spec.instrumental() && spec.hasVocalGenderSelection()) {
+            request.put("vocalGender", spec.providerGenderCode());
+        }
         ResponseEntity<Map> submitted = restTemplate.postForEntity(
                 baseUrl + "/api/v1/generate", jsonRequest(request, apiKey), Map.class);
         Map<String, Object> root = submitted.getBody();

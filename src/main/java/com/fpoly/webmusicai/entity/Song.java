@@ -73,6 +73,9 @@ public class Song implements Serializable {
     @Column(name = "vocal_language")
     private String vocalLanguage;
 
+    @Column(name = "vocal_gender")
+    private String vocalGender;
+
 	@Column(name = "is_remix")
 	private Boolean isRemix = false;
 
@@ -113,6 +116,7 @@ public class Song implements Serializable {
 		map.put("generationDurationSeconds", this.getGenerationDurationSeconds());
 		map.put("vocalMode", this.getVocalMode());
 		map.put("vocalLanguage", this.getVocalLanguage());
+		map.put("vocalGender", this.getVocalGender());
 		map.put("lyrics", this.getLyrics());
 		map.put("genres", this.getGenres() == null ? List.of() : this.getGenres().stream()
 				.map(genre -> Map.of("id", genre.getId(), "name", genre.getName()))

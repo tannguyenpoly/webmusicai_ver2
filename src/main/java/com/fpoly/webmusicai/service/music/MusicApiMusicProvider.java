@@ -31,6 +31,7 @@ public class MusicApiMusicProvider extends AbstractHttpMusicProvider implements 
 
     @Override public String code() { return "musicapi"; }
     @Override public String displayName() { return "MusicAPI.ai"; }
+    @Override public boolean supportsVocalGender() { return true; }
     @Override public boolean isAvailable() { return apiKey != null && !apiKey.isBlank(); }
 
     @Override
@@ -44,6 +45,9 @@ public class MusicApiMusicProvider extends AbstractHttpMusicProvider implements 
         request.put("make_instrumental", spec.instrumental());
         request.put("mv", modelVersion);
         if (spec.hasLyrics()) request.put("lyrics", spec.lyrics());
+        if (!spec.instrumental() && spec.hasVocalGenderSelection()) {
+            request.put("vocal_gender", spec.providerGenderCode());
+        }
 
         ResponseEntity<Map> submitted = restTemplate.postForEntity(
                 baseUrl + "/api/v1/sonic/create", jsonRequest(request, apiKey), Map.class);
