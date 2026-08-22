@@ -82,7 +82,7 @@ public interface SongRepository extends JpaRepository<Song, Integer> {
     @Query("SELECT s, COUNT(f.id) as likeCount FROM Song s LEFT JOIN Favorite f ON s.id = f.song.id " +
            "WHERE (:startDate IS NULL OR s.createdAt >= :startDate) AND " +
            "(:endDate IS NULL OR s.createdAt <= :endDate) " +
-           "GROUP BY s.id, s.title, s.prompt, s.audioUrl, s.status, s.isPublic, s.lyrics, s.modelVer, s.isRemix, s.parentId, s.coverUrl, s.listenCount, s.createdAt, s.user " +
+           "GROUP BY s.id, s.title, s.prompt, s.audioUrl, s.status, s.isPublic, s.lyrics, s.modelVer, s.isRemix, s.parentId, s.coverUrl, s.listenCount, s.createdAt, s.user, s.generationProvider, s.providerTaskId, s.providerStatus, s.generationDurationSeconds, s.vocalMode, s.vocalLanguage " +
            "ORDER BY COUNT(f.id) DESC")
     Page<Object[]> findFilteredByLikes(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
 

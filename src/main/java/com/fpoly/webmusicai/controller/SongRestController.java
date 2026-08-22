@@ -502,6 +502,8 @@ public class SongRestController {
             commentRepo.deleteBySongId(id);
             playlistSongRepo.deleteBySongId(id);
             albumSongRepo.deleteBySongId(id);
+            songTagRepo.deleteBySongId(id);
+            songListenHistoryRepo.deleteBySongId(id);
             songRepo.deleteSongGenresBySongId(id);
             songRepo.detachRemixesFromParent(id);
             songRepo.delete(song);
