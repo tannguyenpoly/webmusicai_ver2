@@ -120,14 +120,23 @@ public class AuthController {
 		if (username.contains(" ")) {
 			return ResponseEntity.badRequest().body("Tên đăng nhập không được chứa khoảng trắng!");
 		}
+		if (username.trim().length() > 50) {
+			return ResponseEntity.badRequest().body("Tên đăng nhập tối đa 50 ký tự!");
+		}
 		if (fullname == null || fullname.trim().isEmpty()) {
 			return ResponseEntity.badRequest().body("Họ tên không được để trống!");
+		}
+		if (fullname.trim().length() > 100) {
+			return ResponseEntity.badRequest().body("Họ tên tối đa 100 ký tự!");
 		}
 		if (email == null || email.trim().isEmpty()) {
 			return ResponseEntity.badRequest().body("Email không được để trống!");
 		}
 		if (!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
 			return ResponseEntity.badRequest().body("Email không đúng định dạng!");
+		}
+		if (email.trim().length() > 100) {
+			return ResponseEntity.badRequest().body("Email tối đa 100 ký tự!");
 		}
 		if (password == null || password.trim().isEmpty()) {
 			return ResponseEntity.badRequest().body("Mật khẩu không được để trống!");

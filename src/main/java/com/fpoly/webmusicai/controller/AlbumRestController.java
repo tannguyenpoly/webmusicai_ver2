@@ -52,13 +52,24 @@ public class AlbumRestController {
         if (title == null || title.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Tên album không được để trống!"));
         }
+        if (title.trim().length() > 255) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tên album tối đa 255 ký tự!"));
+        }
+        String description = (String) body.get("description");
+        if (description != null && description.length() > 1000) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Mô tả album tối đa 1000 ký tự!"));
+        }
+        String coverUrl = (String) body.get("cover_url");
+        if (coverUrl != null && coverUrl.length() > 500) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Đường dẫn ảnh bìa tối đa 500 ký tự!"));
+        }
 
         User user = userRepo.findById(username).orElseThrow();
 
         Album album = new Album();
         album.setTitle(title.trim());
-        album.setDescription((String) body.get("description"));
-        album.setCoverUrl((String) body.get("cover_url"));
+        album.setDescription(description);
+        album.setCoverUrl(coverUrl);
         Object visibility = body.containsKey("isPublic") ? body.get("isPublic") : body.get("is_public");
         album.setIsPublic(Boolean.TRUE.equals(visibility));
         album.setUser(user);
@@ -129,13 +140,24 @@ public class AlbumRestController {
                 if (title == null || title.isBlank()) {
                     return ResponseEntity.badRequest().body(Map.of("message", "Tên album không được để trống!"));
                 }
+                if (title.trim().length() > 255) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Tên album tối đa 255 ký tự!"));
+                }
                 album.setTitle(title.trim());
             }
             if (body.containsKey("description")) {
-                album.setDescription((String) body.get("description"));
+                String description = (String) body.get("description");
+                if (description != null && description.length() > 1000) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Mô tả album tối đa 1000 ký tự!"));
+                }
+                album.setDescription(description);
             }
             if (body.containsKey("cover_url")) {
-                album.setCoverUrl((String) body.get("cover_url"));
+                String coverUrl = (String) body.get("cover_url");
+                if (coverUrl != null && coverUrl.length() > 500) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Đường dẫn ảnh bìa tối đa 500 ký tự!"));
+                }
+                album.setCoverUrl(coverUrl);
             }
             if (body.containsKey("is_public") || body.containsKey("isPublic")) {
                 Object visibility = body.containsKey("isPublic") ? body.get("isPublic") : body.get("is_public");

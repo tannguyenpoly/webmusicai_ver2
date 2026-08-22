@@ -30,6 +30,13 @@ public class GenreRestController {
 		if (genreRepo.existsByNameIgnoreCase(name.trim())) {
 			return ResponseEntity.badRequest().body(Map.of("message", "Thể loại này đã tồn tại!"));
 		}
+		if (name.trim().length() > 50) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Tên thể loại tối đa 50 ký tự!"));
+		}
+		String description = body.get("description");
+		if (description != null && description.length() > 255) {
+			return ResponseEntity.badRequest().body(Map.of("message", "Mô tả thể loại tối đa 255 ký tự!"));
+		}
 
 		Genre genre = new Genre();
 		genre.setName(name.trim());
@@ -66,10 +73,17 @@ public class GenreRestController {
 						throw new IllegalArgumentException("Tên thể loại đã được sử dụng!");
 					}
 				});
+				if (name.trim().length() > 50) {
+					return ResponseEntity.badRequest().body(Map.of("message", "Tên thể loại tối đa 50 ký tự!"));
+				}
 				genre.setName(name.trim());
 			}
 			if (body.containsKey("description")) {
-				genre.setDescription(body.get("description"));
+				String description = body.get("description");
+				if (description != null && description.length() > 255) {
+					return ResponseEntity.badRequest().body(Map.of("message", "Mô tả thể loại tối đa 255 ký tự!"));
+				}
+				genre.setDescription(description);
 			}
 			if (body.containsKey("minTier")) {
 				genre.setMinTier(normalizeMinTier(body.get("minTier")));

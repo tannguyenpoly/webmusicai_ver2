@@ -51,6 +51,7 @@ import com.fpoly.webmusicai.service.SongGenerationTicket;
 import com.fpoly.webmusicai.service.SongCancellationResult;
 import com.fpoly.webmusicai.service.SongNotificationService;
 import com.fpoly.webmusicai.service.AudioStorageService;
+import com.fpoly.webmusicai.service.SongCleanupService;
 import com.fpoly.webmusicai.service.SpamProtectionService;
 import com.fpoly.webmusicai.service.music.GenerationSpec;
 
@@ -119,6 +120,9 @@ public class SongRestController {
 
     @Autowired
     TierAccessService tierAccessService;
+
+    @Autowired
+    SongCleanupService songCleanupService;
 
     @GetMapping("/ai-status")
     public ResponseEntity<?> getAiStatus() {
@@ -508,13 +512,7 @@ public class SongRestController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Bạn không có quyền xóa bài nhạc này!"));
             }
 
-            favoriteRepo.deleteBySongId(id);
-            commentRepo.deleteBySongId(id);
-            playlistSongRepo.deleteBySongId(id);
-            albumSongRepo.deleteBySongId(id);
-            songRepo.deleteSongGenresBySongId(id);
-            songRepo.detachRemixesFromParent(id);
-            songRepo.delete(song);
+            songCleanupService.deleteSongWithRelations(song);
 
             log.info("User {} xóa bài nhạc #{}", username, id);
             return ResponseEntity.ok(Map.of("message", "Đã xóa bài nhạc thành công!", "id", id));
@@ -614,6 +612,9 @@ public class SongRestController {
         if (content == null || content.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Nội dung bình luận không được để trống!"));
         }
+        if (content.trim().length() > 500) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Bình luận tối đa 500 ký tự!"));
+        }
 
         long waitSeconds = spamProtectionService.remainingSeconds(username, "comment", 3000);
         if (waitSeconds > 0) {
@@ -673,6 +674,9 @@ public class SongRestController {
             String content = body.get("content");
             if (content == null || content.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Nội dung bình luận không được để trống!"));
+            }
+            if (content.trim().length() > 500) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Bình luận tối đa 500 ký tự!"));
             }
 
             comment.setContent(content.trim());

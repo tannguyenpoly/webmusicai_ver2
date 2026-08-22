@@ -51,6 +51,9 @@ public class PlaylistRestController {
         if (name == null || name.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Tên playlist không được để trống!"));
         }
+        if (name.trim().length() > 100) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tên playlist tối đa 100 ký tự!"));
+        }
 
         User user = userRepo.findById(username).orElseThrow();
 
@@ -132,6 +135,9 @@ public class PlaylistRestController {
                 String name = (String) body.get("name");
                 if (name == null || name.isBlank()) {
                     return ResponseEntity.badRequest().body(Map.of("message", "Tên playlist không được để trống!"));
+                }
+                if (name.trim().length() > 100) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Tên playlist tối đa 100 ký tự!"));
                 }
                 playlist.setName(name.trim());
             }

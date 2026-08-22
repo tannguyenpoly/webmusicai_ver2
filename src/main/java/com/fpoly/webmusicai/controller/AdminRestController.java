@@ -44,6 +44,7 @@ import com.fpoly.webmusicai.repository.AuthorityRepository;
 import com.fpoly.webmusicai.repository.RoleRepository;
 import com.fpoly.webmusicai.service.PaymentCompletionResult;
 import com.fpoly.webmusicai.service.PaymentService;
+import com.fpoly.webmusicai.service.SongCleanupService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import jakarta.persistence.criteria.Predicate;
@@ -72,6 +73,9 @@ public class AdminRestController {
 
     @Autowired
     private SongTagRepository songTagRepo;
+
+    @Autowired
+    private SongCleanupService songCleanupService;
 
     @Autowired
     private PaymentService paymentService;
@@ -324,13 +328,13 @@ public class AdminRestController {
         return ResponseEntity.ok(songs);
     }
 
+    @Transactional
     @DeleteMapping("/songs/{id}")
     public ResponseEntity<?> deleteSong(@PathVariable Integer id) {
-        if (!songRepo.existsById(id)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Bài nhạc không tồn tại!"));
-        }
-        songRepo.deleteById(id);
-        return ResponseEntity.ok(Map.of("message", "Đã xóa bài nhạc #" + id));
+        return songRepo.findById(id).map(song -> {
+            songCleanupService.deleteSongWithRelations(song);
+            return ResponseEntity.ok(Map.of("message", "Đã xóa bài nhạc #" + id));
+        }).orElse(ResponseEntity.badRequest().body(Map.of("message", "Bài nhạc không tồn tại!")));
     }
 
     @PutMapping("/songs/{id}/toggle-public")
@@ -588,6 +592,9 @@ public class AdminRestController {
         }
         if (tagRepo.findByNameIgnoreCase(name.trim()).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Tag đã tồn tại"));
+        }
+        if (name.trim().length() > 50) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Tên tag tối đa 50 ký tự!"));
         }
         Tag tag = new Tag();
         tag.setName(name.trim());
