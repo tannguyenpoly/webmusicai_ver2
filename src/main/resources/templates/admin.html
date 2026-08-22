@@ -789,9 +789,6 @@
             <div class="section-tab" :class="{ active: activeTab === 'packages' }">
                 <div class="page-header">
                     <h4><i class="ti ti-gift text-success me-2"></i>Quản lý gói token</h4>
-                    <button @click="openPackageModal(null)" class="btn btn-admin-primary">
-                        <i class="ti ti-plus me-1"></i> Thêm gói
-                    </button>
                 </div>
 
                 <div class="card-custom">
@@ -810,7 +807,6 @@
                                     <td class="text-center">
                                         <div class="d-flex gap-1 justify-content-center">
                                             <button @click="openPackageModal(p)" class="btn btn-admin-sm btn-admin-outline"><i class="ti ti-edit"></i></button>
-                                            <button @click="deletePackage(p)" class="btn btn-admin-sm btn-admin-danger"><i class="ti ti-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -825,7 +821,7 @@
                 <!-- Package Modal -->
                 <div v-if="showPackageModal" style="position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 9999; display:flex; align-items:center; justify-content:center;">
                     <div class="card-custom" style="width: 500px; max-width:90%; padding: 24px;">
-                        <h5 class="fw-bold mb-3">{{ packageForm.id ? 'Cập nhật gói' : 'Thêm gói mới' }}</h5>
+                        <h5 class="fw-bold mb-3">Cập nhật gói</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small text-muted-sync">Tên gói</label>
@@ -840,12 +836,8 @@
                                 <input type="number" v-model.number="packageForm.price" class="form-input-custom w-100" min="1">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small text-muted-sync">Quyền sử dụng sau thanh toán</label>
-                                <select v-model="packageForm.tierCode" class="form-select-custom w-100">
-                                    <option value="CREATOR">Nhà sáng tạo</option>
-                                    <option value="PRO">Chuyên nghiệp</option>
-                                    <option value="STUDIO">Phòng thu</option>
-                                </select>
+                                <label class="form-label small text-muted-sync">Cấp độ cố định sau thanh toán</label>
+                                <input type="text" :value="tierLabel(packageForm.tierCode)" class="form-input-custom w-100" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small text-muted-sync">Thời hạn (ngày)</label>
@@ -1282,8 +1274,10 @@ new Vue({
 
     mounted() {
         this.Toast = Swal.mixin({
-            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true,
-            didOpen: toast => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); }
+            toast: true, position: 'top', showConfirmButton: false, timer: 2400, timerProgressBar: false,
+            customClass: { popup: 'music-note-toast' },
+            showClass: { popup: 'music-note-slide-in' },
+            hideClass: { popup: 'music-note-slide-out' },
         });
 
         axios.get('/api/users/auth-session')
@@ -1769,11 +1763,8 @@ new Vue({
         },
 
         openPackageModal(p) {
-            if (p) {
-                this.packageForm = { id: p.id, name: p.name, tokens: p.tokens, price: p.price, description: p.description || '', tierCode: p.tierCode || 'CREATOR', durationDays: p.durationDays || 30 };
-            } else {
-                this.packageForm = { id: null, name: '', tokens: 0, price: 0, description: '', tierCode: 'CREATOR', durationDays: 30 };
-            }
+            if (!p) return;
+            this.packageForm = { id: p.id, name: p.name, tokens: p.tokens, price: p.price, description: p.description || '', tierCode: p.tierCode || 'CREATOR', durationDays: p.durationDays || 30 };
             this.showPackageModal = true;
         },
 
@@ -1800,23 +1791,14 @@ new Vue({
                 durationDays: this.packageForm.durationDays
             };
 
-            if (this.packageForm.id) {
-                axios.put(`/api/packages/${this.packageForm.id}`, body)
-                    .then(() => {
-                        this.Toast.fire({ icon: 'success', title: 'Cập nhật gói thành công!' });
-                        this.showPackageModal = false;
-                        this.loadPackages();
-                    })
-                    .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Cập nhật thất bại' }); });
-            } else {
-                axios.post('/api/packages', body)
-                    .then(() => {
-                        this.Toast.fire({ icon: 'success', title: 'Thêm gói thành công!' });
-                        this.showPackageModal = false;
-                        this.loadPackages();
-                    })
-                    .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Thêm thất bại' }); });
-            }
+            if (!this.packageForm.id) return;
+            axios.put(`/api/packages/${this.packageForm.id}`, body)
+                .then(() => {
+                    this.Toast.fire({ icon: 'success', title: 'Cập nhật gói thành công!' });
+                    this.showPackageModal = false;
+                    this.loadPackages();
+                })
+                .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Cập nhật thất bại' }); });
         },
 
         deletePackage(p) {

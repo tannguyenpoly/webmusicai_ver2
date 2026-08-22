@@ -104,6 +104,21 @@ window.MusicAIModules.music = {
             });
         },
 
+        closePlayer() {
+            const audio = document.getElementById('audio-element');
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+            this.isPlaying = false;
+            this.showQueue = false;
+            this.currentTrack = { id: null, title: '', prompt: '', status: '', audioUrl: '' };
+        },
+
+        openWorkspaceSong(song) {
+            if (song && song.status === 'COMPLETED') this.playTrack(song);
+        },
+
         incrementListenCount(song) {
             if (!song || !song.id) return;
             axios.post(`/api/songs/${song.id}/play`)

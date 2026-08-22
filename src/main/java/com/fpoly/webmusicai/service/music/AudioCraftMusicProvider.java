@@ -33,6 +33,7 @@ public class AudioCraftMusicProvider extends AbstractHttpMusicProvider implement
 
     @Override public String code() { return "audiocraft"; }
     @Override public String displayName() { return "AudioCraft (Colab)"; }
+    @Override public boolean supportsLyrics() { return false; }
 
     @Override
     public boolean isAvailable() {

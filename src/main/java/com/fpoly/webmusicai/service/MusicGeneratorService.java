@@ -21,6 +21,24 @@ public class MusicGeneratorService {
         return providerRegistry.getRequired(providerCode).isAvailable();
     }
 
+    /**
+     * Frontend chỉ là lớp hướng dẫn. API vẫn phải từ chối lựa chọn mà mô hình
+     * không hỗ trợ để tránh request thủ công gửi dữ liệu không tương thích.
+     */
+    public void validateCapabilities(GenerationSpec spec) {
+        MusicGenerationProvider provider = providerRegistry.getRequired(spec.provider());
+        if (!spec.instrumental() && !provider.supportsLyrics()) {
+            throw new IllegalArgumentException(provider.displayName() + " chỉ hỗ trợ nhạc không lời.");
+        }
+        String gender = spec.vocalGender() == null ? "auto" : spec.vocalGender().trim().toLowerCase();
+        if (!"auto".equals(gender) && !"male".equals(gender) && !"female".equals(gender)) {
+            throw new IllegalArgumentException("Lựa chọn giọng hát không hợp lệ.");
+        }
+        if (!spec.instrumental() && !"auto".equals(gender) && !provider.supportsVocalGender()) {
+            throw new IllegalArgumentException(provider.displayName() + " chưa hỗ trợ chọn giọng nam hoặc nữ.");
+        }
+    }
+
     public GeneratedMusic generateMusic(GenerationSpec spec) {
         MusicGenerationProvider provider = providerRegistry.getRequired(spec.provider());
         return provider.generate(spec);

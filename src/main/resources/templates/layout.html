@@ -154,6 +154,43 @@
             color: var(--text-color) !important;
         }
 
+        /* Thông báo nhanh: một thanh cố định, chỉ thay đổi nội dung bên trong. */
+        .swal2-popup.music-note-toast {
+            width: min(640px, calc(100vw - 32px)) !important;
+            min-width: 0 !important;
+            height: 42px !important;
+            margin-top: 14px !important;
+            padding: 0 18px !important;
+            border-radius: 10px !important;
+            background: rgba(255,255,255,.10) !important;
+            box-shadow: 0 8px 22px rgba(0,0,0,.16) !important;
+        }
+        .swal2-popup.music-note-toast .swal2-title {
+            width: 100%;
+            max-width: none;
+            margin: 0 !important;
+            overflow: hidden;
+            color: var(--text-color) !important;
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            line-height: 42px !important;
+            text-align: center !important;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .swal2-popup.music-note-toast .swal2-icon,
+        .swal2-popup.music-note-toast .swal2-timer-progress-bar-container { display: none !important; }
+        @keyframes music-note-slide-in {
+            from { opacity: 0; transform: translateY(-12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes music-note-slide-out {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-12px); }
+        }
+        .music-note-slide-in { animation: music-note-slide-in .20s ease-out both; }
+        .music-note-slide-out { animation: music-note-slide-out .20s ease-in both; }
+
         /* Thiết kế nút công tắc chuyển chế độ hình tròn công nghệ */
         .theme-toggle-btn {
             background: rgba(22, 163, 74, 0.1);
@@ -2470,6 +2507,9 @@
                 
                 <button @click="showQueue = !showQueue" class="suno-player-btn-circle" :class="{'active-queue': showQueue}" title="Danh sách phát tạm">
                     <i class="ti ti-playlist"></i>
+                </button>
+                <button @click="closePlayer" class="suno-player-btn-circle" title="Đóng trình phát và dừng nhạc">
+                    <i class="ti ti-x"></i>
                 </button>
             </div>
         </div>

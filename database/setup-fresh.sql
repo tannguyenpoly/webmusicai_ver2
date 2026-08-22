@@ -115,6 +115,7 @@ CREATE TABLE Songs (
     generation_duration_seconds INT NULL,
     vocal_mode VARCHAR(30) NULL,
     vocal_language NVARCHAR(30) NULL,
+    vocal_gender VARCHAR(10) NULL,
     is_remix BIT DEFAULT 0,
     parent_id INT NULL,
     cover_url VARCHAR(500) NULL,
