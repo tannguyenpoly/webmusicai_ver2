@@ -132,7 +132,7 @@ public class AuthController {
 		if (email == null || email.trim().isEmpty()) {
 			return ResponseEntity.badRequest().body("Email không được để trống!");
 		}
-		if (!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+		if (!email.trim().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
 			return ResponseEntity.badRequest().body("Email không đúng định dạng!");
 		}
 		if (email.trim().length() > 100) {
