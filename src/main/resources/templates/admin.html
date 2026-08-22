@@ -484,6 +484,13 @@
                     <i class="ti ti-history"></i>
                     <span class="nav-label">Lịch sử Giao dịch</span>
                 </a>
+                
+                <hr style="border-color: var(--border-color); margin: 8px 10px; opacity: 0.5;">
+                
+                <a href="#" @click.prevent="handleLogout" class="nav-item" style="color: #ef4444;">
+                    <i class="ti ti-logout"></i>
+                    <span class="nav-label">Đăng xuất</span>
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -1352,6 +1359,19 @@ new Vue({
     },
 
     methods: {
+        handleLogout() {
+            Swal.fire({ title: 'Xác nhận đăng xuất?', icon: 'question', showCancelButton: true, confirmButtonColor: '#16a34a', confirmButtonText: 'Đăng xuất' })
+                .then(result => { 
+                    if (result.isConfirmed) {
+                        axios.post('/api/auth/logout').finally(() => {
+                            localStorage.removeItem('music_username');
+                            localStorage.removeItem('jwt_token');
+                            localStorage.removeItem('music_is_admin');
+                            window.location.href = '/login';
+                        });
+                    }
+                });
+        },
         compactPagination(currentPage, totalPages) {
             const total = Number(totalPages) || 0;
             const current = Number(currentPage) || 0;
