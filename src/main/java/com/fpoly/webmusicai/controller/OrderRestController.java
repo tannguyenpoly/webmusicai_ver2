@@ -158,6 +158,45 @@ public class OrderRestController {
         }
     }
 
+    @GetMapping("/vnpay-ipn")
+    public ResponseEntity<?> handleVNPayIPN(HttpServletRequest request) {
+        Map<String, String> fields = new HashMap<>();
+        request.getParameterNames().asIterator().forEachRemaining(name -> fields.put(name, request.getParameter(name)));
+        String vnp_SecureHash = fields.remove("vnp_SecureHash");
+        fields.remove("vnp_SecureHashType");
+
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder hashData = new StringBuilder();
+        for (String fieldName : fieldNames) {
+            try {
+                hashData.append(fieldName).append('=').append(URLEncoder.encode(fields.get(fieldName), StandardCharsets.US_ASCII.toString()));
+                if (!fieldName.equals(fieldNames.get(fieldNames.size() - 1))) hashData.append('&');
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+
+        if (vnpayConfig.isConfigured() && vnpayConfig.hmacSHA512(vnpayConfig.getSecretKey(), hashData.toString()).equals(vnp_SecureHash)) {
+            String orderCode = request.getParameter("vnp_TxnRef");
+            Order order = orderRepo.findByOrderCode(orderCode).orElse(null);
+            if (order != null && "PENDING".equals(order.getStatus())) {
+                if ("00".equals(request.getParameter("vnp_ResponseCode"))) {
+                    String transactionId = request.getParameter("vnp_TransactionNo");
+                    int receivedAmount = Integer.parseInt(request.getParameter("vnp_Amount")) / 100;
+                    paymentService.complete(order.getOrderCode(), "VNPAY", transactionId, receivedAmount, fields.toString());
+                    return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Confirm Success"));
+                } else {
+                    order.setStatus("FAILED");
+                    orderRepo.save(order);
+                    return ResponseEntity.ok(Map.of("RspCode", "00", "Message", "Order Failed"));
+                }
+            }
+            return ResponseEntity.ok(Map.of("RspCode", "02", "Message", "Order already confirmed"));
+        }
+        return ResponseEntity.ok(Map.of("RspCode", "97", "Message", "Invalid Checksum"));
+    }
+
     @PostMapping("/sepay-ipn")
     public ResponseEntity<?> handleSePayIPN(
             @RequestHeader(value = "Authorization", required = false) String authorization,
