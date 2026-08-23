@@ -186,7 +186,7 @@
 
         .stat-card.clickable:hover {
             transform: translateY(-2px);
-            border-color: var(--accent-color);
+            border-color: var();
         }
 
         .stat-card .stat-icon {
@@ -1116,7 +1116,9 @@
                                         <td class="text-muted-sync" style="font-size: 12px;">{{ log.transactionId }}</td>
                                         <td class="fw-medium">{{ log.gatewayName }}</td>
                                         <td class="text-center">{{ formatPrice(log.amount) }}</td>
-                                        <td class="text-muted-sync" style="max-width: 300px;">{{ log.content }}</td>
+                                        <td class="text-muted-sync" style="max-width: 350px; font-size: 13px;">
+                                            {{ parsePaymentContent(log.content) }}
+                                        </td>
                                         <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(log.createdAt) }}</td>
                                     </tr>
                                     <tr v-if="!paymentLogsPage.content || paymentLogsPage.content.length === 0">
@@ -1411,7 +1413,7 @@ new Vue({
             return labels[statusKey] || status;
         },
 
-        // ===== DASHBOARD =====
+
         loadDashboard() {
             axios.get('/api/reports/overview')
                 .then(res => {
@@ -1533,6 +1535,42 @@ new Vue({
                         .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Thao tác thất bại' }); });
                 }
             });
+        },
+
+        parsePaymentContent(rawContent) {
+            if (!rawContent) return '—';
+            try {
+                // Nếu nội dung có dạng chuỗi JSON hoặc chuỗi key=value { ... }
+                let text = rawContent.replace(/^\{|\}$/g, '').trim();
+                let pairs = text.split(/,\s*/);
+                let infoMap = {};
+                pairs.forEach(pair => {
+                    let [key, val] = pair.split('=');
+                    if (key && val) {
+                        infoMap[key.trim()] = val.trim();
+                    }
+                });
+
+                // Lọc các thông tin quan trọng để hiển thị ngắn gọn
+                let orderCode = infoMap['vnp_OrderInfo'] || infoMap['orderCode'] || '';
+                let bank = infoMap['vnp_BankCode'] || infoMap['bankCode'] || '';
+                let transNo = infoMap['vnp_TransactionNo'] || infoMap['transactionNo'] || '';
+                let responseCode = infoMap['vnp_ResponseCode'] || infoMap['responseCode'] || '';
+
+                let result = [];
+                if (orderCode) result.push(`Đơn: ${orderCode}`);
+                if (bank) result.push(`NH: ${bank}`);
+                if (transNo) result.push(`Mã GD: ${transNo}`);
+                if (responseCode === '00') {
+                    result.push('Trạng thái: Thành công (00)');
+                } else if (responseCode) {
+                    result.push(`Mã lỗi: ${responseCode}`);
+                }
+
+                return result.length > 0 ? result.join(' | ') : rawContent;
+            } catch (e) {
+                return rawContent;
+            }
         },
 
         // ===== SONGS =====

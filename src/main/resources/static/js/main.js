@@ -7,6 +7,7 @@ axios.interceptors.request.use(config => {
 new Vue({
     el: '#app',
     data: {
+        showPromoBanner: true,
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
         currentPage: window.location.pathname,
         currentUser: null,
@@ -47,8 +48,7 @@ new Vue({
             vocalLanguage: 'Tiếng Việt',
             durationSeconds: 30
         },
-        // Wizard tạo nhạc: ghép các lựa chọn thành prompt cho API hiện tại.
-        // Brief được lưu tạm trên trình duyệt để người dùng tạo phiên bản chỉnh sửa.
+
         wizardStep: 1,
         wizardSteps: [
             { label: 'Nhu cầu', icon: 'ti-user-heart' },
