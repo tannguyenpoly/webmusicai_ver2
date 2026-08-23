@@ -129,6 +129,45 @@
         <div v-if="publicSongs.length === 0" class="app-empty-state"><i class="ti ti-music-off mb-2 d-block fs-3"></i>Chưa có bài nhạc công khai.</div>
     </section>
 
+    <section class="py-5 px-3 px-md-5">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold" style="color: var(--text-color);">Các gói sáng tạo phù hợp</h2>
+            <p class="text-muted-sync small">Khám phá các gói token ưu đãi để mở khóa trọn vẹn tiềm năng âm nhạc.</p>
+        </div>
+
+        <div v-if="isLoadingPackages" class="text-center py-4">
+            <div class="spinner-border text-success"></div>
+            <p class="text-muted-sync small mt-2 mb-0">Đang tải các gói...</p>
+        </div>
+
+        <div v-else class="row g-4 justify-content-center">
+            <div class="col-md-4" v-for="pkg in packages" :key="pkg.id">
+                <article class="card h-100 border-0 shadow-sm"
+                         :style="pkg.id === 2 ? 'background:var(--card-bg); border:1.5px solid rgba(22,163,74,0.5) !important;' : 'background:var(--card-bg); border:1px solid var(--border-color) !important;'">
+                    <div v-if="pkg.id === 2" class="text-center pt-3">
+                        <span class="badge px-3 py-2 bg-success rounded-pill">Phổ biến nhất</span>
+                    </div>
+                    <div class="card-body text-center p-4">
+                        <h3 class="h5 fw-bold mb-2" style="color: var(--text-color);">{{ pkg.name }}</h3>
+                        <p class="text-muted-sync small mb-3">{{ pkg.description }}</p>
+                        <div class="small text-success fw-semibold mb-2">
+                            {{ pkg.tierCode === 'STUDIO' ? 'Phòng thu' : (pkg.tierCode === 'PRO' ? 'Chuyên nghiệp' : 'Nhà sáng tạo') }} · {{ pkg.durationDays || 30 }} ngày
+                        </div>
+                        <div class="mb-3">
+                            <span class="fw-bold text-success" style="font-size: 36px;">{{ pkg.tokens }}</span>
+                            <span class="text-muted-sync ms-1 small">token</span>
+                        </div>
+                        <div class="mb-4 fw-bold" style="font-size: 20px; color: var(--text-color);">{{ formatPrice(pkg.price) }}đ</div>
+                        <a href="/orders" class="btn w-100 fw-semibold py-2 text-decoration-none"
+                           :class="pkg.id === 2 ? 'btn-success' : 'btn-outline-success'" style="border-radius: 10px;">
+                            <i class="ti ti-shopping-cart me-1"></i> Xem chi tiết gói
+                        </a>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+
     <!-- (FAQ) -->
     <section class="py-5 px-3 px-md-5" style="background: var(--card-bg); transition: background 0.3s;">
         <div class="text-center mb-5">

@@ -588,6 +588,7 @@ new Vue({
 
         this.loadWizardBriefs();
         this.loadMusicProviderStatus();
+        this.loadPackages();
 
         const urlParams = new URLSearchParams(window.location.search);
         const paymentStatus = urlParams.get('status');
