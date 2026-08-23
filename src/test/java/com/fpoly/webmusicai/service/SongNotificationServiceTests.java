@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.fpoly.webmusicai.entity.Song;
 import com.fpoly.webmusicai.entity.User;
@@ -25,7 +26,8 @@ class SongNotificationServiceTests {
         SongRepository songs = mock(SongRepository.class);
         FollowRepository follows = mock(FollowRepository.class);
         NotificationRepository notifications = mock(NotificationRepository.class);
-        SongNotificationService service = new SongNotificationService(songs, follows, notifications);
+        SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
+        SongNotificationService service = new SongNotificationService(songs, follows, notifications, messaging);
 
         User author = new User();
         author.setUsername("artist");
@@ -54,7 +56,8 @@ class SongNotificationServiceTests {
         SongRepository songs = mock(SongRepository.class);
         FollowRepository follows = mock(FollowRepository.class);
         NotificationRepository notifications = mock(NotificationRepository.class);
-        SongNotificationService service = new SongNotificationService(songs, follows, notifications);
+        SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
+        SongNotificationService service = new SongNotificationService(songs, follows, notifications, messaging);
 
         Song song = new Song();
         song.setId(22);
