@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import com.fpoly.webmusicai.service.GeneratedMusic;
 
-/** MusicAPI.ai Sonic adapter. API key chỉ đọc từ biến môi trường. */
 @Component
 public class MusicApiMusicProvider extends AbstractHttpMusicProvider implements MusicGenerationProvider {
 
