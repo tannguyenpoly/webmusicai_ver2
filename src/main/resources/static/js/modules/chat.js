@@ -11,6 +11,13 @@ window.MusicAIModules.chat = {
                     const message = JSON.parse(messageOutput.body);
                     this.handleIncomingChatMessage(message);
                 });
+
+                this.stompClient.subscribe('/user/queue/notifications', (messageOutput) => {
+                    const notification = JSON.parse(messageOutput.body);
+                    if (this.handleIncomingNotification) {
+                        this.handleIncomingNotification(notification);
+                    }
+                });
             }, (error) => {
                 setTimeout(() => {
                     if (this.currentUser) this.connectWebSocket();
