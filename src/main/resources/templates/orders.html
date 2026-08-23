@@ -2,127 +2,137 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
 
 <body>
-    <div id="workspace-area">
-        <style v-pre>
-            .pricing-plan {
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                min-height: 100%;
-                overflow: visible;
-                background: linear-gradient(180deg, rgba(22,163,74,.08), rgba(255,255,255,.025) 34%) !important;
-                border: 1px solid var(--border-color) !important;
-                border-radius: 22px !important;
-            }
-            .pricing-plan.is-featured {
-                border-color: rgba(34,197,94,.68) !important;
-                box-shadow: 0 0 0 1px rgba(34,197,94,.16), 0 16px 34px rgba(0,0,0,.17);
-                background: linear-gradient(180deg, rgba(22,163,74,.18), rgba(255,255,255,.035) 36%) !important;
-            }
-            .pricing-plan__badge {
-                position: absolute;
-                top: -15px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 1;
-                white-space: nowrap;
-                padding: 7px 14px;
-                border-radius: 999px;
-                background: #16a34a;
-                color: #fff;
-                font-size: 12px;
-                font-weight: 800;
-            }
-            .pricing-plan__icon {
-                width: 48px;
-                height: 48px;
-                display: grid;
-                place-items: center;
-                margin: 0 auto 14px;
-                border-radius: 15px;
-                background: rgba(22,163,74,.14);
-                color: #4ade80;
-                font-size: 25px;
-            }
-            .pricing-plan__price { font-size: clamp(30px, 3vw, 42px); letter-spacing: -1px; }
-            .pricing-plan__token-box {
-                padding: 14px;
-                border: 1px solid var(--border-color);
-                border-radius: 15px;
-                background: rgba(255,255,255,.055);
-            }
-            .pricing-plan__benefits {
-                flex: 1;
-                margin: 16px 0 20px;
-                padding: 16px;
-                border-left: 3px solid #22c55e;
-                border-radius: 13px;
-                background: rgba(22,163,74,.08);
-            }
-            .pricing-plan__benefits ul { margin: 0; padding-left: 18px; line-height: 1.65; }
-            .pricing-plan__benefits li + li { margin-top: 7px; }
-            @media (max-width: 767.98px) {
-                .pricing-plan { min-height: auto; }
-            }
-        </style>
-        <section class="app-surface-card card shadow-lg border-0">
-            <div class="card-body p-4 p-lg-5">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-                    <h1 class="app-page-title mb-0">Chọn gói sáng tạo phù hợp</h1>
-                    <a v-if="currentUser" href="/payment-history" class="btn btn-outline-success px-3 py-2 rounded-pill fw-semibold">
-                        <i class="ti ti-receipt-2 me-1"></i> Xem lịch sử thanh toán
-                    </a>
-                </div>
+<div id="workspace-area">
+    <section class="app-surface-card card shadow-lg border-0">
+        <div class="card-body p-4 p-lg-5">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <h1 class="app-page-title mb-0">Chọn gói sáng tạo phù hợp</h1>
+                <a v-if="currentUser" href="/payment-history" class="btn btn-outline-success px-3 py-2 rounded-pill fw-semibold">
+                    <i class="ti ti-receipt-2 me-1"></i> Xem lịch sử thanh toán
+                </a>
+            </div>
 
-                <div v-if="currentUser" class="p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center"
-                    style="background: rgba(22,163,74,.08); border: 1px solid rgba(22,163,74,.2);">
-                    <div>
-                        <div class="small text-muted-sync">Gói đang sử dụng</div>
-                        <div class="fw-bold text-success">{{ userTierLabel }}</div>
-                        <div v-if="userTierExpiresAt" class="small text-muted-sync">Có hiệu lực đến {{ formatDate(userTierExpiresAt) }}</div>
-                    </div>
-                    <div class="text-end">
-                        <div class="small text-muted-sync">Số dư</div>
-                        <div class="fw-bold text-warning">{{ userTokens }} token</div>
-                    </div>
+            <div v-if="currentUser" class="p-3 rounded-3 mb-4 d-flex justify-content-between align-items-center"
+                 style="background: rgba(22,163,74,.08); border: 1px solid rgba(22,163,74,.2);">
+                <div>
+                    <div class="small text-muted-sync">Gói đang sử dụng</div>
+                    <div class="fw-bold text-success">{{ userTierLabel }}</div>
+                    <div v-if="userTierExpiresAt" class="small text-muted-sync">Có hiệu lực đến {{ formatDate(userTierExpiresAt) }}</div>
                 </div>
-
-                <div v-if="isLoadingPackages" class="text-center py-5">
-                    <div class="spinner-border text-success"></div>
-                    <p class="text-muted-sync small mt-3 mb-0">Đang tải các gói token...</p>
-                </div>
-
-                <div v-else class="row g-4 pt-2">
-                    <div class="col-md-4" v-for="pkg in packages" :key="pkg.id">
-                        <article class="pricing-plan card h-100" :class="{ 'is-featured': pkg.id === 2 }">
-                            <span v-if="pkg.id === 2" class="pricing-plan__badge"><i class="ti ti-star-filled me-1"></i>Phổ biến nhất</span>
-                            <div class="card-body d-flex flex-column p-4 p-lg-4 text-center">
-                                <div class="pricing-plan__icon"><i :class="pkg.tierCode === 'STUDIO' ? 'ti ti-microphone-2' : (pkg.tierCode === 'PRO' ? 'ti ti-sparkles' : 'ti ti-rocket')"></i></div>
-                                <h2 class="h4 fw-bold mb-2">{{ pkg.tierCode }}</h2>
-                                <p class="text-muted-sync small mb-4">{{ pkg.description }}</p>
-                                <div class="pricing-plan__price fw-bold text-success mb-1">{{ formatPrice(pkg.price) }}đ</div>
-                                <div class="small text-muted-sync mb-4">/{{ pkg.durationDays || 30 }} ngày</div>
-                                <div class="pricing-plan__token-box mb-2">
-                                    <div class="small fw-bold text-uppercase text-muted-sync mb-1">Token mỗi gói</div>
-                                    <div class="h2 fw-bold mb-0">{{ pkg.tokens }} <span class="fs-6 text-muted-sync fw-normal">token</span></div>
-                                </div>
-                                <section class="pricing-plan__benefits text-start">
-                                    <h3 class="h6 fw-bold text-success mb-2"><i class="ti ti-list-check me-1"></i>Quyền lợi</h3>
-                                    <ul class="small text-muted-sync">
-                                        <li v-for="benefit in packageBenefits(pkg.tierCode)" :key="benefit">{{ benefit }}</li>
-                                    </ul>
-                                </section>
-                                <button @click="buyPackage(pkg)" class="btn w-100 fw-semibold py-2"
-                                    :class="pkg.id === 2 ? 'btn-success' : 'btn-outline-success'" style="border-radius: 12px;">
-                                    <i class="ti ti-shopping-cart me-1"></i> Mua gói {{ pkg.tierCode }}
-                                </button>
-                            </div>
-                        </article>
-                    </div>
+                <div class="text-end">
+                    <div class="small text-muted-sync">Số dư</div>
+                    <div class="fw-bold text-warning">{{ userTokens }} token</div>
                 </div>
             </div>
-        </section>
-    </div>
+
+            <div v-if="isLoadingPackages" class="text-center py-5">
+                <div class="spinner-border text-success"></div>
+                <p class="text-muted-sync small mt-3 mb-0">Đang tải các gói token...</p>
+            </div>
+
+            <!-- Danh sách các gói (Cards) -->
+            <div v-else class="row g-4 mb-5">
+                <div class="col-md-4" v-for="pkg in packages" :key="pkg.id">
+                    <article class="card h-100 border-0"
+                             :style="pkg.id === 2 ? 'background:rgba(22,163,74,0.12);border:1.5px solid rgba(22,163,74,0.4) !important;' : 'background:rgba(255,255,255,0.04);border:1px solid var(--border-color) !important;'">
+                        <div v-if="pkg.id === 2" class="text-center pt-3">
+                            <span class="badge px-3 py-2 bg-success rounded-pill">Phổ biến nhất</span>
+                        </div>
+                        <div class="card-body text-center p-4">
+                            <h2 class="h5 fw-bold mb-2">{{ pkg.name }}</h2>
+                            <p class="text-muted-sync small mb-3">{{ pkg.description }}</p>
+                            <div class="small text-success fw-semibold mb-2">
+                                {{ pkg.tierCode === 'STUDIO' ? 'Phòng thu' : (pkg.tierCode === 'PRO' ? 'Chuyên nghiệp' : 'Nhà sáng tạo') }} · {{ pkg.durationDays || 30 }} ngày
+                            </div>
+                            <div class="mb-3">
+                                <span class="fw-bold text-success" style="font-size: 36px;">{{ pkg.tokens }}</span>
+                                <span class="text-muted-sync ms-1 small">token</span>
+                            </div>
+                            <div class="mb-4 fw-bold" style="font-size: 20px; color: var(--text-color);">{{ formatPrice(pkg.price) }}đ</div>
+                            <button @click="buyPackage(pkg)" class="btn w-100 fw-semibold py-2"
+                                    :class="pkg.id === 2 ? 'btn-success' : 'btn-outline-success'" style="border-radius: 10px;">
+                                <i class="ti ti-shopping-cart me-1"></i> Mua ngay
+                            </button>
+                        </div>
+                    </article>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-4 border-top">
+                <h3 class="h4 fw-bold mb-4 text-center">So sánh chi tiết tính năng các gói</h3>
+                <div class="table-responsive">
+                    <table class="table table-white table-striped table-hover align-middle text-start mb-0" style="background: transparent; color: var(--text-color);">
+                        <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.1);">
+                            <th scope="col" class="py-3" style="width: 34%;">Chức năng</th>
+                            <th scope="col" class="py-3 text-center" style="width: 22%;">Nhà sáng tạo</th>
+                            <th scope="col" class="py-3 text-center" style="width: 22%;">Chuyên nghiệp</th>
+                            <th scope="col" class="py-3 text-center" style="width: 22%;">Phòng thu</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td class="fw-semibold">Token / 30 ngày</td>
+                            <td class="text-center">60</td>
+                            <td class="text-center">180</td>
+                            <td class="text-center">500</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Thể loại, cảm xúc, nhạc cụ</td>
+                            <td class="text-center">Toàn bộ</td>
+                            <td class="text-center">Toàn bộ</td>
+                            <td class="text-center">Toàn bộ</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Model AI</td>
+                            <td class="text-center">MusicAPI + AudioCraft</td>
+                            <td class="text-center">ACE-Step và Suno</td>
+                            <td class="text-center">Toàn bộ model</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Thời lượng</td>
+                            <td class="text-center">15 giây, 30 giây</td>
+                            <td class="text-center">Thêm 60 giây</td>
+                            <td class="text-center">Thêm 2 phút</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Nhạc không lời</td>
+                            <td class="text-center text-success fw-bold">Có</td>
+                            <td class="text-center text-success fw-bold">Có</td>
+                            <td class="text-center text-success fw-bold">Có</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">AI gợi ý lời</td>
+                            <td class="text-center">Có nếu model hỗ trợ</td>
+                            <td class="text-center">Có nếu model hỗ trợ</td>
+                            <td class="text-center">Có nếu model hỗ trợ</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Tự nhập lời</td>
+                            <td class="text-center text-danger">Không</td>
+                            <td class="text-center">Có nếu model hỗ trợ</td>
+                            <td class="text-center">Có nếu model hỗ trợ</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Phân tích nhạc tham khảo</td>
+                            <td class="text-center text-danger">Không</td>
+                            <td class="text-center text-success fw-bold">Có</td>
+                            <td class="text-center text-success fw-bold">Có</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Tạo nhạc cho nhóm/dự án dài</td>
+                            <td class="text-center">Cơ bản</td>
+                            <td class="text-center text-success fw-bold">Có</td>
+                            <td class="text-center text-success fw-bold">Có, ưu tiên gói nhiều token</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
 </body>
 
 </html>

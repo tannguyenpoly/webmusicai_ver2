@@ -2,61 +2,299 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout.html :: dynamic(~{:: #workspace-area})}">
 
 <body>
-    <div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;" v-cloak>
-        <div class="home-page-watermark" aria-hidden="true">
-            <i class="ti ti-wand home-page-watermark-icon"></i>
-            <span>MusicAI</span>
+<div id="workspace-area" class="container m-0 p-0" style="max-width: 100%;" v-cloak>
+
+    <div v-if="showPromoBanner" class="py-2 px-4 mx-3 my-2 text-white position-relative d-flex align-items-center justify-content-center rounded-pill shadow-sm"
+         style="background: linear-gradient(90deg, #0080ff 0%, #00ff58 50%, #e4ff3b 100%); font-size: 14px; z-index: 10;">
+        <button type="button" @click="showPromoBanner = false" class="btn-close btn-close-white position-absolute start-0 ms-3" aria-label="Đóng" style="font-size: 10px;"></button>
+        <div class="text-center px-4">
+            <i class="ti ti-sparkles me-1 text-dark"></i>
+            <strong>Nhận ngay 15 tín dụng miễn phí</strong> khi đăng ký, không cần thẻ. Trải nghiệm sáng tạo nhạc AI ngay lập tức!
         </div>
-        <section class="home-hero-shell">
-            <div class="home-hero-copy">
-                <div class="home-eyebrow"><i class="ti ti-sparkles"></i> MusicAI Studio</div>
-                <h1 class="home-title"><span>Nhạc riêng cho nội dung</span><span>và không gian của bạn</span></h1>
-                <p class="home-subtitle">Chọn điều bạn cần, chọn gu âm nhạc, rồi để MusicAI biến lựa chọn đó thành một bản nhạc mang dấu ấn riêng.</p>
-                <div class="home-creation-flow" aria-label="Quy trình sáng tạo cùng MusicAI">
-                    <div class="home-flow-step"><i class="ti ti-click"></i><span>Chọn theo nhu cầu</span></div>
-                    <span class="home-flow-connector flow-connector-down" aria-hidden="true"><i class="ti ti-arrow-down-right"></i></span>
-                    <div class="home-flow-step"><i class="ti ti-wand"></i><span>AI ghép ý tưởng</span></div>
-                    <span class="home-flow-connector flow-connector-up" aria-hidden="true"><i class="ti ti-arrow-up-right"></i></span>
-                    <div class="home-flow-step"><i class="ti ti-adjustments"></i><span>Tạo phiên bản mới</span></div>
-                </div>
-                <div class="d-flex flex-column flex-sm-row gap-3 mt-4">
-                    <a href="/create" class="app-large-action home-create-cta btn btn-success px-4 d-inline-flex align-items-center justify-content-center" style="background: var(--brand-green); border: 0;"><i class="ti ti-wand me-2"></i>Tạo nhạc ngay</a>
-                    <a href="/explore" class="app-large-action home-explore-cta btn px-4 d-inline-flex align-items-center justify-content-center"><i class="ti ti-compass me-2"></i>Nghe từ cộng đồng</a>
-                </div>
-                <p class="home-cta-note"><i class="ti ti-circle-check me-1"></i>Không cần biết cách viết prompt</p>
-            </div>
+    </div>
 
-            <div class="home-video-card" aria-label="Video giới thiệu MusicAI">
-                <video autoplay muted loop playsinline preload="metadata" aria-label="Video giới thiệu không gian sáng tạo âm nhạc">
-                    <source src="/videos/musicai-home-loop.mp4" type="video/mp4">
-                </video>
-                <div class="home-video-shade"></div>
-                <button type="button" class="home-video-sound" @click="toggleHomeVideoSound($event)" aria-label="Bật âm thanh video" title="Bật âm thanh video">
-                    <i class="ti ti-volume-off"></i><span>Bật âm thanh</span>
-                </button>
-                <div class="home-video-copy"><h2>5 bước đến bản nhạc riêng</h2><p>Chọn nhu cầu, tinh chỉnh phong cách, giọng &amp; lời rồi tạo phiên bản phù hợp.</p></div>
+    <div class="home-page-watermark" aria-hidden="true">
+        <i class="ti ti-wand home-page-watermark-icon"></i>
+        <span>MusicAI</span>
+    </div>
+    <section class="home-hero-shell">
+        <div class="home-hero-copy">
+            <div class="home-eyebrow"><i class="ti ti-sparkles"></i> MusicAI Studio</div>
+            <h1 class="home-title"><span>Nhạc riêng cho nội dung</span><span>và không gian của bạn</span></h1>
+            <p class="home-subtitle">Chọn điều bạn cần, chọn gu âm nhạc, rồi để MusicAI biến lựa chọn đó thành một bản nhạc mang dấu ấn riêng.</p>
+            <div class="home-creation-flow" aria-label="Quy trình sáng tạo cùng MusicAI">
+                <div class="home-flow-step"><i class="ti ti-click"></i><span>Chọn theo nhu cầu</span></div>
+                <span class="home-flow-connector flow-connector-down" aria-hidden="true"><i class="ti ti-arrow-down-right"></i></span>
+                <div class="home-flow-step"><i class="ti ti-wand"></i><span>AI ghép ý tưởng</span></div>
+                <span class="home-flow-connector flow-connector-up" aria-hidden="true"><i class="ti ti-arrow-up-right"></i></span>
+                <div class="home-flow-step"><i class="ti ti-adjustments"></i><span>Tạo phiên bản mới</span></div>
             </div>
-        </section>
+            <div class="d-flex flex-column flex-sm-row gap-3 mt-4">
+                <a href="/create" class="app-large-action home-create-cta btn btn-success px-4 d-inline-flex align-items-center justify-content-center" style="background: var(--brand-green); border: 0;"><i class="ti ti-wand me-2"></i>Tạo nhạc ngay</a>
+                <a href="/explore" class="app-large-action home-explore-cta btn px-4 d-inline-flex align-items-center justify-content-center"><i class="ti ti-compass me-2"></i>Nghe từ cộng đồng</a>
+            </div>
+            <p class="home-cta-note"><i class="ti ti-circle-check me-1"></i>Không cần biết cách viết prompt</p>
+        </div>
 
-        <section id="explore-section" class="app-surface-card p-3 p-md-4">
-            <div class="section-heading-row mb-4">
-                <div><div class="home-community-kicker">Cộng đồng MusicAI</div><h2 class="home-community-title">Nghe để tìm cảm hứng</h2></div>
-                <a href="/explore" class="explore-see-all text-decoration-none">Khám phá <i class="ti ti-arrow-right ms-1"></i></a>
+        <div class="home-video-card" aria-label="Video giới thiệu MusicAI">
+            <video autoplay muted loop playsinline preload="metadata" aria-label="Video giới thiệu không gian sáng tạo âm nhạc">
+                <source src="/videos/musicai-home-loop.mp4" type="video/mp4">
+            </video>
+            <div class="home-video-shade"></div>
+            <button type="button" class="home-video-sound" @click="toggleHomeVideoSound($event)" aria-label="Bật âm thanh video" title="Bật âm thanh video">
+                <i class="ti ti-volume-off"></i><span>Bật âm thanh</span>
+            </button>
+            <div class="home-video-copy"><h2>5 bước đến bản nhạc riêng</h2><p>Chọn nhu cầu, tinh chỉnh phong cách, giọng &amp; lời rồi tạo phiên bản phù hợp.</p></div>
+        </div>
+    </section>
+
+    <section class="py-5 px-3 px-md-5" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+        <div class="text-center mb-5">
+            <h3 class="h3 fw-bold text">Công nghệ & Tính năng</h3>
+            <h5 class=" fw-bold text">Sức mạnh toàn diện cho nhà sáng tạo</h5>
+            <p class="text-muted-sync small">Kết hợp những mô hình AI hàng đầu và nền tảng cộng đồng âm nhạc hiện đại.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 p-3" style="background: rgba(255,255,255,0.04); border-radius: 12px;">
+                    <div class="mb-3 text-success fs-3"><i class="ti ti-cpu"></i></div>
+                    <h3 class="h6 fw-bold text mb-2">Suno AI Model</h3>
+                    <p class="text-muted-sync small mb-0">Tạo ra các bài hát hoàn chỉnh với chất lượng vocal và nhạc cụ cực kỳ sống động, chân thực.</p>
+                </div>
             </div>
-            <div class="explore-song-row home-community-song-row mt-3">
-                <article v-for="song in publicSongs.slice(0, 5)" :key="song.id" class="explore-song-card" @click="goToSongDetail(song.id)">
-                    <div class="explore-song-art">
-                        <img :src="getSongCover(song)" @error="onImageError($event, 'cover')" alt="Ảnh bìa bài hát">
-                        <button @click.stop="playTrack(song)" class="explore-song-play" :aria-label="'Phát ' + song.title"><i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play-filled']"></i></button>
-                        <button @click.stop="toggleLike(song)" class="explore-song-like" :class="{ 'is-liked': song.liked_by_me }" :title="song.liked_by_me ? 'Bỏ yêu thích' : 'Yêu thích'"><i :class="song.liked_by_me ? 'ti ti-heart-filled' : 'ti ti-heart'"></i></button>
-                        <span class="explore-song-stat"><i class="ti ti-headphones me-1"></i>{{ getListensCount(song) }}</span>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 p-3" style="background: rgba(255,255,255,0.04); border-radius: 12px;">
+                    <div class="mb-3 text-success fs-3"><i class="ti ti-cpu"></i></div>
+                    <h3 class="h6 fw-bold text mb-2">MusicAPI Integration</h3>
+                    <p class="text-muted-sync small mb-0">Hệ thống sinh nhạc linh hoạt, đáp ứng nhanh chóng mọi thể loại từ Pop, EDM đến Ballad sâu lắng.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 p-3" style="background: rgba(255,255,255,0.04); border-radius: 12px;">
+                    <div class="mb-3 text-success fs-3"><i class="ti ti-cpu"></i></div>
+                    <h3 class="h6 fw-bold text mb-2">AudioCraft Engine</h3>
+                    <p class="text-muted-sync small mb-0">Kiểm soát chi tiết cấu trúc giai đoạn âm thanh, tối ưu hóa độ mượt mà cho từng giai điệu.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border-0 p-3" style="background: rgba(255,255,255,0.04); border-radius: 12px;">
+                    <div class="mb-3 text-success fs-3"><i class="ti ti-cpu"></i></div>
+                    <h3 class="h6 fw-bold text mb-2">ACE-Step1.5</h3>
+                    <p class="text-muted-sync small mb-0">Mô hình tiên tiến hỗ trợ phân tích và nâng cấp chất lượng bản thu đạt chuẩn phòng thu chuyên nghiệp.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-2">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 p-4 d-flex flex-row align-items-start gap-3" style="background: rgba(255,255,255,0.04); border-radius: 12px;">
+                    <div class="text-success fs-2"><i class="ti ti-credit-card"></i></div>
+                    <div>
+                        <h3 class="h6 fw-bold text mb-1">Thanh toán linh hoạt & Bảo mật</h3>
+                        <p class="text-muted-sync small mb-0">Hỗ trợ đa phương thức từ VNPay đến chuyển khoản SePay tự động quét mã QR, cộng token tức thì sau vài giây.</p>
                     </div>
-                    <h3 class="explore-song-title">{{ song.title }}</h3>
-                    <a :href="'/profile?username=' + song.username" class="explore-song-author text-decoration-none" @click.stop><i class="ti ti-user-circle me-1"></i>{{ song.authorName || song.username || 'MusicAI' }}</a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 p-4 d-flex flex-row align-items-start gap-3" style="background: rgba(255,255,255,0.04); border-radius: 12px;">
+                    <div class="text-success fs-2"><i class="ti ti-share-3"></i></div>
+                    <div>
+                        <h3 class="h6 fw-bold text mb-1">Mạng xã hội âm nhạc tương tác cao</h3>
+                        <p class="text-muted-sync small mb-0">Thoải mái thả tim, viết bình luận, chia sẻ các tác phẩm yêu thích và tự tạo playlist cá nhân để lưu giữ cảm xúc.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="explore-section" class="app-surface-card p-3 p-md-4">
+        <div class="section-heading-row mb-4">
+            <div><div class="home-community-kicker">Cộng đồng MusicAI</div>
+                <h2 class="home-community-title">Nghe để tìm cảm hứng</h2></div>
+            <a href="/explore" class="explore-see-all text-decoration-none">Khám phá <i class="ti ti-arrow-right ms-1"></i></a>
+        </div>
+        <div class="explore-song-row home-community-song-row mt-3">
+            <article v-for="song in publicSongs.slice(0, 5)" :key="song.id" class="explore-song-card" @click="goToSongDetail(song.id)">
+                <div class="explore-song-art">
+                    <img :src="getSongCover(song)" @error="onImageError($event, 'cover')" alt="Ảnh bìa bài hát">
+                    <button @click.stop="playTrack(song)" class="explore-song-play" :aria-label="'Phát ' + song.title"><i :class="['ti', isTrackPlaying(song.id) ? 'ti-player-pause' : 'ti-player-play-filled']"></i></button>
+                    <button @click.stop="toggleLike(song)" class="explore-song-like" :class="{ 'is-liked': song.liked_by_me }" :title="song.liked_by_me ? 'Bỏ yêu thích' : 'Yêu thích'"><i :class="song.liked_by_me ? 'ti ti-heart-filled' : 'ti ti-heart'"></i></button>
+                    <span class="explore-song-stat"><i class="ti ti-headphones me-1"></i>{{ getListensCount(song) }}</span>
+                </div>
+                <h3 class="explore-song-title">{{ song.title }}</h3>
+                <a :href="'/profile?username=' + song.username" class="explore-song-author text-decoration-none" @click.stop><i class="ti ti-user-circle me-1"></i>{{ song.authorName || song.username || 'MusicAI' }}</a>
+            </article>
+        </div>
+        <div v-if="publicSongs.length === 0" class="app-empty-state"><i class="ti ti-music-off mb-2 d-block fs-3"></i>Chưa có bài nhạc công khai.</div>
+    </section>
+
+    <section class="py-5 px-3 px-md-5">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold" style="color: var(--text-color);">Các gói sáng tạo phù hợp</h2>
+            <p class="text-muted-sync small">Khám phá các gói token ưu đãi để mở khóa trọn vẹn tiềm năng âm nhạc.</p>
+        </div>
+
+        <div v-if="isLoadingPackages" class="text-center py-4">
+            <div class="spinner-border text-success"></div>
+            <p class="text-muted-sync small mt-2 mb-0">Đang tải các gói...</p>
+        </div>
+
+        <div v-else class="row g-4 justify-content-center">
+            <div class="col-md-4" v-for="pkg in packages" :key="pkg.id">
+                <article class="card h-100 border-0 shadow-sm"
+                         :style="pkg.id === 2 ? 'background:var(--card-bg); border:1.5px solid rgba(22,163,74,0.5) !important;' : 'background:var(--card-bg); border:1px solid var(--border-color) !important;'">
+                    <div v-if="pkg.id === 2" class="text-center pt-3">
+                        <span class="badge px-3 py-2 bg-success rounded-pill">Phổ biến nhất</span>
+                    </div>
+                    <div class="card-body text-center p-4">
+                        <h3 class="h5 fw-bold mb-2" style="color: var(--text-color);">{{ pkg.name }}</h3>
+                        <p class="text-muted-sync small mb-3">{{ pkg.description }}</p>
+                        <div class="small text-success fw-semibold mb-2">
+                            {{ pkg.tierCode === 'STUDIO' ? 'Phòng thu' : (pkg.tierCode === 'PRO' ? 'Chuyên nghiệp' : 'Nhà sáng tạo') }} · {{ pkg.durationDays || 30 }} ngày
+                        </div>
+                        <div class="mb-3">
+                            <span class="fw-bold text-success" style="font-size: 36px;">{{ pkg.tokens }}</span>
+                            <span class="text-muted-sync ms-1 small">token</span>
+                        </div>
+                        <div class="mb-4 fw-bold" style="font-size: 20px; color: var(--text-color);">{{ formatPrice(pkg.price) }}đ</div>
+                        <a href="/orders" class="btn w-100 fw-semibold py-2 text-decoration-none"
+                           :class="pkg.id === 2 ? 'btn-success' : 'btn-outline-success'" style="border-radius: 10px;">
+                            <i class="ti ti-shopping-cart me-1"></i> Xem chi tiết gói
+                        </a>
+                    </div>
                 </article>
             </div>
-            <div v-if="publicSongs.length === 0" class="app-empty-state"><i class="ti ti-music-off mb-2 d-block fs-3"></i>Chưa có bài nhạc công khai.</div>
-        </section>
-    </div>
+        </div>
+    </section>
+
+    <!-- (FAQ) -->
+    <section class="py-5 px-3 px-md-5" style="background: var(--card-bg); transition: background 0.3s;">
+        <div class="text-center mb-5">
+            <h2 class="h3 fw-bold" style="color: var(--text-color);">Câu hỏi thường gặp</h2>
+            <p class="text-muted-sync small">Giải đáp nhanh các thắc mắc phổ biến khi sử dụng MusicAI.</p>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="accordion custom-faq-accordion" id="faqAccordion">
+
+                    <!-- Câu 1 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne" style="color: var(--text-color);">
+                                Tôi có thể bắt đầu sử dụng dịch vụ nhanh đến mức nào?
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Bạn chỉ mất chưa đầy 1 phút để đăng ký tài khoản bằng email hoặc Google. Hệ thống sẽ tự động cộng ngay 15 tín dụng miễn phí để bạn có thể trải nghiệm tạo nhạc ngay lập tức mà không cần cung cấp thông tin thẻ ngân hàng.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Câu 2 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingTwo">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo" style="color: var(--text-color);">
+                                Gói dùng thử miễn phí bao gồm những gì?
+                            </button>
+                        </h2>
+                        <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Gói miễn phí cung cấp 15 token khởi tạo giúp bạn thử nghiệm các mô hình cơ bản, khám phá kho nhạc cộng đồng, thả tim, bình luận và tự tạo playlist cá nhân.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Câu 3 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingThree">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree" style="color: var(--text-color);">
+                                Tôi có thể sử dụng nhạc đã tạo ra cho mục đích thương mại không?
+                            </button>
+                        </h2>
+                        <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Có, khi bạn nâng cấp lên các gói cao cấp như Chuyên nghiệp (Pro) hoặc Phòng thu (Studio), các sản phẩm âm nhạc bạn tạo ra sẽ đi kèm quyền sử dụng thương mại để phục vụ cho video, dự án hoặc kinh doanh riêng.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Câu 4 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingFour">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour" style="color: var(--text-color);">
+                                Hệ thống xử lý các yêu cầu tạo nhạc đồng thời như thế nào?
+                            </button>
+                        </h2>
+                        <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Hệ thống sử dụng luồng bất đồng bộ (`@Async`) kết hợp hàng đợi công việc (Job Queue) giúp xử lý mượt mà nhiều tác vụ tạo nhạc cùng lúc mà không làm gián đoạn trải nghiệm của người dùng.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Câu 5 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingFive">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive" style="color: var(--text-color);">
+                                Điều gì sẽ xảy ra khi tôi sử dụng hết số lượt sử dụng miễn phí hàng tháng?
+                            </button>
+                        </h2>
+                        <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Khi hết token, bạn có thể dễ dàng nạp thêm thông qua các gói nạp linh hoạt bằng quét mã SePay hoặc VNPay. Token mới sẽ được cộng vào tài khoản tự động chỉ trong vài giây sau khi thanh toán thành công.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Câu 6 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingSix">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix" style="color: var(--text-color);">
+                                Tôi có thể truy cập nội dung đã tạo của mình trong bao lâu?
+                            </button>
+                        </h2>
+                        <div id="collapseSix" class="accordion-collapse collapse" aria-labelledby="headingSix" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Tất cả các bản nhạc bạn đã tạo thành công sẽ được lưu trữ vĩnh viễn trong kho lưu trữ cá nhân (Workspace/Library) của bạn, trừ khi bạn chủ động xóa chúng đi.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Câu 7 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingSeven">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven" style="color: var(--text-color);">
+                                Chính sách hoàn tiền của bạn là gì?
+                            </button>
+                        </h2>
+                        <div id="collapseSeven" class="accordion-collapse collapse" aria-labelledby="headingSeven" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Nếu giao dịch thanh toán gặp sự cố kỹ thuật (trừ tiền nhưng chưa cộng token hoặc lỗi hệ thống), đội ngũ hỗ trợ sẽ kiểm tra và hoàn tiền hoặc bù số lượng token tương ứng cho bạn trong vòng 24 giờ.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Câu 8 -->
+                    <div class="accordion-item mb-3 border-0 rounded-3 overflow-hidden shadow-sm" style="background: var(--card-bg); border: 1px solid var(--border-color) !important;">
+                        <h2 class="accordion-header" id="headingEight">
+                            <button class="accordion-button collapsed bg-transparent fw-semibold shadow-none py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="false" aria-controls="collapseEight" style="color: var(--text-color);">
+                                Tôi có thể tìm sự hỗ trợ ở đâu nếu cần?
+                            </button>
+                        </h2>
+                        <div id="collapseEight" class="accordion-collapse collapse" aria-labelledby="headingEight" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
+                                Bạn có thể liên hệ trực tiếp với chúng tôi qua hệ thống chat trực tuyến trên website hoặc gửi email về địa chỉ hỗ trợ của dự án để được giải đáp thắc mắc 24/7.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
 </body>
 </html>
