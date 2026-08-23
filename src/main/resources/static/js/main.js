@@ -113,6 +113,7 @@ new Vue({
         wizardEditingSongId: null,
         wizardEditingSongTitle: '',
         wizardBriefs: {},
+        wizardAccessNote: '',
         isGenerating: false,
         currentTrack: { id: null, title: '', prompt: '', status: '', audioUrl: '' },
 
@@ -360,12 +361,37 @@ new Vue({
         },
         userTierLabel() {
             const labels = {
-                FREE: 'Miễn phí',
-                CREATOR: 'Nhà sáng tạo',
-                PRO: 'Chuyên nghiệp',
-                STUDIO: 'Phòng thu'
+                FREE: 'FREE',
+                CREATOR: 'CREATOR',
+                PRO: 'PRO',
+                STUDIO: 'STUDIO'
             };
-            return labels[this.userTier] || this.userTier || 'Miễn phí';
+            return labels[this.effectiveUserTier] || 'FREE';
+        },
+        effectiveUserTier() {
+            const tier = String(this.userTier || 'FREE').toUpperCase();
+            if (this.userTierExpiresAt && new Date(this.userTierExpiresAt).getTime() <= Date.now()) return 'FREE';
+            return ['CREATOR', 'PRO', 'STUDIO'].includes(tier) ? tier : 'FREE';
+        },
+        tierFeaturePolicy() {
+            const tier = this.effectiveUserTier;
+            if (tier === 'STUDIO') return { providers: ['audiocraft', 'ace-step', 'musicapi', 'suno'], maxDuration: 120, referenceAnalysis: true, ownLyrics: true, aiLyrics: true };
+            if (tier === 'PRO') return { providers: ['audiocraft', 'ace-step', 'musicapi', 'suno'], maxDuration: 60, referenceAnalysis: true, ownLyrics: true, aiLyrics: true };
+            if (tier === 'CREATOR') return { providers: ['audiocraft', 'musicapi'], maxDuration: 30, referenceAnalysis: false, ownLyrics: false, aiLyrics: true };
+            return { providers: ['audiocraft'], maxDuration: 30, referenceAnalysis: false, ownLyrics: false, aiLyrics: false };
+        },
+        canUseReferenceAnalysis() {
+            return this.tierFeaturePolicy.referenceAnalysis;
+        },
+        wizardTierRestrictionMessage() {
+            const provider = this.selectedMusicProvider();
+            if (this.musicBrief.provider && !this.isProviderTierAllowed(provider)) return this.providerTierMessage(provider);
+            if (!this.isDurationTierAllowed(this.musicBrief.duration)) return this.durationTierMessage(this.musicBrief.duration);
+            if (!this.isVocalModeTierAllowed(this.musicBrief.vocalMode)) return this.vocalModeTierMessage(this.musicBrief.vocalMode);
+            if (!this.isVocalModeProviderSupported(this.musicBrief.vocalMode)) return this.providerUnsupportedMessage('lyrics');
+            if (this.musicBrief.vocalGender !== 'auto' && !provider.supportsVocalGender) return this.providerUnsupportedMessage('gender');
+            if (this.musicBrief.vocalLanguage === 'Tiếng Anh' && !provider.supportsVocalLanguage) return `${provider.name} không hỗ trợ chọn ngôn ngữ giọng hát.`;
+            return '';
         },
         activeExploreSongs() {
             const catalog = this.exploreCatalogSongs;

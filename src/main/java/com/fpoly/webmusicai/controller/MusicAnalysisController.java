@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fpoly.webmusicai.service.MusicReferenceAnalysisService;
+import com.fpoly.webmusicai.exception.TierRestrictedException;
 
 @RestController
 @RequestMapping("/api/music-analysis")
@@ -31,6 +32,8 @@ public class MusicAnalysisController {
     public ResponseEntity<?> analyze(@RequestParam("file") MultipartFile file, Principal principal) {
         try {
             return ResponseEntity.ok(referenceAnalysisService.analyze(principal.getName(), file));
+        } catch (TierRestrictedException error) {
+            return ResponseEntity.status(403).body(Map.of("message", error.getMessage()));
         } catch (IllegalArgumentException error) {
             return ResponseEntity.badRequest().body(Map.of("message", error.getMessage()));
         } catch (IllegalStateException error) {

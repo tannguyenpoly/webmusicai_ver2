@@ -116,27 +116,27 @@ public class AdminRestController {
     public ResponseEntity<?> getPackageSummary(@RequestParam(defaultValue = "sales_desc") String sort) {
         List<Map<String, Object>> rows = packageRepo.findSalesSummary().stream().map(row -> {
             Map<String, Object> item = new HashMap<>();
-            item.put("id", row[0]); item.put("name", row[1]); item.put("tokens", row[2]); item.put("price", row[3]);
-            item.put("description", row[4]); item.put("oldPrice", row[5]); item.put("badge", row[6]);
-            item.put("tierCode", row[7]); item.put("durationDays", row[8]);
-            item.put("successfulOrders", ((Number) row[9]).longValue());
-            item.put("revenue", ((Number) row[10]).longValue());
+            item.put("id", row[0]); item.put("tokens", row[1]); item.put("price", row[2]);
+            item.put("description", row[3]); item.put("oldPrice", row[4]); item.put("badge", row[5]);
+            item.put("tierCode", row[6]); item.put("durationDays", row[7]);
+            item.put("successfulOrders", ((Number) row[8]).longValue());
+            item.put("revenue", ((Number) row[9]).longValue());
             return item;
         }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 
-        Comparator<Map<String, Object>> byName = Comparator.comparing(row -> String.valueOf(row.get("name")), String.CASE_INSENSITIVE_ORDER);
+        Comparator<Map<String, Object>> byTier = Comparator.comparing(row -> String.valueOf(row.get("tierCode")), String.CASE_INSENSITIVE_ORDER);
         Comparator<Map<String, Object>> bySales = Comparator.comparingLong(row -> ((Number) row.get("successfulOrders")).longValue());
         Comparator<Map<String, Object>> byRevenue = Comparator.comparingLong(row -> ((Number) row.get("revenue")).longValue());
         Comparator<Map<String, Object>> byPrice = Comparator.comparingLong(row -> ((Number) row.get("price")).longValue());
         Comparator<Map<String, Object>> byTokens = Comparator.comparingLong(row -> ((Number) row.get("tokens")).longValue());
         switch (sort) {
-            case "sales_asc" -> rows.sort(bySales.thenComparing(byName));
-            case "revenue_desc" -> rows.sort(byRevenue.reversed().thenComparing(byName));
-            case "price_asc" -> rows.sort(byPrice.thenComparing(byName));
-            case "price_desc" -> rows.sort(byPrice.reversed().thenComparing(byName));
-            case "tokens_asc" -> rows.sort(byTokens.thenComparing(byName));
-            case "tokens_desc" -> rows.sort(byTokens.reversed().thenComparing(byName));
-            default -> rows.sort(bySales.reversed().thenComparing(byName));
+            case "sales_asc" -> rows.sort(bySales.thenComparing(byTier));
+            case "revenue_desc" -> rows.sort(byRevenue.reversed().thenComparing(byTier));
+            case "price_asc" -> rows.sort(byPrice.thenComparing(byTier));
+            case "price_desc" -> rows.sort(byPrice.reversed().thenComparing(byTier));
+            case "tokens_asc" -> rows.sort(byTokens.thenComparing(byTier));
+            case "tokens_desc" -> rows.sort(byTokens.reversed().thenComparing(byTier));
+            default -> rows.sort(bySales.reversed().thenComparing(byTier));
         }
         return ResponseEntity.ok(rows);
     }

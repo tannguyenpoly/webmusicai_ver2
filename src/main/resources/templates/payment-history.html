@@ -88,7 +88,7 @@
                                 <tbody>
                                     <tr v-for="order in paginatedPaymentHistoryOrders" :key="order.id">
                                         <td><code class="text-success">{{ order.orderCode }}</code></td>
-                                        <td>{{ order.pkg ? order.pkg.name : '—' }}</td>
+                                        <td>{{ order.pkg ? order.pkg.tierCode : '—' }}</td>
                                         <td><span class="text-muted-sync small">{{ order.paymentMethod || '—' }}</span></td>
                                         <td class="text-center"><span v-if="order.status === 'SUCCESS'" class="fw-bold text-success">+{{ order.pkg ? order.pkg.tokens : 0 }}</span><span v-else class="text-muted-sync">—</span></td>
                                         <td class="text-end fw-semibold">{{ formatPrice(order.totalPrice) }}đ</td>

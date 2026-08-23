@@ -107,7 +107,11 @@
                 transition: transform .18s ease, border-color .18s ease, background .18s ease;
                 text-align: left;
             }
-            .wizard-choice:hover { transform: translateY(-2px); border-color: rgba(22,163,74,.5); }
+            .wizard-choice:not(:disabled):not(.wizard-choice--feature):hover,
+            .wizard-choice.wizard-choice--feature.is-available:hover {
+                transform: translateY(-2px);
+                border-color: rgba(22,163,74,.5);
+            }
             .wizard-choice.is-selected {
                 border-color: var(--brand-green) !important;
                 background: rgba(22,163,74,.11) !important;
@@ -124,6 +128,90 @@
             }
             .wizard-choice.is-unsupported:hover,
             .wizard-choice:disabled:hover { transform: none; border-color: var(--border-color) !important; }
+            .wizard-choice.is-restricted,
+            .wizard-pill.is-restricted,
+            .reference-analysis-card.is-restricted {
+                opacity: .56;
+                filter: saturate(.55);
+                border-color: rgba(148,163,184,.38) !important;
+            }
+            .wizard-choice.is-restricted:hover,
+            .wizard-pill.is-restricted:hover { transform: none; }
+            .wizard-choice.is-locked,
+            .wizard-pill.is-locked {
+                opacity: .52;
+                cursor: not-allowed;
+                filter: saturate(.45);
+                transform: none !important;
+                pointer-events: none;
+                box-shadow: none !important;
+            }
+            .wizard-choice.wizard-choice--feature.is-locked:hover,
+            .wizard-choice.wizard-choice--feature.is-locked:focus,
+            .wizard-choice.wizard-choice--feature:disabled:hover,
+            .wizard-choice.wizard-choice--feature:disabled:focus {
+                border-color: var(--border-color) !important;
+                background: rgba(120, 120, 120, .025) !important;
+                transform: none !important;
+                box-shadow: none !important;
+            }
+            .wizard-access-tag {
+                position: absolute !important;
+                top: 10px !important;
+                right: 10px !important;
+                padding: 3px 7px;
+                border-radius: 999px;
+                background: rgba(22,163,74,.16);
+                border: 1px solid rgba(22,163,74,.34);
+                color: #4ade80;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: .3px;
+                line-height: 1.2;
+            }
+            .wizard-access-tag.is-unsupported { background: rgba(148,163,184,.12); border-color: rgba(148,163,184,.32); color: #cbd5e1; }
+            .wizard-choice--feature { position: relative !important; padding-right: 92px; }
+            /* Ba trạng thái thao tác: available (chưa chọn), selected, locked.
+               Chỉ available mới có hiệu ứng hover; locked không nhận bất kỳ pointer event nào. */
+            button.wizard-provider-card.is-available:hover,
+            button.wizard-choice--feature.is-available:hover {
+                transform: translateY(-2px) !important;
+                border-color: rgba(22,163,74,.55) !important;
+                background: rgba(22,163,74,.07) !important;
+            }
+            button.wizard-provider-card.is-selected,
+            button.wizard-choice--feature.is-selected {
+                border-color: var(--brand-green) !important;
+                background: rgba(22,163,74,.13) !important;
+                box-shadow: 0 0 0 1px rgba(22,163,74,.16) !important;
+            }
+            button.wizard-provider-card.is-locked,
+            button.wizard-choice--feature.is-locked {
+                pointer-events: none !important;
+                cursor: not-allowed !important;
+                opacity: .35 !important;
+                filter: grayscale(1) !important;
+                border-color: var(--border-color) !important;
+                background: rgba(120,120,120,.02) !important;
+                box-shadow: none !important;
+                transform: none !important;
+            }
+            button.wizard-provider-card.is-locked .wizard-access-tag,
+            button.wizard-choice--feature.is-locked .wizard-access-tag {
+                background: rgba(148,163,184,.12) !important;
+                border-color: rgba(148,163,184,.30) !important;
+                color: #cbd5e1 !important;
+            }
+            .wizard-access-note {
+                margin: 0 0 18px;
+                padding: 9px 12px;
+                border: 1px solid rgba(234,179,8,.3);
+                border-radius: 10px;
+                background: rgba(234,179,8,.07);
+                color: var(--text-muted);
+                font-size: 12px;
+                line-height: 1.45;
+            }
             .provider-capability-note {
                 display: flex;
                 align-items: flex-start;
@@ -214,6 +302,10 @@
                     border-right: 1px solid var(--border-color) !important;
                 }
             }
+            @media (min-width: 1200px) {
+                .studio-generation { flex: 0 0 70%; max-width: 70%; }
+                .studio-library-column { flex: 0 0 30%; max-width: 30%; }
+            }
             @media (max-width: 991.98px) {
                 .studio-library { margin-top: 2px; padding: 18px; }
             }
@@ -231,7 +323,7 @@
         <div v-if="currentUser" class="row g-4 g-xl-5 pt-2">
             
             <!-- LEFT PANEL: Generation Settings -->
-            <div class="col-xl-7 col-lg-6 pe-xl-5 border-end-md">
+            <div class="col-xl-7 col-lg-7 pe-xl-5 border-end-md studio-generation">
                 <div class="music-wizard-card p-3 p-md-4 p-xl-5">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                         <div>
@@ -256,13 +348,17 @@
                         <span class="small flex-grow-1 text-truncate" style="color:var(--text-color);">Đang tạo phiên bản mới từ: <strong>{{ wizardEditingSongTitle }}</strong></span>
                         <button @click="resetWizardForNewSong" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size:11px;">Tạo bài mới</button>
                     </div>
+                    <div v-if="wizardAccessNote || wizardTierRestrictionMessage" class="wizard-access-note">
+                        <i class="ti ti-info-circle me-1 text-warning"></i>{{ wizardAccessNote || wizardTierRestrictionMessage }}
+                    </div>
 
                     <div v-if="wizardStep === 1">
                         <div class="wizard-section-title fw-bold mb-3">Chọn mô hình AI</div>
                         <div class="row g-2 mb-4">
                             <div v-for="provider in musicProviders" :key="provider.code" class="col-md-6">
-                                <button @click="selectMusicProvider(provider)" class="wizard-choice w-100 h-100 text-start" :class="{ 'is-selected': musicBrief.provider === provider.code }">
-                                    <div class="d-flex align-items-start gap-2"><i class="ti ti-cpu-2 text-success" style="font-size:22px;"></i><span><span class="d-flex align-items-center gap-1 fw-bold" style="font-size:14px;">{{ provider.name }} <small class="badge" :class="provider.available ? 'bg-success' : 'bg-secondary'">{{ provider.available ? 'Sẵn sàng' : 'Chưa sẵn sàng' }}</small></span><span class="d-block text-muted-sync mt-1" style="font-size:11px;">{{ provider.description }}</span></span><i v-if="musicBrief.provider === provider.code" class="ti ti-circle-check ms-auto text-success" style="font-size:18px;"></i></div>
+                                <button @click="selectMusicProvider(provider)" :disabled="providerDisplayState(provider) === 'locked'" :style="providerCardStyle(provider)" class="wizard-choice wizard-choice--feature wizard-provider-card position-relative w-100 h-100 text-start" :class="'is-' + providerDisplayState(provider)">
+                                    <span class="position-absolute top-0 end-0 m-2 px-2 py-1 rounded-pill border small fw-bold" style="font-size:10px;line-height:1.1;background:rgba(22,163,74,.16);color:#4ade80;border-color:rgba(22,163,74,.34)!important;">{{ providerRequiredTier(provider) }}</span>
+                                    <div class="d-flex align-items-start gap-2"><i class="ti ti-cpu-2 text-success" style="font-size:22px;"></i><span><span class="d-flex align-items-center gap-1 fw-bold" style="font-size:14px;">{{ provider.name }} <small class="badge" :class="provider.available ? 'bg-success' : 'bg-secondary'">{{ provider.available ? 'Sẵn sàng' : 'Chưa sẵn sàng' }}</small></span><span class="d-block text-muted-sync mt-1" style="font-size:11px;">{{ provider.description }}</span></span></div>
                                 </button>
                             </div>
                         </div>
@@ -273,7 +369,7 @@
                                     :class="{ 'is-selected': musicBrief.audience === 'creator' }">
                                     <div class="d-flex align-items-center gap-3">
                                         <span class="d-flex align-items-center justify-content-center rounded-3" style="width:42px;height:42px;background:rgba(22,163,74,.13);color:var(--brand-green);"><i class="ti ti-video" style="font-size:22px;"></i></span>
-                                        <span><span class="d-block fw-bold" style="font-size:14px;">Nhà sáng tạo nội dung</span></span>
+                                        <span><span class="d-block fw-bold" style="font-size:14px;">Người sáng tạo nội dung</span></span>
                                         <i v-if="musicBrief.audience === 'creator'" class="ti ti-circle-check ms-auto text-success" style="font-size:20px;"></i>
                                     </div>
                                 </button>
@@ -317,7 +413,7 @@
                         </div>
                         <div class="wizard-option-group">
                             <label class="small fw-semibold text-muted-sync mb-2">THỜI LƯỢNG MONG MUỐN</label>
-                            <div class="d-flex flex-wrap gap-2"><button v-for="duration in wizardDurations" :key="duration" @click="musicBrief.duration = duration" class="wizard-pill" :class="{ 'is-selected': musicBrief.duration === duration }">{{ duration }}</button></div>
+                            <div class="d-flex flex-wrap gap-2"><button v-for="duration in wizardDurations" :key="duration" @click="selectWizardDuration(duration)" :disabled="!isDurationTierAllowed(duration)" class="wizard-pill" :class="'is-' + optionDisplayState(isDurationTierAllowed(duration), musicBrief.duration === duration)">{{ duration }}</button></div>
                         </div>
                     </div>
 
@@ -339,15 +435,16 @@
                             <label class="small fw-semibold text-muted-sync mb-2">NHẠC CỤ GỢI Ý</label>
                             <div class="d-flex flex-wrap gap-2"><button v-for="instrument in wizardInstruments" :key="instrument" @click="toggleWizardInstrument(instrument)" class="wizard-pill" :class="{ 'is-selected': musicBrief.instruments.includes(instrument) }">{{ instrument }}</button></div>
                         </div>
-                        <div class="wizard-option-group reference-analysis-card mt-3">
+                        <div class="wizard-option-group reference-analysis-card mt-3 position-relative" :class="{ 'is-restricted': !canUseReferenceAnalysis }">
+                            <span class="wizard-access-tag">PRO</span>
                             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                                 <span class="fw-bold"><i class="ti ti-file-music me-1 text-success"></i>Phân tích nhạc tham khảo</span>
                                 <span class="provider-status-badge" :class="referenceAnalysis.configured ? 'available' : 'unavailable'">{{ referenceAnalysis.configured ? 'Sẵn sàng' : 'Chưa sẵn sàng' }}</span>
                                 <span class="small text-muted-sync">MP3, WAV, M4A, OGG, AAC, FLAC · tối đa 50 MB</span>
                             </div>
                             <div class="d-flex flex-wrap gap-2 align-items-center">
-                                <input type="file" accept="audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/ogg,audio/aac,audio/flac,.mp3,.wav,.m4a,.ogg,.aac,.flac" @change="onReferenceAudioSelected" class="form-control custom-theme-input reference-file-input flex-grow-1" style="max-width:420px;">
-                                <button @click="analyzeReferenceAudio" :disabled="referenceAnalysis.isLoading || !referenceAnalysis.configured" class="btn btn-outline-success fw-semibold">
+                                <input type="file" :disabled="!canUseReferenceAnalysis" accept="audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/ogg,audio/aac,audio/flac,.mp3,.wav,.m4a,.ogg,.aac,.flac" @change="onReferenceAudioSelected" class="form-control custom-theme-input reference-file-input flex-grow-1" style="max-width:420px;">
+                                <button @click="analyzeReferenceAudio" :disabled="referenceAnalysis.isLoading || !referenceAnalysis.configured || !canUseReferenceAnalysis" class="btn btn-outline-success fw-semibold">
                                     <i v-if="referenceAnalysis.isLoading" class="ti ti-loader-2 ti-spin me-1"></i><i v-else class="ti ti-sparkles me-1"></i>{{ referenceAnalysis.isLoading ? 'Đang phân tích' : 'Phân tích' }}
                                 </button>
                             </div>
@@ -375,18 +472,18 @@
                             <span>{{ providerCapabilitySummary() }}</span>
                         </div>
                         <div class="d-grid gap-2 mb-3">
-                            <button @click="selectWizardVocalMode('instrumental')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'instrumental' }"><i class="ti ti-music-off me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Nhạc không lời</span></button>
-                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('ai-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'ai-lyrics', 'is-unsupported': !selectedMusicProvider().supportsLyrics }"><i class="ti ti-sparkles me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">AI gợi ý lời</span></button>
-                            <button :disabled="!selectedMusicProvider().supportsLyrics" @click="selectWizardVocalMode('own-lyrics')" class="wizard-choice" :class="{ 'is-selected': musicBrief.vocalMode === 'own-lyrics', 'is-unsupported': !selectedMusicProvider().supportsLyrics }"><i class="ti ti-pencil me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Tôi tự nhập lời</span></button>
+                            <button @click="selectWizardVocalMode('instrumental')" :disabled="!canSelectVocalMode('instrumental')" class="wizard-choice wizard-choice--feature" :class="'is-' + optionDisplayState(canSelectVocalMode('instrumental'), musicBrief.vocalMode === 'instrumental')"><span class="wizard-access-tag">FREE</span><i class="ti ti-music-off me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Nhạc không lời</span></button>
+                            <button @click="selectWizardVocalMode('ai-lyrics')" :disabled="!canSelectVocalMode('ai-lyrics')" class="wizard-choice wizard-choice--feature" :class="'is-' + optionDisplayState(canSelectVocalMode('ai-lyrics'), musicBrief.vocalMode === 'ai-lyrics')"><span class="wizard-access-tag" :class="{ 'is-unsupported': !isVocalModeProviderSupported('ai-lyrics') }">{{ !isVocalModeProviderSupported('ai-lyrics') ? 'Không hỗ trợ' : 'CREATOR' }}</span><i class="ti ti-sparkles me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">AI gợi ý lời</span></button>
+                            <button @click="selectWizardVocalMode('own-lyrics')" :disabled="!canSelectVocalMode('own-lyrics')" class="wizard-choice wizard-choice--feature" :class="'is-' + optionDisplayState(canSelectVocalMode('own-lyrics'), musicBrief.vocalMode === 'own-lyrics')"><span class="wizard-access-tag" :class="{ 'is-unsupported': !isVocalModeProviderSupported('own-lyrics') }">{{ !isVocalModeProviderSupported('own-lyrics') ? 'Không hỗ trợ' : 'PRO' }}</span><i class="ti ti-pencil me-2 text-success"></i><span class="fw-bold" style="font-size:13px;">Tôi tự nhập lời</span></button>
                         </div>
                         <div v-if="musicBrief.vocalMode !== 'instrumental'" class="mb-3">
                             <label class="small fw-semibold text-muted-sync mb-2">GIỌNG HÁT</label>
-                            <div v-if="selectedMusicProvider().supportsVocalGender" class="d-flex flex-wrap gap-2 mb-3">
-                                <button v-for="voice in [{ value: 'auto', label: 'Tự động', icon: 'ti-wand' }, { value: 'male', label: 'Giọng nam', icon: 'ti-user' }, { value: 'female', label: 'Giọng nữ', icon: 'ti-user-heart' }]" :key="voice.value" @click="selectWizardVocalGender(voice.value)" class="wizard-pill" :class="{ 'is-selected': musicBrief.vocalGender === voice.value }"><i :class="['ti', voice.icon, 'me-1']"></i>{{ voice.label }}</button>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <button v-for="voice in [{ value: 'auto', label: 'Tự động', icon: 'ti-wand' }, { value: 'male', label: 'Giọng nam', icon: 'ti-user' }, { value: 'female', label: 'Giọng nữ', icon: 'ti-user-heart' }]" :key="voice.value" @click="selectWizardVocalGender(voice.value)" :disabled="!canSelectVocalGender(voice.value)" class="wizard-pill" :class="'is-' + optionDisplayState(canSelectVocalGender(voice.value), musicBrief.vocalGender === voice.value)"><i :class="['ti', voice.icon, 'me-1']"></i>{{ voice.label }} <small v-if="voice.value !== 'auto'" class="ms-1">{{ selectedMusicProvider().supportsVocalGender ? providerRequiredTier(selectedMusicProvider()) : 'Không hỗ trợ' }}</small></button>
                             </div>
 
-                            <label v-if="selectedMusicProvider().supportsVocalLanguage" class="small fw-semibold text-muted-sync mb-2">NGÔN NGỮ GIỌNG HÁT</label>
-                            <div v-if="selectedMusicProvider().supportsVocalLanguage" class="d-flex gap-2"><button v-for="language in ['Tiếng Việt', 'Tiếng Anh']" :key="language" @click="musicBrief.vocalLanguage = language" class="wizard-pill" :class="{ 'is-selected': musicBrief.vocalLanguage === language }">{{ language }}</button></div>
+                            <label class="small fw-semibold text-muted-sync mb-2">NGÔN NGỮ GIỌNG HÁT</label>
+                            <div class="d-flex gap-2"><button v-for="language in ['Tiếng Việt', 'Tiếng Anh']" :key="language" @click="selectWizardVocalLanguage(language)" :disabled="!canSelectVocalLanguage(language)" class="wizard-pill" :class="'is-' + optionDisplayState(canSelectVocalLanguage(language), musicBrief.vocalLanguage === language)">{{ language }} <small v-if="language === 'Tiếng Anh'">{{ selectedMusicProvider().supportsVocalLanguage ? providerRequiredTier(selectedMusicProvider()) : 'Không hỗ trợ' }}</small></button></div>
                         </div>
                         <div v-if="musicBrief.vocalMode === 'own-lyrics'">
                             <label class="small fw-semibold text-muted-sync mb-2">LỜI NHẠC CỦA BẠN</label>
@@ -416,7 +513,7 @@
             </div>
 
             <!-- RIGHT PANEL: Workspaces & My Generated Songs -->
-            <div class="col-xl-5 col-lg-6 ps-xl-4">
+            <div class="col-xl-5 col-lg-5 ps-xl-4 studio-library-column">
                 <div class="studio-library d-flex flex-column h-100">
                     
                     <!-- Workspace Header -->
