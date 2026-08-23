@@ -611,7 +611,7 @@ new Vue({
         }
         this.Toast = Swal.mixin({
             toast: true,
-            position: 'top',
+            position: 'top-end',
             showConfirmButton: false,
             timer: 2400,
             timerProgressBar: false,

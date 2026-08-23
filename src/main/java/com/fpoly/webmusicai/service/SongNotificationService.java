@@ -80,10 +80,22 @@ public class SongNotificationService {
         if (song.getUser() == null || song.getUser().getUsername().equals(commenter.getUsername())) {
             return;
         }
-        Notification notification = new Notification();
-        notification.setUser(song.getUser());
-        notification.setType(NEW_COMMENT);
-        notification.setRefId(song.getId());
+
+        List<Notification> existing = notificationRepository.findByUserUsernameAndTypeAndRefId(
+                song.getUser().getUsername(), NEW_COMMENT, song.getId());
+
+        Notification notification;
+        if (existing != null && !existing.isEmpty()) {
+            notification = existing.get(0);
+            notification.setRead(false);
+            notification.setCreatedAt(new java.util.Date());
+        } else {
+            notification = new Notification();
+            notification.setUser(song.getUser());
+            notification.setType(NEW_COMMENT);
+            notification.setRefId(song.getId());
+        }
+
         notification.setContent(shorten(
                 commenter.getUsername() + " đã bình luận về bài nhạc \"" + song.getTitle() + "\"",
                 255));
@@ -96,14 +108,22 @@ public class SongNotificationService {
         if (song.getUser() == null || song.getUser().getUsername().equals(liker.getUsername())) {
             return;
         }
-        // Tránh thông báo lặp nếu người dùng like nhiều lần liên tiếp (un-like rồi like lại)
-        if (notificationRepository.existsByUserUsernameAndTypeAndRefId(song.getUser().getUsername(), NEW_LIKE, song.getId())) {
-            return;
+        
+        List<Notification> existing = notificationRepository.findByUserUsernameAndTypeAndRefId(
+                song.getUser().getUsername(), NEW_LIKE, song.getId());
+
+        Notification notification;
+        if (existing != null && !existing.isEmpty()) {
+            notification = existing.get(0);
+            notification.setRead(false);
+            notification.setCreatedAt(new java.util.Date());
+        } else {
+            notification = new Notification();
+            notification.setUser(song.getUser());
+            notification.setType(NEW_LIKE);
+            notification.setRefId(song.getId());
         }
-        Notification notification = new Notification();
-        notification.setUser(song.getUser());
-        notification.setType(NEW_LIKE);
-        notification.setRefId(song.getId());
+
         notification.setContent(shorten(
                 liker.getUsername() + " đã yêu thích bài nhạc \"" + song.getTitle() + "\"",
                 255));
