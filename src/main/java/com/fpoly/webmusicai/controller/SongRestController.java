@@ -551,6 +551,7 @@ public class SongRestController {
                 favoriteRepo.save(fav);
 
                 long totalLikes = favoriteRepo.countBySongId(id);
+                songNotificationService.notifyNewLike(song, user);
                 return ResponseEntity.ok(Map.of("message", "Đã thích bài nhạc", "liked", true, "total_likes", totalLikes));
             }
         }).orElse(ResponseEntity.notFound().build());
@@ -659,6 +660,8 @@ public class SongRestController {
 
             commentRepo.save(comment);
             log.info("User {} bình luận bài #{}", username, id);
+            
+            songNotificationService.notifyNewComment(song, user, comment);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(comment.toMap());
         }).orElse(ResponseEntity.notFound().build());

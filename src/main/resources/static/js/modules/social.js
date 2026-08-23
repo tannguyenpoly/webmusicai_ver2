@@ -439,6 +439,32 @@ window.MusicAIModules.social = {
                 });
         },
 
+        handleIncomingNotification(notification) {
+            // Loại bỏ thông báo cũ nếu trùng id (để tránh lỗi Vue render danh sách)
+            this.notifications = this.notifications.filter(n => n.id !== notification.id);
+            this.notifications.unshift(notification);
+            this.notificationUnreadCount++;
+            
+            // Hiển thị Toast
+            if (this.Toast) {
+                this.Toast.fire({
+                    icon: 'info',
+                    title: 'Thông báo mới',
+                    text: (notification.content || '').substring(0, 50) + ((notification.content || '').length > 50 ? '...' : '')
+                });
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'info',
+                    title: 'Thông báo mới',
+                    text: (notification.content || '').substring(0, 50) + ((notification.content || '').length > 50 ? '...' : ''),
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
+        },
+
         removeFriendship() {
             if (!this.friendStatus.id) return;
             axios.delete(`/api/friends/${this.friendStatus.id}`)
