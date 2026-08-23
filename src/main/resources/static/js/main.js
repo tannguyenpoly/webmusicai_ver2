@@ -7,6 +7,7 @@ axios.interceptors.request.use(config => {
 new Vue({
     el: '#app',
     data: {
+        showPromoBanner: true,
         isDarkMode: localStorage.getItem('music_theme') !== 'light',
         currentPage: window.location.pathname,
         currentUser: null,
@@ -48,8 +49,7 @@ new Vue({
             vocalGender: 'auto',
             durationSeconds: 30
         },
-        // Wizard tạo nhạc: ghép các lựa chọn thành prompt cho API hiện tại.
-        // Brief được lưu tạm trên trình duyệt để người dùng tạo phiên bản chỉnh sửa.
+
         wizardStep: 1,
         // Bước xa nhất đã đi tới: giữ thanh tiến trình khi người dùng quay lại sửa lựa chọn trước đó.
         wizardFurthestStep: 1,
@@ -622,6 +622,7 @@ new Vue({
 
         this.loadWizardBriefs();
         this.loadMusicProviderStatus();
+        this.loadPackages();
 
         const urlParams = new URLSearchParams(window.location.search);
         const paymentStatus = urlParams.get('status');
