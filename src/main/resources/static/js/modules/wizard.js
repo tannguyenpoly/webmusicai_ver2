@@ -70,6 +70,7 @@ window.MusicAIModules.wizard = {
             this.generationForm.durationSeconds = 30;
             this.wizardEditingSongId = null;
             this.wizardEditingSongTitle = '';
+            this.wizardAccessNote = '';
             this.wizardStep = 1;
             this.wizardFurthestStep = 1;
         },
@@ -119,18 +120,130 @@ window.MusicAIModules.wizard = {
         },
 
         selectWizardVocalMode(mode) {
-            if (mode !== 'instrumental' && !this.selectedMusicProvider().supportsLyrics) return;
+            if (!this.canSelectVocalMode(mode)) {
+                this.wizardAccessNote = this.vocalModeAccessMessage(mode);
+                return;
+            }
             this.musicBrief.vocalMode = mode;
             this.generationForm.instrumental = mode === 'instrumental';
             if (mode === 'instrumental') {
                 this.musicBrief.lyrics = '';
                 this.musicBrief.vocalGender = 'auto';
             }
+            this.syncWizardAccessNote();
         },
 
         selectWizardVocalGender(gender) {
-            if (!this.selectedMusicProvider().supportsVocalGender) return;
+            if (!this.canSelectVocalGender(gender)) {
+                this.wizardAccessNote = this.providerUnsupportedMessage('gender');
+                return;
+            }
             this.musicBrief.vocalGender = gender;
+            this.syncWizardAccessNote();
+        },
+
+        selectWizardVocalLanguage(language) {
+            if (!this.canSelectVocalLanguage(language)) {
+                this.wizardAccessNote = this.providerUnsupportedMessage('language');
+                return;
+            }
+            this.musicBrief.vocalLanguage = language;
+            this.syncWizardAccessNote();
+        },
+
+        selectWizardDuration(duration) {
+            if (!this.isDurationTierAllowed(duration)) {
+                this.wizardAccessNote = this.durationTierMessage();
+                return;
+            }
+            this.musicBrief.duration = duration;
+            this.syncWizardAccessNote();
+        },
+
+        isProviderTierAllowed(provider) {
+            if (!provider) return false;
+            const tierRank = { FREE: 0, CREATOR: 1, PRO: 2, STUDIO: 3 };
+            return tierRank[this.effectiveUserTier] >= tierRank[this.providerRequiredTier(provider)];
+        },
+
+        providerDisplayState(provider) {
+            if (!this.isProviderTierAllowed(provider)) return 'locked';
+            return this.musicBrief.provider === provider.code ? 'selected' : 'available';
+        },
+
+        providerCardStyle(provider) {
+            if (this.providerDisplayState(provider) !== 'locked') return { cursor: 'pointer' };
+            return {
+                opacity: '0.32',
+                filter: 'grayscale(1)',
+                pointerEvents: 'none',
+                cursor: 'not-allowed',
+                boxShadow: 'none',
+                transform: 'none'
+            };
+        },
+
+        optionDisplayState(isAllowed, isSelected) {
+            if (!isAllowed) return 'locked';
+            return isSelected ? 'selected' : 'available';
+        },
+
+        providerRequiredTier(provider) {
+            return ({ audiocraft: 'FREE', musicapi: 'CREATOR', 'ace-step': 'PRO', suno: 'PRO' })[provider?.code] || 'PRO';
+        },
+
+        vocalModeRequiredTier(mode) {
+            return mode === 'instrumental' ? 'FREE' : mode === 'ai-lyrics' ? 'CREATOR' : 'PRO';
+        },
+
+        isDurationTierAllowed(duration) {
+            return this.durationToSeconds(duration) <= this.tierFeaturePolicy.maxDuration;
+        },
+
+        isVocalModeTierAllowed(mode) {
+            if (mode === 'own-lyrics') return this.tierFeaturePolicy.ownLyrics;
+            if (mode === 'ai-lyrics') return this.tierFeaturePolicy.aiLyrics;
+            return true;
+        },
+
+        isVocalModeProviderSupported(mode) {
+            return mode === 'instrumental' || this.selectedMusicProvider().supportsLyrics;
+        },
+
+        canSelectVocalMode(mode) {
+            return this.isVocalModeTierAllowed(mode) && this.isVocalModeProviderSupported(mode);
+        },
+
+        canSelectVocalGender(gender) {
+            return gender === 'auto' || this.selectedMusicProvider().supportsVocalGender;
+        },
+
+        canSelectVocalLanguage(language) {
+            return language === 'Tiếng Việt' || this.selectedMusicProvider().supportsVocalLanguage;
+        },
+
+        vocalModeAccessMessage(mode) {
+            if (!this.isVocalModeProviderSupported(mode)) return this.providerUnsupportedMessage('lyrics');
+            return `Chức năng này yêu cầu gói ${this.vocalModeRequiredTier(mode)}.`;
+        },
+
+        providerTierMessage(provider) {
+            return `${provider.name} chưa có trong gói ${this.userTierLabel}. Hãy chọn mô hình khác hoặc nâng cấp gói.`;
+        },
+
+        durationTierMessage() {
+            const max = this.tierFeaturePolicy.maxDuration;
+            const label = max >= 120 ? '2 phút' : `${max} giây`;
+            return `Gói ${this.userTierLabel} hỗ trợ thời lượng tối đa ${label}.`;
+        },
+
+        vocalModeTierMessage(mode) {
+            if (mode === 'own-lyrics') return 'Tự nhập lời nhạc dành cho gói PRO hoặc STUDIO.';
+            return 'AI gợi ý lời chưa có trong gói FREE.';
+        },
+
+        syncWizardAccessNote() {
+            this.wizardAccessNote = this.wizardTierRestrictionMessage || '';
         },
 
         providerUnsupportedMessage(feature) {
@@ -140,6 +253,9 @@ window.MusicAIModules.wizard = {
             }
             if (feature === 'gender') {
                 return `${provider.name} không hỗ trợ chọn giọng nam hoặc nữ.`;
+            }
+            if (feature === 'language') {
+                return `${provider.name} không hỗ trợ chọn ngôn ngữ giọng hát.`;
             }
             return `${provider.name} không hỗ trợ chức năng này.`;
         },
@@ -174,6 +290,10 @@ window.MusicAIModules.wizard = {
         },
 
         analyzeReferenceAudio() {
+            if (!this.canUseReferenceAnalysis) {
+                this.wizardAccessNote = 'Phân tích nhạc tham khảo dành cho gói PRO hoặc STUDIO.';
+                return;
+            }
             if (!this.referenceAnalysis.configured) {
                 this.Toast.fire({ icon: 'info', title: 'Máy phân tích chưa được cấu hình.' });
                 return;
@@ -220,11 +340,16 @@ window.MusicAIModules.wizard = {
         },
 
         selectMusicProvider(provider) {
+            if (!this.isProviderTierAllowed(provider)) {
+                this.wizardAccessNote = `${provider.name} yêu cầu gói ${this.providerRequiredTier(provider)}.`;
+                return;
+            }
             if (this.musicBrief.provider === provider.code) return;
             const wasVocalMode = this.musicBrief.vocalMode !== 'instrumental';
             this.musicBrief.provider = provider.code;
             this.generationForm.provider = provider.code;
             this.normalizeProviderVocalOptions(provider);
+            this.syncWizardAccessNote();
             // Khả năng giọng hát/lời nhạc khác theo mô hình, nên cần chọn lại từ bước 4.
             this.wizardFurthestStep = Math.min(this.wizardFurthestStep, 3);
             if (!provider.supportsLyrics && wasVocalMode) {
@@ -247,11 +372,11 @@ window.MusicAIModules.wizard = {
                     provider.supportsVocalLanguage = Boolean(capabilities.supportsVocalLanguage);
                     provider.supportsVocalGender = Boolean(capabilities.supportsVocalGender);
                 });
-                if (!this.musicBrief.provider) {
-                    const firstAvailable = this.musicProviders.find(provider => provider.available);
-                    this.musicBrief.provider = firstAvailable ? firstAvailable.code : '';
-                    this.generationForm.provider = this.musicBrief.provider;
+                if (this.musicBrief.provider && !this.isProviderTierAllowed(this.selectedMusicProvider())) {
+                    this.musicBrief.provider = '';
+                    this.generationForm.provider = '';
                 }
+                // Không tự chọn mô hình: người dùng phải chủ động chọn một mô hình được phép.
                 if (this.musicBrief.provider) this.normalizeProviderVocalOptions(this.selectedMusicProvider());
             }).catch(() => {});
             axios.get('/api/music-analysis/status')
@@ -260,6 +385,10 @@ window.MusicAIModules.wizard = {
         },
 
         canMoveWizardForward() {
+            if (this.wizardTierRestrictionMessage) {
+                this.wizardAccessNote = this.wizardTierRestrictionMessage;
+                return false;
+            }
             if (this.wizardStep === 1 && !this.musicBrief.provider) {
                 this.showWizardNote('Mời bạn chọn mô hình AI để bắt đầu nhé.');
                 return false;
@@ -300,6 +429,10 @@ window.MusicAIModules.wizard = {
         },
 
         submitWizardMusic() {
+            if (this.wizardTierRestrictionMessage) {
+                this.wizardAccessNote = this.wizardTierRestrictionMessage;
+                return;
+            }
             const prompt = this.wizardGeneratedPrompt;
             if (!this.musicBrief.audience) {
                 this.showWizardNote('Mời bạn hoàn thiện nhóm nhu cầu trước khi tạo nhạc nhé.');

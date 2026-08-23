@@ -77,7 +77,7 @@ public class MailService {
 							"Số token đã được cộng vào tài khoản của bạn.\n\n" +
 							"Trân trọng,\n" +
 							"Đội ngũ WebMusicAI",
-					user.getFullname(), order.getOrderCode(), formattedDate, order.getPkg().getName(),
+					user.getFullname(), order.getOrderCode(), formattedDate, order.getPkg().getTierCode(),
 					order.getPkg().getTokens(), formattedPrice);
 
 			message.setText(text);

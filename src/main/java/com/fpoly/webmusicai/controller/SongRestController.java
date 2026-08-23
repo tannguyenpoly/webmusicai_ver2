@@ -49,6 +49,8 @@ import com.fpoly.webmusicai.service.SongGenerationTicket;
 import com.fpoly.webmusicai.service.SongCancellationResult;
 import com.fpoly.webmusicai.service.SongNotificationService;
 import com.fpoly.webmusicai.service.AudioStorageService;
+import com.fpoly.webmusicai.service.TierAccessService;
+import com.fpoly.webmusicai.exception.TierRestrictedException;
 import com.fpoly.webmusicai.service.SpamProtectionService;
 import com.fpoly.webmusicai.service.music.GenerationSpec;
 
@@ -114,6 +116,9 @@ public class SongRestController {
 
     @Autowired
     SpamProtectionService spamProtectionService;
+
+    @Autowired
+    TierAccessService tierAccessService;
 
     @GetMapping("/ai-status")
     public ResponseEntity<?> getAiStatus() {
@@ -241,6 +246,10 @@ public class SongRestController {
         String finalUsername = authentication.getName();
 
         try {
+            User requestingUser = userRepo.findById(finalUsername)
+                    .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
+            tierAccessService.requireGenerationAccess(requestingUser, requestData.getProvider(),
+                    requestData.getDurationSeconds(), requestData.getVocalMode());
             Genre selectedGenre = null;
             String effectivePrompt = requestData.getPrompt().trim();
             if (requestData.getGenreId() != null) {
@@ -276,6 +285,8 @@ public class SongRestController {
                     "remaining_tokens", ticket.remainingTokens()));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (TierRestrictedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -729,6 +740,9 @@ public class SongRestController {
                 parseDurationSeconds(body.get("durationSeconds")));
 
         try {
+            User requestingUser = userRepo.findById(username)
+                    .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
+            tierAccessService.requireGenerationAccess(requestingUser, spec.provider(), spec.durationSeconds(), spec.vocalMode());
             musicGeneratorService.validateCapabilities(spec);
             if (!musicGeneratorService.isAvailable(spec.provider())) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -752,6 +766,8 @@ public class SongRestController {
                     "remaining_tokens", ticket.remainingTokens()));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (TierRestrictedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
         }
     }
 

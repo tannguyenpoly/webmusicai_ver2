@@ -23,14 +23,16 @@ public class MusicReferenceAnalysisService {
     private final MusicAnalysisHistoryRepository historyRepository;
     private final GenreRepository genreRepository;
     private final UserRepository userRepository;
+    private final TierAccessService tierAccessService;
 
     public MusicReferenceAnalysisService(MusicAnalysisService analysisService,
             MusicAnalysisHistoryRepository historyRepository, GenreRepository genreRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository, TierAccessService tierAccessService) {
         this.analysisService = analysisService;
         this.historyRepository = historyRepository;
         this.genreRepository = genreRepository;
         this.userRepository = userRepository;
+        this.tierAccessService = tierAccessService;
     }
 
     public boolean isConfigured() {
@@ -39,13 +41,14 @@ public class MusicReferenceAnalysisService {
 
     @Transactional
     public Map<String, Object> analyze(String username, MultipartFile file) {
+        User user = userRepository.findById(username)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
+        tierAccessService.requireReferenceAnalysis(user);
         validate(file);
         String hash = sha256(file);
         MusicAnalysisHistory cached = historyRepository.findByUserUsernameAndFileHash(username, hash).orElse(null);
         if (cached != null) return toMap(cached, true);
 
-        User user = userRepository.findById(username)
-                .orElseThrow(() -> new IllegalStateException("Không tìm thấy tài khoản."));
         MusicAnalysisService.AnalysisResult result = analysisService.analyze(file);
         MusicAnalysisHistory history = new MusicAnalysisHistory();
         history.setUser(user);

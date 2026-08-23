@@ -146,14 +146,15 @@ GO
 -- [6] Packages 
 CREATE TABLE Packages (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    name NVARCHAR(100) NOT NULL,
     tokens INT NOT NULL,
     price INT NOT NULL,
     old_price INT NULL,
     badge NVARCHAR(50) NULL,
     description NVARCHAR(255) NULL,
-    tier_code VARCHAR(20) NOT NULL DEFAULT 'CREATOR',
-    duration_days INT NOT NULL DEFAULT 30
+    tier_code VARCHAR(20) NOT NULL,
+    duration_days INT NOT NULL DEFAULT 30,
+    CONSTRAINT UQ_Packages_TierCode UNIQUE (tier_code),
+    CONSTRAINT CK_Packages_TierCode CHECK (tier_code IN ('CREATOR', 'PRO', 'STUDIO'))
 );
 GO
 
@@ -399,7 +400,7 @@ GO
 
 -- [2] Khách hàng thực tế
 INSERT INTO Users (username, password, fullname, email, photo, token_balance, enabled, account_tier, pro_expired_at, created_at) VALUES
-('admin_core', '{noop}admin2026', N'System Admin', 'admin@musicai.vn', 'admin_avatar.png', 9999, 1, 'FREE', NULL, DATEADD(YEAR, -2, GETDATE())),
+('admin', '{noop}123', N'System Admin', 'admin@musicai.vn', 'admin_avatar.png', 9999, 1, 'FREE', NULL, DATEADD(YEAR, -2, GETDATE())),
 ('admin_finance', '{noop}admin2026', N'Admin Tài chính', 'finance@musicai.vn', NULL, 999, 1, 'FREE', NULL, DATEADD(DAY, -2, GETDATE())),
 ('admin_moderator', '{noop}admin2026', N'Admin Kiểm duyệt', 'moderator@musicai.vn', NULL, 999, 1, 'FREE', NULL, DATEADD(MONTH, -3, GETDATE())),
 ('minh_travel', '{noop}123456', N'Minh Xê Dịch', 'minh.vlog@gmail.com', 'minh.png', 15, 1, 'FREE', NULL, GETDATE()),
@@ -417,7 +418,7 @@ GO
 
 -- [3] Gán quyền
 INSERT INTO Authorities (username, role_id) VALUES
-('admin_core', 'ADMIN'), ('admin_core', 'USER'),
+('admin', 'ADMIN'), ('admin', 'USER'),
 ('admin_finance', 'ADMIN'), ('admin_finance', 'USER'),
 ('admin_moderator', 'ADMIN'), ('admin_moderator', 'USER'),
 ('minh_travel', 'USER'), ('lan_chill', 'USER'),
@@ -427,10 +428,10 @@ INSERT INTO Authorities (username, role_id) VALUES
 GO
 
 -- [4] Gói cước kinh doanh
-INSERT INTO Packages (name, tokens, price, old_price, badge, description, tier_code, duration_days) VALUES
-(N'Nhà sáng tạo', 60, 29000, 39000, N'Khởi đầu', N'60 lượt tạo nhạc trong 30 ngày, phù hợp creator mới bắt đầu xây kênh', 'CREATOR', 30),
-(N'Chuyên nghiệp', 180, 69000, 89000, N'Phổ biến', N'180 lượt tạo nhạc trong 30 ngày, phù hợp đăng video đều mỗi tuần', 'PRO', 30),
-(N'Phòng thu', 500, 149000, 199000, N'Tiết kiệm nhất', N'500 lượt tạo nhạc trong 30 ngày, phù hợp nhóm sản xuất và quán cà phê', 'STUDIO', 30);
+INSERT INTO Packages (tokens, price, old_price, badge, description, tier_code, duration_days) VALUES
+(60, 29000, 39000, N'Khởi đầu', N'60 lượt tạo nhạc trong 30 ngày, phù hợp creator mới bắt đầu xây kênh', 'CREATOR', 30),
+(180, 69000, 89000, N'Phổ biến', N'180 lượt tạo nhạc trong 30 ngày, phù hợp đăng video đều mỗi tuần', 'PRO', 30),
+(500, 149000, 199000, N'Tiết kiệm nhất', N'500 lượt tạo nhạc trong 30 ngày, phù hợp nhóm sản xuất và quán cà phê', 'STUDIO', 30);
 GO
 
 -- [5] Kho nhạc AI
@@ -485,9 +486,9 @@ INSERT INTO Transactions (username, amount, description) VALUES
 ('lan_chill', -1, N'Tạo nhạc: Đêm mưa Sài Gòn'),
 ('zmedia_agency', -1, N'Tạo nhạc: Mega Sale 11.11'),
 ('lan_chill', -1, N'Remix nhạc: Bình minh Tây Bắc (Lofi Remix)'),
-('zmedia_agency', 500, N'Nạp thành công gói Phòng thu'),
-('minh_travel', 60, N'Nạp thành công gói Nhà sáng tạo'),
-('vy_expired', 180, N'Mua gói Chuyên nghiệp (Giao dịch cũ)'),
+('zmedia_agency', 500, N'Nạp thành công gói STUDIO'),
+('minh_travel', 60, N'Nạp thành công gói CREATOR'),
+('vy_expired', 180, N'Mua gói PRO (Giao dịch cũ)'),
 ('vy_expired', -144, N'Đã tiêu hao token lúc còn hạn VIP');
 GO
 
@@ -851,14 +852,14 @@ JOIN Songs s ON s.title = seed.song_title;
 GO
 
 -- 19.5A. Dữ liệu riêng cho tài khoản quản trị chính để demo toàn bộ luồng người dùng.
--- Đăng nhập: admin_core / admin2026. Có bài công khai, riêng tư, đang xử lý, playlist và album.
+-- Đăng nhập: admin / 123. Có bài công khai, riêng tư, đang xử lý, playlist và album.
 INSERT INTO Songs (title, prompt, audio_url, status, is_public, lyrics, model_ver, is_remix, parent_id, cover_url, listen_count, created_at, username) VALUES
-(N'Điều hành buổi sớm', N'Nhạc piano điện tử nhẹ cho phần mở đầu ngày làm việc', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', 'COMPLETED', 1, N'[Verse] Một ngày mới bắt đầu, nhịp điệu khẽ gọi tên', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85', 860, '2026-03-12T08:30:00', 'admin_core'),
-(N'Góc kiểm thử riêng', N'Ambient không lời cho không gian tập trung, bản nội bộ', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3', 'COMPLETED', 0, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=85', 42, '2026-04-20T14:15:00', 'admin_core'),
-(N'Bản tin MusicAI', N'Corporate pop tích cực cho video giới thiệu sản phẩm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3', 'COMPLETED', 1, N'[Chorus] MusicAI cùng bạn tạo nên dấu ấn riêng', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=900&q=85', 1120, '2026-06-08T10:00:00', 'admin_core'),
-(N'Bản phối đang hoàn thiện', N'Chillhop thử nghiệm cho video tổng kết', NULL, 'PENDING', 0, NULL, 'sonic-v4', 0, NULL, 'https://images.unsplash.com/photo-1519608487953-e999c86e7450?auto=format&fit=crop&w=900&q=85', 0, '2026-08-05T16:00:00', 'admin_core'),
-(N'Điểm hẹn sáng tạo', N'Indie pop truyền cảm hứng cho video giới thiệu đội nhóm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3', 'COMPLETED', 1, N'[Verse] Ta gặp nhau trong một giai điệu mới', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=85', 760, '2026-07-16T18:20:00', 'admin_core'),
-(N'Đêm vận hành yên tĩnh', N'Ambient nhẹ nhàng cho không gian làm việc muộn', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3', 'COMPLETED', 0, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85', 205, '2026-07-25T22:10:00', 'admin_core');
+(N'Điều hành buổi sớm', N'Nhạc piano điện tử nhẹ cho phần mở đầu ngày làm việc', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3', 'COMPLETED', 1, N'[Verse] Một ngày mới bắt đầu, nhịp điệu khẽ gọi tên', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85', 860, '2026-03-12T08:30:00', 'admin'),
+(N'Góc kiểm thử riêng', N'Ambient không lời cho không gian tập trung, bản nội bộ', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3', 'COMPLETED', 0, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=85', 42, '2026-04-20T14:15:00', 'admin'),
+(N'Bản tin MusicAI', N'Corporate pop tích cực cho video giới thiệu sản phẩm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3', 'COMPLETED', 1, N'[Chorus] MusicAI cùng bạn tạo nên dấu ấn riêng', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=900&q=85', 1120, '2026-06-08T10:00:00', 'admin'),
+(N'Bản phối đang hoàn thiện', N'Chillhop thử nghiệm cho video tổng kết', NULL, 'PENDING', 0, NULL, 'sonic-v4', 0, NULL, 'https://images.unsplash.com/photo-1519608487953-e999c86e7450?auto=format&fit=crop&w=900&q=85', 0, '2026-08-05T16:00:00', 'admin'),
+(N'Điểm hẹn sáng tạo', N'Indie pop truyền cảm hứng cho video giới thiệu đội nhóm', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3', 'COMPLETED', 1, N'[Verse] Ta gặp nhau trong một giai điệu mới', 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=85', 760, '2026-07-16T18:20:00', 'admin'),
+(N'Đêm vận hành yên tĩnh', N'Ambient nhẹ nhàng cho không gian làm việc muộn', 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3', 'COMPLETED', 0, NULL, 'demo-audio', 0, NULL, 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85', 205, '2026-07-25T22:10:00', 'admin');
 GO
 
 INSERT INTO SongGenres (song_id, genre_id)
@@ -871,13 +872,13 @@ FROM (VALUES
     (N'Điểm hẹn sáng tạo', N'Indie'),
     (N'Đêm vận hành yên tĩnh', N'Ambient')
 ) AS seed(song_title, genre_name)
-JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin_core'
+JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin'
 JOIN Genres g ON g.name = seed.genre_name;
 GO
 
 INSERT INTO Playlists (name, is_public, created_at, username) VALUES
-(N'Playlist demo quản trị', 1, '2026-06-10T09:00:00', 'admin_core'),
-(N'Bản nháp nội bộ', 0, '2026-08-05T16:05:00', 'admin_core');
+(N'Playlist demo quản trị', 1, '2026-06-10T09:00:00', 'admin'),
+(N'Bản nháp nội bộ', 0, '2026-08-05T16:05:00', 'admin');
 GO
 
 INSERT INTO Playlist_Songs (playlist_id, song_id, sort_order)
@@ -891,13 +892,13 @@ FROM (VALUES
     (N'Bản nháp nội bộ', N'Điều hành buổi sớm', 3),
     (N'Bản nháp nội bộ', N'Đêm vận hành yên tĩnh', 4)
 ) AS seed(playlist_name, song_title, sort_order)
-JOIN Playlists p ON p.name = seed.playlist_name AND p.username = 'admin_core'
-JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin_core';
+JOIN Playlists p ON p.name = seed.playlist_name AND p.username = 'admin'
+JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin';
 GO
 
 INSERT INTO Albums (title, description, cover_url, release_date, created_at, is_public, username) VALUES
-(N'Nhịp điệu điều hành', N'Bộ sưu tập công khai của tài khoản quản trị để thử hiển thị cộng đồng', 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=900&q=85', '2026-06-15', '2026-06-15T09:00:00', 1, 'admin_core'),
-(N'Kho thử nghiệm quản trị', N'Album riêng tư dùng để kiểm tra quyền hiển thị', 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=85', '2026-08-05', '2026-08-05T16:10:00', 0, 'admin_core');
+(N'Nhịp điệu điều hành', N'Bộ sưu tập công khai của tài khoản quản trị để thử hiển thị cộng đồng', 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=900&q=85', '2026-06-15', '2026-06-15T09:00:00', 1, 'admin'),
+(N'Kho thử nghiệm quản trị', N'Album riêng tư dùng để kiểm tra quyền hiển thị', 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=85', '2026-08-05', '2026-08-05T16:10:00', 0, 'admin');
 GO
 
 INSERT INTO Album_Songs (album_id, song_id, track_number)
@@ -910,8 +911,8 @@ FROM (VALUES
     (N'Kho thử nghiệm quản trị', N'Bản phối đang hoàn thiện', 2),
     (N'Kho thử nghiệm quản trị', N'Đêm vận hành yên tĩnh', 3)
 ) AS seed(album_title, song_title, track_number)
-JOIN Albums a ON a.title = seed.album_title AND a.username = 'admin_core'
-JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin_core';
+JOIN Albums a ON a.title = seed.album_title AND a.username = 'admin'
+JOIN Songs s ON s.title = seed.song_title AND s.username = 'admin';
 GO
 
 -- 19.6. Đơn hàng trải đều từ tháng 01 đến ngày 06/08/2026.
@@ -919,24 +920,24 @@ GO
 INSERT INTO Orders (order_code, total_price, status, payment_method, created_at, username, package_id)
 SELECT seed.order_code, seed.total_price, seed.status, seed.payment_method, seed.created_at, seed.username, p.id
 FROM (VALUES
-    ('DEMO-2026-01-001', 29000, 'SUCCESS',   'SEPAY', '2026-01-08T09:10:00', 'anh_foodie', N'Nhà sáng tạo'),
-    ('DEMO-2026-01-002', 69000, 'SUCCESS',   'VNPAY', '2026-01-24T14:20:00', 'duc_review', N'Chuyên nghiệp'),
-    ('DEMO-2026-02-001', 149000,'SUCCESS',   'SEPAY', '2026-02-05T10:45:00', 'huyen_studio', N'Phòng thu'),
-    ('DEMO-2026-02-002', 29000, 'CANCELLED', 'SEPAY', '2026-02-20T17:30:00', 'trang_book', N'Nhà sáng tạo'),
-    ('DEMO-2026-03-001', 69000, 'SUCCESS',   'VNPAY', '2026-03-04T08:50:00', 'tuan_film', N'Chuyên nghiệp'),
-    ('DEMO-2026-03-002', 149000,'SUCCESS',   'SEPAY', '2026-03-19T12:00:00', 'ngoc_cafe', N'Phòng thu'),
-    ('DEMO-2026-04-001', 29000, 'EXPIRED',   'SEPAY', '2026-04-03T15:25:00', 'phuc_gaming', N'Nhà sáng tạo'),
-    ('DEMO-2026-04-002', 69000, 'SUCCESS',   'VNPAY', '2026-04-16T19:40:00', 'yen_yoga', N'Chuyên nghiệp'),
-    ('DEMO-2026-05-001', 149000,'SUCCESS',   'SEPAY', '2026-05-06T10:05:00', 'son_market', N'Phòng thu'),
-    ('DEMO-2026-05-002', 29000, 'FAILED',    'SEPAY', '2026-05-27T21:10:00', 'nhi_bakery', N'Nhà sáng tạo'),
-    ('DEMO-2026-06-001', 69000, 'SUCCESS',   'VNPAY', '2026-06-09T07:55:00', 'long_sport', N'Chuyên nghiệp'),
-    ('DEMO-2026-06-002', 149000,'SUCCESS',   'SEPAY', '2026-06-23T16:35:00', 'cafe_moc', N'Phòng thu'),
-    ('DEMO-2026-07-001', 29000, 'SUCCESS',   'SEPAY', '2026-07-04T13:45:00', 'thao_content', N'Nhà sáng tạo'),
-    ('DEMO-2026-07-002', 69000, 'REVIEW',    'SEPAY', '2026-07-19T18:15:00', 'lan_chill', N'Chuyên nghiệp'),
-    ('DEMO-2026-07-003', 149000,'SUCCESS',   'VNPAY', '2026-07-28T09:30:00', 'hoa_event', N'Phòng thu'),
-    ('DEMO-2026-08-001', 29000, 'PENDING',   'SEPAY', '2026-08-06T11:15:00', 'bao_rock', N'Nhà sáng tạo')
-) AS seed(order_code, total_price, status, payment_method, created_at, username, package_name)
-JOIN Packages p ON p.name = seed.package_name;
+    ('DEMO-2026-01-001', 29000, 'SUCCESS',   'SEPAY', '2026-01-08T09:10:00', 'anh_foodie', 'CREATOR'),
+    ('DEMO-2026-01-002', 69000, 'SUCCESS',   'VNPAY', '2026-01-24T14:20:00', 'duc_review', 'PRO'),
+    ('DEMO-2026-02-001', 149000,'SUCCESS',   'SEPAY', '2026-02-05T10:45:00', 'huyen_studio', 'STUDIO'),
+    ('DEMO-2026-02-002', 29000, 'CANCELLED', 'SEPAY', '2026-02-20T17:30:00', 'trang_book', 'CREATOR'),
+    ('DEMO-2026-03-001', 69000, 'SUCCESS',   'VNPAY', '2026-03-04T08:50:00', 'tuan_film', 'PRO'),
+    ('DEMO-2026-03-002', 149000,'SUCCESS',   'SEPAY', '2026-03-19T12:00:00', 'ngoc_cafe', 'STUDIO'),
+    ('DEMO-2026-04-001', 29000, 'EXPIRED',   'SEPAY', '2026-04-03T15:25:00', 'phuc_gaming', 'CREATOR'),
+    ('DEMO-2026-04-002', 69000, 'SUCCESS',   'VNPAY', '2026-04-16T19:40:00', 'yen_yoga', 'PRO'),
+    ('DEMO-2026-05-001', 149000,'SUCCESS',   'SEPAY', '2026-05-06T10:05:00', 'son_market', 'STUDIO'),
+    ('DEMO-2026-05-002', 29000, 'FAILED',    'SEPAY', '2026-05-27T21:10:00', 'nhi_bakery', 'CREATOR'),
+    ('DEMO-2026-06-001', 69000, 'SUCCESS',   'VNPAY', '2026-06-09T07:55:00', 'long_sport', 'PRO'),
+    ('DEMO-2026-06-002', 149000,'SUCCESS',   'SEPAY', '2026-06-23T16:35:00', 'cafe_moc', 'STUDIO'),
+    ('DEMO-2026-07-001', 29000, 'SUCCESS',   'SEPAY', '2026-07-04T13:45:00', 'thao_content', 'CREATOR'),
+    ('DEMO-2026-07-002', 69000, 'REVIEW',    'SEPAY', '2026-07-19T18:15:00', 'lan_chill', 'PRO'),
+    ('DEMO-2026-07-003', 149000,'SUCCESS',   'VNPAY', '2026-07-28T09:30:00', 'hoa_event', 'STUDIO'),
+    ('DEMO-2026-08-001', 29000, 'PENDING',   'SEPAY', '2026-08-06T11:15:00', 'bao_rock', 'CREATOR')
+) AS seed(order_code, total_price, status, payment_method, created_at, username, tier_code)
+JOIN Packages p ON p.tier_code = seed.tier_code;
 GO
 
 -- 19.6a. Dữ liệu bán hàng xuyên nhiều năm: mỗi tuần có 3 đơn để kiểm tra bộ lọc theo tuần/tháng/năm.
@@ -954,7 +955,7 @@ GO
            END AS status,
            CASE (DATEPART(ISO_WEEK, w.week_start) + v.sequence_no) % 2 WHEN 0 THEN 'SEPAY' ELSE 'VNPAY' END AS payment_method,
            CASE (DATEPART(ISO_WEEK, w.week_start) + v.sequence_no) % 3
-               WHEN 0 THEN N'Nhà sáng tạo' WHEN 1 THEN N'Chuyên nghiệp' ELSE N'Phòng thu' END AS package_name,
+               WHEN 0 THEN 'CREATOR' WHEN 1 THEN 'PRO' ELSE 'STUDIO' END AS tier_code,
            CASE (DATEPART(ISO_WEEK, w.week_start) + v.sequence_no) % 8
                WHEN 0 THEN 'anh_foodie' WHEN 1 THEN 'duc_review' WHEN 2 THEN 'huyen_studio' WHEN 3 THEN 'tuan_film'
                WHEN 4 THEN 'ngoc_cafe' WHEN 5 THEN 'long_sport' WHEN 6 THEN 'thao_content' ELSE 'hoa_event' END AS username
@@ -962,7 +963,7 @@ GO
 )
 INSERT INTO Orders (order_code, total_price, status, payment_method, created_at, username, package_id)
 SELECT CONCAT('SEED-WEEK-', CONVERT(CHAR(8), created_at, 112), '-', sequence_no), p.price, status, payment_method, created_at, username, p.id
-FROM WeekOrders wo JOIN Packages p ON p.name = wo.package_name
+FROM WeekOrders wo JOIN Packages p ON p.tier_code = wo.tier_code
 OPTION (MAXRECURSION 200);
 GO
 
@@ -979,23 +980,23 @@ FROM Orders o JOIN Packages p ON p.id = o.package_id
 WHERE o.order_code LIKE 'SEED-WEEK-%' AND o.status = 'SUCCESS';
 GO
 
--- Lịch sử thanh toán riêng của admin_core: đủ hơn một trang để thử lọc và phân trang ở màn hình người dùng.
+-- Lịch sử thanh toán riêng của admin: đủ hơn một trang để thử lọc và phân trang ở màn hình người dùng.
 INSERT INTO Orders (order_code, total_price, status, payment_method, created_at, username, package_id)
-SELECT seed.order_code, seed.total_price, seed.status, seed.payment_method, seed.created_at, 'admin_core', p.id
+SELECT seed.order_code, seed.total_price, seed.status, seed.payment_method, seed.created_at, 'admin', p.id
 FROM (VALUES
-    ('ADMIN-2026-01-01', 29000,  'SUCCESS',   'SEPAY', '2026-01-05T09:20:00', N'Nhà sáng tạo'),
-    ('ADMIN-2026-01-02', 69000,  'SUCCESS',   'VNPAY', '2026-01-26T14:30:00', N'Chuyên nghiệp'),
-    ('ADMIN-2026-02-01', 149000, 'SUCCESS',   'SEPAY', '2026-02-14T10:00:00', N'Phòng thu'),
-    ('ADMIN-2026-02-02', 29000,  'CANCELLED', 'SEPAY', '2026-02-28T16:25:00', N'Nhà sáng tạo'),
-    ('ADMIN-2026-03-01', 69000,  'SUCCESS',   'VNPAY', '2026-03-17T11:40:00', N'Chuyên nghiệp'),
-    ('ADMIN-2026-04-01', 29000,  'EXPIRED',   'SEPAY', '2026-04-09T20:10:00', N'Nhà sáng tạo'),
-    ('ADMIN-2026-05-01', 149000, 'SUCCESS',   'SEPAY', '2026-05-22T08:15:00', N'Phòng thu'),
-    ('ADMIN-2026-06-01', 69000,  'FAILED',    'VNPAY', '2026-06-11T13:35:00', N'Chuyên nghiệp'),
-    ('ADMIN-2026-07-01', 29000,  'REVIEW',    'SEPAY', '2026-07-08T17:50:00', N'Nhà sáng tạo'),
-    ('ADMIN-2026-07-02', 69000,  'SUCCESS',   'SEPAY', '2026-07-24T09:05:00', N'Chuyên nghiệp'),
-    ('ADMIN-2026-08-01', 149000, 'PENDING',   'SEPAY', '2026-08-06T11:45:00', N'Phòng thu')
-) AS seed(order_code, total_price, status, payment_method, created_at, package_name)
-JOIN Packages p ON p.name = seed.package_name;
+    ('ADMIN-2026-01-01', 29000,  'SUCCESS',   'SEPAY', '2026-01-05T09:20:00', 'CREATOR'),
+    ('ADMIN-2026-01-02', 69000,  'SUCCESS',   'VNPAY', '2026-01-26T14:30:00', 'PRO'),
+    ('ADMIN-2026-02-01', 149000, 'SUCCESS',   'SEPAY', '2026-02-14T10:00:00', 'STUDIO'),
+    ('ADMIN-2026-02-02', 29000,  'CANCELLED', 'SEPAY', '2026-02-28T16:25:00', 'CREATOR'),
+    ('ADMIN-2026-03-01', 69000,  'SUCCESS',   'VNPAY', '2026-03-17T11:40:00', 'PRO'),
+    ('ADMIN-2026-04-01', 29000,  'EXPIRED',   'SEPAY', '2026-04-09T20:10:00', 'CREATOR'),
+    ('ADMIN-2026-05-01', 149000, 'SUCCESS',   'SEPAY', '2026-05-22T08:15:00', 'STUDIO'),
+    ('ADMIN-2026-06-01', 69000,  'FAILED',    'VNPAY', '2026-06-11T13:35:00', 'PRO'),
+    ('ADMIN-2026-07-01', 29000,  'REVIEW',    'SEPAY', '2026-07-08T17:50:00', 'CREATOR'),
+    ('ADMIN-2026-07-02', 69000,  'SUCCESS',   'SEPAY', '2026-07-24T09:05:00', 'PRO'),
+    ('ADMIN-2026-08-01', 149000, 'PENDING',   'SEPAY', '2026-08-06T11:45:00', 'STUDIO')
+) AS seed(order_code, total_price, status, payment_method, created_at, tier_code)
+JOIN Packages p ON p.tier_code = seed.tier_code;
 GO
 
 -- Điều chỉnh ngày của 9 đơn hàng nền để bộ lọc theo tháng/từng tuần có dữ liệu thật.
@@ -1044,19 +1045,19 @@ GO
 
 -- 19.7. Lịch sử token: 25 dòng để thử phân trang/lọc người dùng.
 INSERT INTO Transactions (username, amount, description, created_at) VALUES
-('anh_foodie', 60, N'Nạp thành công gói Nhà sáng tạo', '2026-01-08T09:12:00'),
+('anh_foodie', 60, N'Nạp thành công gói CREATOR', '2026-01-08T09:12:00'),
 ('anh_foodie', -2, N'Tạo nhạc: Con đường xanh', '2026-01-10T11:00:00'),
-('duc_review', 180, N'Nạp thành công gói Chuyên nghiệp', '2026-01-24T14:22:00'),
-('huyen_studio', 500, N'Nạp thành công gói Phòng thu', '2026-02-05T10:47:00'),
-('tuan_film', 180, N'Nạp thành công gói Chuyên nghiệp', '2026-03-04T08:52:00'),
-('ngoc_cafe', 500, N'Nạp thành công gói Phòng thu', '2026-03-19T12:03:00'),
-('yen_yoga', 180, N'Nạp thành công gói Chuyên nghiệp', '2026-04-16T19:42:00'),
-('son_market', 500, N'Nạp thành công gói Phòng thu', '2026-05-06T10:08:00'),
-('long_sport', 180, N'Nạp thành công gói Chuyên nghiệp', '2026-06-09T07:58:00'),
-('cafe_moc', 500, N'Nạp thành công gói Phòng thu', '2026-06-23T16:38:00'),
-('thao_content', 60, N'Nạp thành công gói Nhà sáng tạo', '2026-07-04T13:47:00'),
+('duc_review', 180, N'Nạp thành công gói PRO', '2026-01-24T14:22:00'),
+('huyen_studio', 500, N'Nạp thành công gói STUDIO', '2026-02-05T10:47:00'),
+('tuan_film', 180, N'Nạp thành công gói PRO', '2026-03-04T08:52:00'),
+('ngoc_cafe', 500, N'Nạp thành công gói STUDIO', '2026-03-19T12:03:00'),
+('yen_yoga', 180, N'Nạp thành công gói PRO', '2026-04-16T19:42:00'),
+('son_market', 500, N'Nạp thành công gói STUDIO', '2026-05-06T10:08:00'),
+('long_sport', 180, N'Nạp thành công gói PRO', '2026-06-09T07:58:00'),
+('cafe_moc', 500, N'Nạp thành công gói STUDIO', '2026-06-23T16:38:00'),
+('thao_content', 60, N'Nạp thành công gói CREATOR', '2026-07-04T13:47:00'),
 ('lan_chill', -2, N'Tạo nhạc: Ký ức vinyl', '2026-07-18T21:17:00'),
-('hoa_event', 500, N'Nạp thành công gói Phòng thu', '2026-07-28T09:32:00'),
+('hoa_event', 500, N'Nạp thành công gói STUDIO', '2026-07-28T09:32:00'),
 ('phuc_gaming', -2, N'Tạo nhạc: Bước chân tự do', '2026-08-04T06:47:00'),
 ('ngoc_cafe', -2, N'Tạo nhạc: Cà phê chiều mưa', '2026-08-06T09:12:00');
 GO
@@ -1190,8 +1191,8 @@ GO
 INSERT INTO Notifications (username, type, content, is_read, ref_id, created_at) VALUES
 ('minh_travel','FOLLOW_SONG',N'Lan ASMR đã phát hành bài mới: Ký ức vinyl',0,NULL,'2026-01-19T21:00:00'),
 ('lan_chill','FOLLOW_SONG',N'Minh Xê Dịch đã phát hành bài mới: Hè trên biển',1,NULL,'2026-02-12T16:00:00'),
-('zmedia_agency','PAYMENT_SUCCESS',N'Thanh toán gói Phòng thu thành công',1,NULL,'2026-02-05T10:47:00'),
-('cafe_moc','PAYMENT_SUCCESS',N'Thanh toán gói Phòng thu thành công',0,NULL,'2026-03-19T12:03:00'),
+('zmedia_agency','PAYMENT_SUCCESS',N'Thanh toán gói STUDIO thành công',1,NULL,'2026-02-05T10:47:00'),
+('cafe_moc','PAYMENT_SUCCESS',N'Thanh toán gói STUDIO thành công',0,NULL,'2026-03-19T12:03:00'),
 ('thao_content','SONG_COMPLETED',N'Bài Lời chào ngày mới đã tạo xong',1,NULL,'2026-06-16T06:25:00'),
 ('mai_podcast','SONG_COMPLETED',N'Bài Góc làm việc tập trung đã tạo xong',0,NULL,'2026-06-20T09:05:00'),
 ('minh_travel','SONG_COMPLETED',N'Bài Hè trên biển đã tạo xong',1,NULL,'2026-06-24T15:05:00'),

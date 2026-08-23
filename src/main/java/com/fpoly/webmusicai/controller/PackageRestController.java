@@ -30,50 +30,9 @@ public class PackageRestController {
 		return packageRepo.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
 	}
 
-	@PostMapping
-	public ResponseEntity<?> createPackage(@RequestBody Map<String, Object> body) {
-		String name = (String) body.get("name");
-
-		if (name == null || name.isBlank()) {
-			return ResponseEntity.badRequest().body(Map.of("message", "Tên gói không được để trống!"));
-		}
-
-		Integer tokens = parseIntSafe(body.get("tokens"));
-		Integer price = parseIntSafe(body.get("price"));
-
-		if (tokens == null || tokens <= 0) {
-			return ResponseEntity.badRequest().body(Map.of("message", "Số token phải lớn hơn 0!"));
-		}
-		if (price == null || price <= 0) {
-			return ResponseEntity.badRequest().body(Map.of("message", "Giá tiền phải lớn hơn 0!"));
-		}
-
-		Package pkg = new Package();
-		pkg.setName(name.trim());
-		pkg.setTokens(tokens);
-		pkg.setPrice(price);
-		pkg.setDescription((String) body.get("description"));
-		pkg.setTierCode(normalizeTier(body.get("tierCode")));
-		Integer durationDays = parseIntSafe(body.get("durationDays"));
-		pkg.setDurationDays(durationDays == null ? 30 : Math.max(1, durationDays));
-
-		packageRepo.save(pkg);
-		log.info("Đã tạo gói mới: {} - {} token - {}đ", pkg.getName(), pkg.getTokens(), pkg.getPrice());
-
-		return ResponseEntity.ok(pkg);
-	}
-
 	@PutMapping("/{id}")
 	public ResponseEntity<?> updatePackage(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
 		return packageRepo.findById(id).map(pkg -> {
-
-			if (body.containsKey("name")) {
-				String name = (String) body.get("name");
-				if (name == null || name.isBlank()) {
-					return ResponseEntity.badRequest().body(Map.of("message", "Tên gói không được để trống!"));
-				}
-				pkg.setName(name.trim());
-			}
 
 			if (body.containsKey("tokens")) {
 				Integer tokens = parseIntSafe(body.get("tokens"));
@@ -94,9 +53,6 @@ public class PackageRestController {
 			if (body.containsKey("description")) {
 				pkg.setDescription((String) body.get("description"));
 			}
-			if (body.containsKey("tierCode")) {
-				pkg.setTierCode(normalizeTier(body.get("tierCode")));
-			}
 			if (body.containsKey("durationDays")) {
 				Integer durationDays = parseIntSafe(body.get("durationDays"));
 				if (durationDays == null || durationDays <= 0) {
@@ -113,22 +69,6 @@ public class PackageRestController {
 		}).orElse(ResponseEntity.notFound().build());
 	}
 
-	@DeleteMapping("/{id}")
-	public ResponseEntity<?> deletePackage(@PathVariable Integer id) {
-		if (!packageRepo.existsById(id)) {
-			return ResponseEntity.badRequest().body(Map.of("message", "Gói không tồn tại!"));
-		}
-
-		try {
-			packageRepo.deleteById(id);
-			log.info("Đã xóa gói #{}", id);
-			return ResponseEntity.ok(Map.of("message", "Đã xóa gói #" + id));
-		} catch (Exception e) {
-			return ResponseEntity.badRequest()
-					.body(Map.of("message", "Không thể xóa! Đã có đơn hàng sử dụng gói này. Hãy ẩn gói thay vì xóa."));
-		}
-	}
-
 	private Integer parseIntSafe(Object value) {
 		if (value == null)
 			return null;
@@ -143,11 +83,4 @@ public class PackageRestController {
 		}
 	}
 
-	private String normalizeTier(Object value) {
-		String tier = value == null ? "CREATOR" : value.toString().trim().toUpperCase();
-		return switch (tier) {
-			case "CREATOR", "PRO", "STUDIO" -> tier;
-			default -> "CREATOR";
-		};
-	}
 }

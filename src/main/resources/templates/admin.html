@@ -604,7 +604,7 @@
 
                 <div v-if="userManagementTab === 'usage'">
                     <div class="card-custom admin-filter-card mb-4"><div class="card-body"><div class="admin-filter-grid">
-                        <div class="col-md-3"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">FREE</option><option value="CREATOR">CREATOR</option><option value="PRO">PRO</option><option value="STUDIO">STUDIO</option></select></div>
                         <div class="col-md-3"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userFilters.roleFilter" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="ADMIN">Admin</option><option value="USER">User</option></select></div>
                         <div class="col-md-2"><label class="form-label small text-muted-sync">Ngày đăng ký</label><select v-model="userRegistration.mode" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
                         <div v-if="userRegistration.mode !== 'ALL' && userRegistration.mode !== 'TODAY'" class="col-md-2"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="userRegistration.year" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
@@ -630,7 +630,7 @@
 
                 <div v-else>
                     <div class="card-custom admin-filter-card mb-4"><div class="card-body"><div class="admin-filter-grid">
-                        <div class="col-md-2"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userSpendingFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userSpendingFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">FREE</option><option value="CREATOR">CREATOR</option><option value="PRO">PRO</option><option value="STUDIO">STUDIO</option></select></div>
                         <div class="col-md-2"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userSpendingFilters.roleFilter" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="ADMIN">Admin</option><option value="USER">User</option></select></div>
                         <div class="col-md-2"><label class="form-label small text-muted-sync">Khoảng chi tiêu</label><select v-model="userSpendingFilters.period" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
                         <div v-if="userSpendingFilters.period !== 'ALL' && userSpendingFilters.period !== 'TODAY'" class="col-md-1"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="userSpendingFilters.year" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
@@ -799,12 +799,11 @@
                 <div class="card-custom">
                     <div class="card-body p-0">
                         <table class="table table-custom">
-                            <thead><tr><th>ID</th><th>Tên gói</th><th class="text-center">Cấp độ</th><th class="text-center">Token</th><th class="text-center">Giá</th><th class="text-center">Lượt mua</th><th class="text-end">Doanh thu</th><th class="text-center">Thao tác</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Cấp độ</th><th class="text-center">Token</th><th class="text-center">Giá</th><th class="text-center">Lượt mua</th><th class="text-end">Doanh thu</th><th class="text-center">Thao tác</th></tr></thead>
                             <tbody>
                                 <tr v-for="p in packages" :key="p.id">
                                     <td class="text-muted-sync">#{{ p.id }}</td>
-                                    <td class="fw-medium">{{ p.name }}</td>
-                                    <td class="text-center">{{ p.tierCode }}</td>
+                                    <td class="fw-medium">{{ p.tierCode }}</td>
                                     <td class="text-center">{{ p.tokens }}</td>
                                     <td class="text-center">{{ formatPrice(p.price) }}</td>
                                     <td class="text-center fw-medium">{{ p.successfulOrders || 0 }}</td>
@@ -816,7 +815,7 @@
                                     </td>
                                 </tr>
                                 <tr v-if="packages.length === 0">
-                                    <td colspan="8" class="text-center text-muted-sync py-4">Chưa có gói token nào.</td>
+                                    <td colspan="7" class="text-center text-muted-sync py-4">Chưa có gói token nào.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -828,21 +827,17 @@
                     <div class="card-custom" style="width: 500px; max-width:90%; padding: 24px;">
                         <h5 class="fw-bold mb-3">Cập nhật gói</h5>
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label small text-muted-sync">Tên gói</label>
-                                <input type="text" v-model="packageForm.name" class="form-input-custom w-100" placeholder="VD: Gói Cơ bản">
-                            </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label small text-muted-sync">Số Token</label>
                                 <input type="number" v-model.number="packageForm.tokens" class="form-input-custom w-100" min="1">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label small text-muted-sync">Giá (VNĐ)</label>
                                 <input type="number" v-model.number="packageForm.price" class="form-input-custom w-100" min="1">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label small text-muted-sync">Cấp độ cố định sau thanh toán</label>
-                                <input type="text" :value="tierLabel(packageForm.tierCode)" class="form-input-custom w-100" readonly>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted-sync">Cấp độ cố định</label>
+                                <input type="text" :value="packageForm.tierCode" class="form-input-custom w-100" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small text-muted-sync">Thời hạn (ngày)</label>
@@ -1223,7 +1218,7 @@ new Vue({
         // Packages
         packages: [],
         showPackageModal: false,
-        packageForm: { id: null, name: '', tokens: 0, price: 0, description: '', tierCode: 'CREATOR', durationDays: 30 },
+        packageForm: { id: null, tokens: 0, price: 0, description: '', tierCode: 'CREATOR', durationDays: 30 },
 
         // Orders
         orders: [],
@@ -1406,11 +1401,11 @@ new Vue({
 
         tierLabel(tier) {
             const labels = {
-                FREE: 'Miễn phí',
-                BASIC: 'Miễn phí',
-                CREATOR: 'Nhà sáng tạo',
-                PRO: 'Chuyên nghiệp',
-                STUDIO: 'Phòng thu'
+                FREE: 'FREE',
+                BASIC: 'FREE',
+                CREATOR: 'CREATOR',
+                PRO: 'PRO',
+                STUDIO: 'STUDIO'
             };
             const tierKey = (tier || 'FREE').toUpperCase();
             return labels[tierKey] || tier;
@@ -1789,15 +1784,11 @@ new Vue({
 
         openPackageModal(p) {
             if (!p) return;
-            this.packageForm = { id: p.id, name: p.name, tokens: p.tokens, price: p.price, description: p.description || '', tierCode: p.tierCode || 'CREATOR', durationDays: p.durationDays || 30 };
+            this.packageForm = { id: p.id, tokens: p.tokens, price: p.price, description: p.description || '', tierCode: p.tierCode || 'CREATOR', durationDays: p.durationDays || 30 };
             this.showPackageModal = true;
         },
 
         savePackage() {
-            if (!this.packageForm.name.trim()) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Tên gói không được để trống!' });
-                return;
-            }
             if (!this.packageForm.tokens || this.packageForm.tokens <= 0) {
                 Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Số token phải lớn hơn 0!' });
                 return;
@@ -1808,11 +1799,9 @@ new Vue({
             }
 
             const body = {
-                name: this.packageForm.name.trim(),
                 tokens: this.packageForm.tokens,
                 price: this.packageForm.price,
                 description: this.packageForm.description.trim(),
-                tierCode: this.packageForm.tierCode,
                 durationDays: this.packageForm.durationDays
             };
 
@@ -1824,24 +1813,6 @@ new Vue({
                     this.loadPackages();
                 })
                 .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Cập nhật thất bại' }); });
-        },
-
-        deletePackage(p) {
-            Swal.fire({
-                title: 'Xóa gói?',
-                text: `Bạn có chắc xóa gói "${p.name}"?`,
-                icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
-            }).then(result => {
-                if (result.isConfirmed) {
-                    axios.delete(`/api/packages/${p.id}`)
-                        .then(r => {
-                            this.Toast.fire({ icon: 'success', title: r.data.message });
-                            this.loadPackages();
-                        })
-                        .catch(e => { Swal.fire({ icon: 'error', title: 'Lỗi', text: e.response?.data?.message || 'Xóa thất bại' }); });
-                }
-            });
         },
 
         // ===== ORDERS =====
