@@ -14,6 +14,15 @@ import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.core.io.ByteArrayResource;
+
+import com.lowagie.text.Document;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
+import java.io.ByteArrayOutputStream;
+
 @Service
 @Slf4j
 public class MailService {
@@ -52,40 +61,54 @@ public class MailService {
 		}
 
 		try {
-			SimpleMailMessage message = new SimpleMailMessage();
-			message.setFrom(fromEmail);
-			message.setTo(user.getEmail());
-			message.setSubject("🎉 Chúc mừng! Thanh toán thành công đơn #" + order.getOrderCode());
-
-			// Format price and date for email body
+			// Format price and date
 			NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
 			String formattedPrice = currencyFormatter.format(order.getTotalPrice());
 			SimpleDateFormat dateFormatter = new SimpleDateFormat("HH:mm:ss dd/MM/yyyy");
 			String formattedDate = dateFormatter.format(order.getCreatedAt());
 
+			// Generate PDF
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			Document document = new Document();
+			PdfWriter.getInstance(document, baos);
+			document.open();
+			
+			// Using basic text to avoid Vietnamese font issues in default PDF font
+			document.add(new Paragraph("HOA DON THANH TOAN WEBMUSICAI"));
+			document.add(new Paragraph("----------------------------------------"));
+			document.add(new Paragraph("Ma don hang: " + order.getOrderCode()));
+			document.add(new Paragraph("Ngay tao: " + formattedDate));
+			document.add(new Paragraph("Ten goi: " + order.getPkg().getTierCode()));
+			document.add(new Paragraph("So credit: +" + order.getPkg().getTokens())); // also updated token -> credit in PDF
+			document.add(new Paragraph("Tong tien: " + formattedPrice));
+			document.add(new Paragraph("Trang thai: THANH TOAN THANH CONG"));
+			document.add(new Paragraph("----------------------------------------"));
+			document.add(new Paragraph("Cam on ban da su dung dich vu cua chung toi."));
+			document.close();
+
+			MimeMessage message = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+			helper.setFrom(fromEmail);
+			helper.setTo(user.getEmail());
+			helper.setSubject("🎉 Chúc mừng! Thanh toán thành công đơn #" + order.getOrderCode());
+
 			String text = String.format(
 					"Xin chào %s,\n\n" +
-							"Cảm ơn bạn đã mua hàng tại WebMusicAI. Dưới đây là chi tiết hóa đơn của bạn:\n\n" +
-							"----------------------------------------\n" +
-							"Mã đơn hàng: %s\n" +
-							"Ngày tạo: %s\n" +
-							"Tên gói: %s\n" +
-							"Số token: +%d\n" +
-							"Tổng tiền: %s\n" +
-							"Trạng thái: THANH TOÁN THÀNH CÔNG\n" +
-							"----------------------------------------\n\n" +
-							"Số token đã được cộng vào tài khoản của bạn.\n\n" +
+							"Cảm ơn bạn đã mua hàng tại WebMusicAI. Hóa đơn chi tiết của bạn đã được đính kèm ở định dạng PDF trong email này.\n\n" +
+							"Số credit đã được cộng vào tài khoản của bạn.\n\n" +
 							"Trân trọng,\n" +
 							"Đội ngũ WebMusicAI",
-					user.getFullname(), order.getOrderCode(), formattedDate, order.getPkg().getTierCode(),
-					order.getPkg().getTokens(), formattedPrice);
+					user.getFullname());
 
-			message.setText(text);
+			helper.setText(text);
+			helper.addAttachment("HoaDon_" + order.getOrderCode() + ".pdf", new ByteArrayResource(baos.toByteArray()));
+
 			mailSender.send(message);
-			log.info("Đã gửi email hóa đơn cho đơn hàng {} tới: {}", order.getOrderCode(), user.getEmail());
+			log.info("Đã gửi email hóa đơn (đính kèm PDF) cho đơn hàng {} tới: {}", order.getOrderCode(), user.getEmail());
 
-		} catch (Exception e) {
-			log.error("Lỗi gửi email hóa đơn cho {} tới {}: {}", order.getOrderCode(), user.getEmail(), e.getMessage());
+		} catch (Throwable e) {
+			log.error("Lỗi gửi email hóa đơn cho {} tới {}: {}", order.getOrderCode(), user.getEmail(), e.getMessage(), e);
 		}
 	}
 
