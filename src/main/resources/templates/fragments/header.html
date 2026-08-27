@@ -31,8 +31,7 @@
 						style="background: rgba(22, 163, 74, 0.1); border: 1px solid rgba(22, 163, 74, 0.3); color: var(--text-color); transition: all 0.2s;"
 						onmouseover="this.style.backgroundColor='rgba(22,163,74,0.2)'"
 						onmouseout="this.style.backgroundColor='rgba(22,163,74,0.1)'" title="Bài hát yêu thích"> <i
-							class="ti ti-heart text-success me-2"></i> <span class="fw-medium">Yêu
-							thích</span>
+							class="ti ti-heart text-success me-2"></i> <span class="fw-medium">Yêu thích</span>
 					</a> <a v-if="isAdmin" href="/admin"
 						class="btn px-3 py-1.5 rounded-pill me-2 small d-flex align-items-center text-decoration-none"
 						style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); color: var(--text-color); transition: all 0.2s;"
@@ -49,18 +48,16 @@
 
 					<a href="/orders" class="nav-link d-flex align-items-center gap-2 me-3"
 						:class="{ active: currentPage === '/orders' }"> <i class="ti ti-shopping-cart"
-							style="font-size: 18px;"></i> <span>Nạp
-							Token</span>
+							style="font-size: 18px;"></i> <span>Nạp Credit</span>
 					</a>
 					<button @click="handleLogout" class="btn btn-sm btn-outline-danger py-1 px-3"
 						style="border-radius: 20px;">Đăng xuất</button>
 				</template>
 
 				<template v-if="currentUser === null">
-					<a href="/register" class="btn btn-sm btn-register-sync px-3 py-1.5 me-2 text-decoration-none">Đăng
-						ký</a> <a href="/login" class="btn btn-sm btn-success px-3 py-1.5 fw-medium"
-						style="background: #16a34a; border: 0; border-radius: 10px;">Đăng
-						nhập</a>
+					<a href="/register" class="btn btn-sm btn-register-sync px-3 py-1.5 me-2 text-decoration-none">Đăng ký</a> 
+					<a href="/login" class="btn btn-sm btn-success px-3 py-1.5 fw-medium"
+						style="background: #16a34a; border: 0; border-radius: 10px;">Đăng nhập</a>
 				</template>
 			</div>
 		</div>
