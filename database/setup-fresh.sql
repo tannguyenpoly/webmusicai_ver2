@@ -3,7 +3,7 @@
 
   CẢNH BÁO: Script này XÓA toàn bộ MusicAI_DB hiện có rồi tạo lại từ đầu.
   Chỉ chạy khi cài mới hoặc khi chắc chắn không cần giữ dữ liệu cũ.
-  Nếu database đang có dữ liệu cần giữ, hãy chạy upgrade-existing.sql thay thế.
+  Nếu database đang có dữ liệu cần giữ, hãy chạy file mới nhất trong thư mục migrations/ thay thế.
   Dữ liệu mẫu chỉ gồm tài khoản người dùng thật; hệ thống không có tài khoản khách.
 */
 

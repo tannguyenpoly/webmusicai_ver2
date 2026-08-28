@@ -33,6 +33,11 @@ import com.fpoly.webmusicai.repository.OrderRepository;
 import com.fpoly.webmusicai.repository.SongRepository;
 import com.fpoly.webmusicai.repository.SongTagRepository;
 import com.fpoly.webmusicai.repository.TagRepository;
+import com.fpoly.webmusicai.repository.AlbumSongRepository;
+import com.fpoly.webmusicai.repository.FavoriteRepository;
+import com.fpoly.webmusicai.repository.PlaylistSongRepository;
+import com.fpoly.webmusicai.repository.SongCommentRepository;
+import com.fpoly.webmusicai.repository.SongListenHistoryRepository;
 import com.fpoly.webmusicai.repository.UserRepository;
 import com.fpoly.webmusicai.repository.UserSpendingProjection;
 import com.fpoly.webmusicai.repository.UserTokenUsageProjection;
@@ -87,6 +92,21 @@ public class AdminRestController {
 
     @Autowired
     private PackageRepository packageRepo;
+
+    @Autowired
+    private FavoriteRepository favoriteRepo;
+
+    @Autowired
+    private SongCommentRepository commentRepo;
+
+    @Autowired
+    private PlaylistSongRepository playlistSongRepo;
+
+    @Autowired
+    private AlbumSongRepository albumSongRepo;
+
+    @Autowired
+    private SongListenHistoryRepository songListenHistoryRepo;
 
 
     // ============ QUẢN LÝ USER (đã có sẵn) ============
@@ -325,10 +345,19 @@ public class AdminRestController {
     }
 
     @DeleteMapping("/songs/{id}")
+    @Transactional
     public ResponseEntity<?> deleteSong(@PathVariable Integer id) {
         if (!songRepo.existsById(id)) {
             return ResponseEntity.badRequest().body(Map.of("message", "Bài nhạc không tồn tại!"));
         }
+        favoriteRepo.deleteBySongId(id);
+        commentRepo.deleteBySongId(id);
+        playlistSongRepo.deleteBySongId(id);
+        albumSongRepo.deleteBySongId(id);
+        songTagRepo.deleteBySongId(id);
+        songListenHistoryRepo.deleteBySongId(id);
+        songRepo.deleteSongGenresBySongId(id);
+        songRepo.detachRemixesFromParent(id);
         songRepo.deleteById(id);
         return ResponseEntity.ok(Map.of("message", "Đã xóa bài nhạc #" + id));
     }
