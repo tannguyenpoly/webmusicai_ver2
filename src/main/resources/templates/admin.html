@@ -470,7 +470,7 @@
                 </a>
                 <a class="nav-item" :class="{ active: activeTab === 'packages' }" @click.prevent="activeTab = 'packages'" href="#">
                     <i class="ti ti-gift"></i>
-                    <span class="nav-label">Gói token</span>
+                    <span class="nav-label">Gói Credit</span>
                 </a>
                 <a class="nav-item" :class="{ active: activeTab === 'revenue' }" @click.prevent="activeTab = 'revenue'" href="#">
                     <i class="ti ti-coin"></i>
@@ -565,7 +565,7 @@
                             </div>
                             <div class="card-body p-0">
                                 <table class="table table-custom" v-if="topUsers.length">
-                                    <thead><tr><th>Người dùng</th><th class="text-center">Bài hát</th><th class="text-center">Token</th></tr></thead>
+                                    <thead><tr><th>Người dùng</th><th class="text-center">Bài hát</th><th class="text-center">Credit</th></tr></thead>
                                     <tbody>
                                         <tr v-for="u in topUsers" :key="u.username">
                                             <td>
@@ -595,7 +595,7 @@
 
                 <div class="d-flex gap-2 mb-3" style="border-bottom: 1px solid var(--border-color);">
                     <button @click="setUserManagementTab('usage')" class="btn btn-admin-outline" :class="{'btn-admin-primary': userManagementTab === 'usage'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
-                        <i class="ti ti-users me-1"></i>Tài khoản & Token
+                        <i class="ti ti-users me-1"></i>Tài khoản & Credit
                     </button>
                     <button @click="setUserManagementTab('spending')" class="btn btn-admin-outline" :class="{'btn-admin-primary': userManagementTab === 'spending'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
                         <i class="ti ti-chart-bar me-1"></i>Chi tiêu & hành vi mua
@@ -610,11 +610,11 @@
                         <div v-if="userRegistration.mode !== 'ALL' && userRegistration.mode !== 'TODAY'" class="col-md-2"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="userRegistration.year" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
                         <div v-if="userRegistration.mode === 'MONTH'" class="col-md-2"><label class="form-label small text-muted-sync">Tháng</label><select v-model.number="userRegistration.month" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="month in monthOptions" :key="month.value" :value="month.value">{{ month.label }}</option></select></div>
                         <div v-if="userRegistration.mode === 'WEEK'" class="col-md-3"><label class="form-label small text-muted-sync">Tuần</label><select v-model.number="userRegistration.week" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="week in userRegistrationWeekOptions" :key="week.value" :value="week.value">{{ week.label }}</option></select></div>
-                        <div class="col-md-3"><label class="form-label small text-muted-sync">Sắp xếp token hiện tại</label><select v-model="userFilters.tokenSort" class="form-select-custom w-100"><option value="token_desc">Cao đến thấp</option><option value="token_asc">Thấp đến cao</option></select></div>
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Sắp xếp Credit hiện tại</label><select v-model="userFilters.tokenSort" class="form-select-custom w-100"><option value="token_desc">Cao đến thấp</option><option value="token_asc">Thấp đến cao</option></select></div>
                     </div><div class="filter-actions-row"><button @click="applyUserUsageFilters" class="btn btn-admin-primary"><i class="ti ti-check me-1"></i>Áp dụng</button><button @click="resetUserFilters" class="btn btn-admin-outline"><i class="ti ti-refresh me-1"></i>Đặt lại</button></div><div class="time-range-preview mt-3"><i class="ti ti-calendar-event text-success fs-5"></i><div class="d-flex flex-wrap gap-3"><span><small>Từ ngày</small><b class="d-block">{{ userRegistrationStartLabel }}</b></span><span><small>Đến ngày</small><b class="d-block">{{ userRegistrationEndLabel }}</b></span></div></div></div></div>
 
                     <div class="card-custom"><div class="card-body p-0"><table class="table table-custom"><thead><tr>
-                        <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Ngày đăng ký</th><th class="text-center">Loại</th><th class="text-center">Token</th><th class="text-center">Gói</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
+                        <th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Ngày đăng ký</th><th class="text-center">Loại</th><th class="text-center">Credit</th><th class="text-center">Gói</th><th class="text-center">Trạng thái</th><th class="text-center">Thao tác</th>
                     </tr></thead><tbody>
                         <tr v-for="u in usersPage.content" :key="u.username" style="cursor: pointer;">
                             <td class="fw-medium" @click="viewUserSongs(u)">@{{ u.username }}</td><td>{{ u.fullname }}</td><td class="text-muted-sync">{{ u.email || '—' }}</td><td class="text-muted-sync" style="font-size:12px">{{ formatDate(u.createdAt) }}</td>
@@ -641,12 +641,12 @@
 
                     <div class="row g-3 mb-3 user-spending-summary">
                         <div class="col-md-4"><div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"><div class="stat-icon bg-success-subtle text-success"><i class="ti ti-users"></i></div><div><div class="stat-value">{{ userSpendingInsights.payingCustomers || 0 }}</div><div class="stat-label">Khách đã chi tiêu</div></div></div></div>
-                        <div class="col-md-4"><div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"><div class="stat-icon bg-info-subtle text-info"><i class="ti ti-activity"></i></div><div><div class="stat-value">{{ userSpendingInsights.activeUsers || 0 }}</div><div class="stat-label">Đã dùng token</div></div></div></div>
+                        <div class="col-md-4"><div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"><div class="stat-icon bg-info-subtle text-info"><i class="ti ti-activity"></i></div><div><div class="stat-value">{{ userSpendingInsights.activeUsers || 0 }}</div><div class="stat-label">Đã dùng Credit</div></div></div></div>
                         <div class="col-md-4"><div class="stat-card dashboard-stat-card d-flex align-items-center gap-3"><div class="stat-icon bg-primary-subtle text-primary"><i class="ti ti-cash"></i></div><div><div class="stat-value" style="font-size:20px">{{ formatPrice(userSpendingInsights.revenue || 0) }}</div><div class="stat-label">Doanh thu trong khoảng</div></div></div></div>
                     </div>
 
                     <div class="card-custom"><div class="card-body p-0"><table class="table table-custom"><thead><tr>
-                        <th>Người dùng</th><th class="text-center">Loại</th><th class="text-center">Gói</th><th class="text-end">Tổng đã chi</th><th class="text-center">Đơn thành công</th><th class="text-center">Token đã mua</th><th class="text-center">Token đã dùng</th><th class="text-center">Token hiện tại</th><th>Lần thanh toán gần nhất</th>
+                        <th>Người dùng</th><th class="text-center">Loại</th><th class="text-center">Gói</th><th class="text-end">Tổng đã chi</th><th class="text-center">Đơn thành công</th><th class="text-center">Credit đã mua</th><th class="text-center">Credit đã dùng</th><th class="text-center">Credit hiện tại</th><th>Lần thanh toán gần nhất</th>
                     </tr></thead><tbody>
                         <tr v-for="u in userSpendingPage.content" :key="u.username"><td><div class="fw-medium">@{{ u.username }}</div><small class="text-muted-sync">{{ u.fullname || u.email || '—' }}</small></td><td class="text-center"><span class="badge-status" :class="u.admin ? 'badge-pending' : 'badge-completed'">{{ u.admin ? 'Admin' : 'User' }}</span></td><td class="text-center">{{ tierLabel(u.accountTier) }}</td><td class="text-end fw-bold text-success">{{ formatPrice(u.totalSpent || 0) }}</td><td class="text-center">{{ u.successfulOrderCount || 0 }}</td><td class="text-center">{{ u.purchasedTokens || 0 }}</td><td class="text-center">{{ u.usedTokens || 0 }}</td><td class="text-center">{{ u.tokenBalance || 0 }}</td><td class="text-muted-sync" style="font-size:12px">{{ formatDate(u.lastPaidAt) }}</td></tr>
                         <tr v-if="!userSpendingPage.content || userSpendingPage.content.length === 0"><td colspan="9" class="text-center text-muted-sync py-4">Không có dữ liệu chi tiêu trong khoảng đã chọn.</td></tr>
@@ -793,13 +793,13 @@
             <!-- ========== PACKAGES ========== -->
             <div class="section-tab" :class="{ active: activeTab === 'packages' }">
                 <div class="page-header">
-                    <h4><i class="ti ti-gift text-success me-2"></i>Quản lý gói token</h4>
+                    <h4><i class="ti ti-gift text-success me-2"></i>Quản lý gói Credit</h4>
                 </div>
 
                 <div class="card-custom">
                     <div class="card-body p-0">
                         <table class="table table-custom">
-                            <thead><tr><th>ID</th><th>Cấp độ</th><th class="text-center">Token</th><th class="text-center">Giá</th><th class="text-center">Lượt mua</th><th class="text-end">Doanh thu</th><th class="text-center">Thao tác</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Cấp độ</th><th class="text-center">Credit</th><th class="text-center">Giá</th><th class="text-center">Lượt mua</th><th class="text-end">Doanh thu</th><th class="text-center">Thao tác</th></tr></thead>
                             <tbody>
                                 <tr v-for="p in packages" :key="p.id">
                                     <td class="text-muted-sync">#{{ p.id }}</td>
@@ -815,7 +815,7 @@
                                     </td>
                                 </tr>
                                 <tr v-if="packages.length === 0">
-                                    <td colspan="7" class="text-center text-muted-sync py-4">Chưa có gói token nào.</td>
+                                    <td colspan="7" class="text-center text-muted-sync py-4">Chưa có gói Credit nào.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -828,7 +828,7 @@
                         <h5 class="fw-bold mb-3">Cập nhật gói</h5>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label small text-muted-sync">Số Token</label>
+                                <label class="form-label small text-muted-sync">Số Credit</label>
                                 <input type="number" v-model.number="packageForm.tokens" class="form-input-custom w-100" min="1">
                             </div>
                             <div class="col-md-4">
@@ -945,7 +945,7 @@
                                     </td>
                                     <td class="text-muted-sync" style="font-size: 12px;">{{ formatDate(o.createdAt) }}</td>
                                     <td class="text-center">
-                                        <button v-if="o.status === 'REVIEW'" @click="approveReviewOrder(o)" class="btn btn-admin-sm btn-admin-primary" title="Đã kiểm tra tiền thực, cộng token cho người dùng">
+                                        <button v-if="o.status === 'REVIEW'" @click="approveReviewOrder(o)" class="btn btn-admin-sm btn-admin-primary" title="Đã kiểm tra tiền thực, cộng Credit cho người dùng">
                                             <i class="ti ti-circle-check me-1"></i> Xác nhận
                                         </button>
                                         <span v-else class="text-muted-sync">—</span>
@@ -991,7 +991,7 @@
 
                 <div class="d-flex border-bottom mb-4" style="border-color: var(--border-color) !important;">
                     <button @click="transactionHistoryTab = 'tokens'" class="btn btn-admin-outline" :class="{'btn-admin-primary': transactionHistoryTab === 'tokens'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
-                        <i class="ti ti-arrows-exchange me-1"></i> Lịch sử Token
+                        <i class="ti ti-arrows-exchange me-1"></i> Lịch sử Credit
                     </button>
                     <button @click="transactionHistoryTab = 'payments'" class="btn btn-admin-outline" :class="{'btn-admin-primary': transactionHistoryTab === 'payments'}" style="border-radius: 10px 10px 0 0; border-bottom: none; margin-bottom: -1px;">
                         <i class="ti ti-receipt-2 me-1"></i> Lịch sử Thanh toán
@@ -1023,8 +1023,8 @@
                                     <label class="form-label small text-muted-sync">Loại giao dịch</label>
                                     <select v-model="transactionFilters.type" class="form-select-custom w-100">
                                         <option value="ALL">Tất cả</option>
-                                        <option value="DEPOSIT">Cộng token (Nạp tiền)</option>
-                                        <option value="USAGE">Trừ token (Sử dụng)</option>
+                                        <option value="DEPOSIT">Cộng Credit (Nạp tiền)</option>
+                                        <option value="USAGE">Trừ Credit (Sử dụng)</option>
                                     </select>
                                 </div>
                                 <div class="col-md-5">
@@ -1678,7 +1678,7 @@ new Vue({
 
             axios.get('/api/admin/transactions?' + params.toString())
                 .then(r => { this.transactionsPage = r.data; })
-                .catch(() => this.Toast.fire({ icon: 'error', title: 'Không thể tải lịch sử token.' }))
+                .catch(() => this.Toast.fire({ icon: 'error', title: 'Không thể tải lịch sử Credit.' }))
                 .finally(() => { this.isLoadingTransactions = false; });
         },
 
@@ -1828,7 +1828,7 @@ new Vue({
 
         savePackage() {
             if (!this.packageForm.tokens || this.packageForm.tokens <= 0) {
-                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Số token phải lớn hơn 0!' });
+                Swal.fire({ icon: 'warning', title: 'Lỗi', text: 'Số Credit phải lớn hơn 0!' });
                 return;
             }
             if (!this.packageForm.price || this.packageForm.price <= 0) {
@@ -2036,10 +2036,10 @@ new Vue({
         approveReviewOrder(order) {
             Swal.fire({
                 title: 'Xác nhận đối soát?',
-                text: `Chỉ xác nhận khi bạn đã kiểm tra tiền thực của đơn ${order.orderCode}. Token sẽ được cộng ngay cho @${order.user?.username || 'người dùng'}.`,
+                text: `Chỉ xác nhận khi bạn đã kiểm tra tiền thực của đơn ${order.orderCode}. Credit sẽ được cộng ngay cho @${order.user?.username || 'người dùng'}.`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Xác nhận cộng token',
+                confirmButtonText: 'Xác nhận cộng Credit',
                 cancelButtonText: 'Quay lại',
                 confirmButtonColor: '#16a34a'
             }).then(result => {

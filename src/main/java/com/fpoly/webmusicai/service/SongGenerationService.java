@@ -176,7 +176,7 @@ public class SongGenerationService {
         Transaction refund = new Transaction();
         refund.setUser(user);
         refund.setAmount(1);
-        refund.setDescription("Hoàn token do tạo nhạc thất bại"
+        refund.setDescription("Hoàn Credit do tạo nhạc thất bại"
                 + (reason == null || reason.isBlank() ? "" : ": " + shorten(reason, 120)));
         transactionRepository.save(refund);
     }
@@ -206,7 +206,7 @@ public class SongGenerationService {
         Transaction refund = new Transaction();
         refund.setUser(user);
         refund.setAmount(1);
-        refund.setDescription("Hoàn token do người dùng dừng tạo nhạc");
+        refund.setDescription("Hoàn Credit do người dùng dừng tạo nhạc");
         transactionRepository.save(refund);
 
         return new SongCancellationResult(songId, song.getStatus(), user.getTokenBalance());
@@ -235,7 +235,7 @@ public class SongGenerationService {
                 Transaction refund = new Transaction();
                 refund.setUser(user);
                 refund.setAmount(1);
-                refund.setDescription("Hoàn token do tác vụ tạo nhạc quá thời gian");
+                refund.setDescription("Hoàn Credit do tác vụ tạo nhạc quá thời gian");
                 transactionRepository.save(refund);
                 refunded++;
             }
@@ -259,7 +259,7 @@ public class SongGenerationService {
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new IllegalArgumentException("User không tồn tại"));
         if (user.getTokenBalance() == null || user.getTokenBalance() < 1) {
-            throw new IllegalStateException("Bạn không đủ Token!");
+            throw new IllegalStateException("Bạn không đủ Credit!");
         }
         return user;
     }

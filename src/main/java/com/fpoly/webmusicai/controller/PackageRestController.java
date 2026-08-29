@@ -37,7 +37,7 @@ public class PackageRestController {
 			if (body.containsKey("tokens")) {
 				Integer tokens = parseIntSafe(body.get("tokens"));
 				if (tokens == null || tokens <= 0) {
-					return ResponseEntity.badRequest().body(Map.of("message", "Số token phải lớn hơn 0!"));
+                    return ResponseEntity.badRequest().body(Map.of("message", "Số Credit phải lớn hơn 0!"));
 				}
 				pkg.setTokens(tokens);
 			}

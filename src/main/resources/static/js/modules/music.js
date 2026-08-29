@@ -60,7 +60,7 @@ window.MusicAIModules.music = {
                         } else if (statusData.status === 'CANCELLED') {
                             clearInterval(this.pollingTimer);
                             this.isGenerating = false;
-                            this.Toast.fire({ icon: 'info', title: 'Đã dừng tạo nhạc và hoàn token' });
+                            this.Toast.fire({ icon: 'info', title: 'Đã dừng tạo nhạc và hoàn Credit' });
                         }
                     })
                     .catch(() => { clearInterval(this.pollingTimer); });

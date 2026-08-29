@@ -42,7 +42,7 @@ public class MailService {
 			message.setSubject("🎵 Chào mừng bạn đến với WebMusicAI!");
 			message.setText(
 					"Xin chào " + fullname + ",\n\n" + "Tài khoản của bạn đã được tạo thành công!\n" + "Tên đăng nhập: "
-							+ username + "\n\n" + "Bạn nhận được 15 token miễn phí để bắt đầu tạo nhạc AI.\n\n"
+                            + username + "\n\n" + "Bạn nhận được 15 Credit miễn phí để bắt đầu tạo nhạc AI.\n\n"
 							+ "Trân trọng,\n" + "Chúc bạn dùng ứng dụng vui vẻ");
 
 			mailSender.send(message);
@@ -79,7 +79,7 @@ public class MailService {
 			document.add(new Paragraph("Ma don hang: " + order.getOrderCode()));
 			document.add(new Paragraph("Ngay tao: " + formattedDate));
 			document.add(new Paragraph("Ten goi: " + order.getPkg().getTierCode()));
-			document.add(new Paragraph("So credit: +" + order.getPkg().getTokens())); // also updated token -> credit in PDF
+			document.add(new Paragraph("Số Credit: +" + order.getPkg().getTokens()));
 			document.add(new Paragraph("Tong tien: " + formattedPrice));
 			document.add(new Paragraph("Trang thai: THANH TOAN THANH CONG"));
 			document.add(new Paragraph("----------------------------------------"));

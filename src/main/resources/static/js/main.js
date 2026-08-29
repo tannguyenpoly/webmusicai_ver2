@@ -628,7 +628,7 @@ new Vue({
         const paymentStatus = urlParams.get('status');
         if (paymentStatus) {
             if (paymentStatus === 'success') {
-                Swal.fire({ icon: 'success', title: 'Thanh toán thành công!', text: 'Hệ thống đã cập nhật token vào tài khoản của bạn.', confirmButtonColor: '#16a34a' });
+                Swal.fire({ icon: 'success', title: 'Thanh toán thành công!', text: 'Hệ thống đã cập nhật Credit vào tài khoản của bạn.', confirmButtonColor: '#16a34a' });
             } else if (paymentStatus === 'failed') {
                 Swal.fire({ icon: 'error', title: 'Thanh toán thất bại!', text: 'Giao dịch chưa hoàn tất hoặc đã bị hủy.', confirmButtonColor: '#dc3545' });
             } else if (paymentStatus === 'invalid') {

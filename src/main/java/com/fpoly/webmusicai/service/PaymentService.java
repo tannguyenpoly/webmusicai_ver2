@@ -76,7 +76,7 @@ public class PaymentService {
         orderRepository.save(order);
         creditOrderBenefits(order, "Thanh toán thành công qua " + gateway + " - Mã: " + orderCode);
         String message = ("CANCELLED".equals(previousStatus) || "EXPIRED".equals(previousStatus))
-                ? "Đã nhận thanh toán muộn hợp lệ và cộng token"
+                ? "Đã nhận thanh toán muộn hợp lệ và cộng Credit"
                 : "Thanh toán thành công";
         return new PaymentCompletionResult("SUCCESS", message);
     }
@@ -92,7 +92,7 @@ public class PaymentService {
         order.setStatus("SUCCESS");
         orderRepository.save(order);
         creditOrderBenefits(order, "Admin xác nhận đối soát - Mã: " + orderCode);
-        return new PaymentCompletionResult("SUCCESS", "Admin đã xác nhận và cộng token cho người dùng");
+        return new PaymentCompletionResult("SUCCESS", "Admin đã xác nhận và cộng Credit cho người dùng");
     }
 
     private PaymentCompletionResult saveForReview(
