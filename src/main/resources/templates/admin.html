@@ -604,7 +604,7 @@
 
                 <div v-if="userManagementTab === 'usage'">
                     <div class="card-custom admin-filter-card mb-4"><div class="card-body"><div class="admin-filter-grid">
-                        <div class="col-md-3"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">FREE</option><option value="CREATOR">CREATOR</option><option value="PRO">PRO</option><option value="STUDIO">STUDIO</option></select></div>
+                        <div class="col-md-3"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
                         <div class="col-md-3"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userFilters.roleFilter" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="ADMIN">Admin</option><option value="USER">User</option></select></div>
                         <div class="col-md-2"><label class="form-label small text-muted-sync">Ngày đăng ký</label><select v-model="userRegistration.mode" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
                         <div v-if="userRegistration.mode !== 'ALL' && userRegistration.mode !== 'TODAY'" class="col-md-2"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="userRegistration.year" @change="updateUserRegistrationRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
@@ -630,7 +630,7 @@
 
                 <div v-else>
                     <div class="card-custom admin-filter-card mb-4"><div class="card-body"><div class="admin-filter-grid">
-                        <div class="col-md-2"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userSpendingFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">FREE</option><option value="CREATOR">CREATOR</option><option value="PRO">PRO</option><option value="STUDIO">STUDIO</option></select></div>
+                        <div class="col-md-2"><label class="form-label small text-muted-sync">Gói đang dùng</label><select v-model="userSpendingFilters.tier" class="form-select-custom w-100"><option value="">Tất cả gói</option><option value="FREE">Miễn phí</option><option value="CREATOR">Nhà sáng tạo</option><option value="PRO">Chuyên nghiệp</option><option value="STUDIO">Phòng thu</option></select></div>
                         <div class="col-md-2"><label class="form-label small text-muted-sync">Loại tài khoản</label><select v-model="userSpendingFilters.roleFilter" class="form-select-custom w-100"><option value="ALL">Tất cả</option><option value="ADMIN">Admin</option><option value="USER">User</option></select></div>
                         <div class="col-md-2"><label class="form-label small text-muted-sync">Khoảng chi tiêu</label><select v-model="userSpendingFilters.period" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option value="ALL">Tất cả thời gian</option><option value="TODAY">Hôm nay</option><option value="WEEK">Theo tuần</option><option value="MONTH">Theo tháng</option><option value="YEAR">Theo năm</option></select></div>
                         <div v-if="userSpendingFilters.period !== 'ALL' && userSpendingFilters.period !== 'TODAY'" class="col-md-1"><label class="form-label small text-muted-sync">Năm</label><select v-model.number="userSpendingFilters.year" @change="updateUserSpendingRangePreview" class="form-select-custom w-100"><option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option></select></div>
@@ -1403,11 +1403,11 @@ new Vue({
 
         tierLabel(tier) {
             const labels = {
-                FREE: 'FREE',
-                BASIC: 'FREE',
-                CREATOR: 'CREATOR',
-                PRO: 'PRO',
-                STUDIO: 'STUDIO'
+                FREE: 'Miễn phí',
+                BASIC: 'Miễn phí',
+                CREATOR: 'Nhà sáng tạo',
+                PRO: 'Chuyên nghiệp',
+                STUDIO: 'Phòng thu'
             };
             const tierKey = (tier || 'FREE').toUpperCase();
             return labels[tierKey] || tier;

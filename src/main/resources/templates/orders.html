@@ -36,25 +36,24 @@
                 <!-- Danh sách các gói (Cards) -->
                 <div v-else class="row g-4 mb-5">
                     <div class="col-md-4" v-for="pkg in packages" :key="pkg.id">
+                        <div class="d-flex justify-content-center align-items-end" style="height: 38px; margin-bottom: 8px;">
+                            <span v-if="pkg.tierCode === 'PRO'" class="badge px-3 py-2 bg-success rounded-pill">Phổ biến nhất</span>
+                        </div>
                         <article class="card h-100 border-0"
-                            :style="pkg.id === 2 ? 'background:rgba(22,163,74,0.12);border:1.5px solid rgba(22,163,74,0.4) !important;' : 'background:var(--card-bg);border:1px solid var(--border-color) !important;'">
-                            <div v-if="pkg.id === 2" class="text-center pt-3">
-                                <span class="badge px-3 py-2 bg-success rounded-pill">Phổ biến nhất</span>
-                            </div>
-                            <div class="card-body text-center p-4">
-                                <h2 class="h5 fw-bold mb-2" style="color: var(--text-color);">{{ pkg.name }}</h2>
-                                <p class="text-muted-sync small mb-3">{{ pkg.description }}</p>
-                                <div class="small text-success fw-semibold mb-2">
-                                    {{ pkg.tierCode === 'STUDIO' ? 'Phòng thu' : (pkg.tierCode === 'PRO' ? 'Chuyên nghiệp' : 'Nhà sáng tạo') }} · {{ pkg.durationDays || 30 }} ngày
+                            :style="pkg.tierCode === 'PRO' ? 'background:rgba(22,163,74,0.12);border:1.5px solid rgba(22,163,74,0.4) !important;' : 'background:var(--card-bg);border:1px solid var(--border-color) !important;'">
+                            <div class="card-body text-center d-flex flex-column p-4">
+                                <h2 class="h5 fw-bold mb-2" style="color: var(--text-color);">
+                                    {{ pkg.tierCode === 'STUDIO' ? 'Phòng thu' : (pkg.tierCode === 'PRO' ? 'Chuyên nghiệp' : (pkg.tierCode === 'CREATOR' ? 'Nhà sáng tạo' : 'Miễn phí')) }}
+                                </h2>
+                                <div class="small text-muted-sync mb-3">Gói {{ pkg.durationDays || 30 }} ngày</div>
+                                <div class="fw-semibold mb-3" style="font-size: 15px; color: var(--text-color);">{{ formatPrice(pkg.price) }}đ</div>
+                                <div class="mb-3 lh-1">
+                                    <span class="fw-bold text-success" style="font-size: 42px; letter-spacing: -.8px;">{{ pkg.tokens }}</span>
+                                    <span class="text-muted-sync ms-1 small">Credit</span>
                                 </div>
-                                <div class="mb-3">
-                                    <span class="fw-bold text-success" style="font-size: 36px;">{{ pkg.tokens }}</span>
-                                    <span class="text-muted-sync ms-1 small">credit</span>
-                                </div>
-                                <div class="mb-4 fw-bold" style="font-size: 20px; color: var(--text-color);">{{
-                                    formatPrice(pkg.price) }}đ</div>
+                                <p class="text-muted-sync small mb-4 flex-grow-1" style="line-height: 1.55;">{{ pkg.description }}</p>
                                 <button @click="buyPackage(pkg)" class="btn w-100 fw-semibold py-2"
-                                    :class="pkg.id === 2 ? 'btn-success' : 'btn-outline-success'"
+                                    :class="pkg.tierCode === 'PRO' ? 'btn-success' : 'btn-outline-success'"
                                     style="border-radius: 10px;">
                                     <i class="ti ti-shopping-cart me-1"></i> Mua ngay
                                 </button>

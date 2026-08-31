@@ -361,12 +361,12 @@ new Vue({
         },
         userTierLabel() {
             const labels = {
-                FREE: 'FREE',
-                CREATOR: 'CREATOR',
-                PRO: 'PRO',
-                STUDIO: 'STUDIO'
+                FREE: 'Miễn phí',
+                CREATOR: 'Nhà sáng tạo',
+                PRO: 'Chuyên nghiệp',
+                STUDIO: 'Phòng thu'
             };
-            return labels[this.effectiveUserTier] || 'FREE';
+            return labels[this.effectiveUserTier] || 'Miễn phí';
         },
         effectiveUserTier() {
             const tier = String(this.userTier || 'FREE').toUpperCase();
