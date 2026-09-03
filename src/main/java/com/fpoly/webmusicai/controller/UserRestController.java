@@ -379,7 +379,7 @@ public class UserRestController {
 
 		Integer amount = request.getOrDefault("amount", 0);
 		if (amount <= 0) {
-			return ResponseEntity.badRequest().body(Map.of("message", "Số token phải lớn hơn 0!"));
+			return ResponseEntity.badRequest().body(Map.of("message", "Số Credit phải lớn hơn 0!"));
 		}
 
 		User user = userOpt.get();
@@ -389,11 +389,11 @@ public class UserRestController {
 		Transaction trans = new Transaction();
 		trans.setUser(user);
 		trans.setAmount(amount);
-		trans.setDescription("Nạp " + amount + " token vào tài khoản");
+		trans.setDescription("Nạp " + amount + " Credit vào tài khoản");
 		transRepo.save(trans);
 
 		return ResponseEntity
-				.ok(Map.of("message", "Nạp thành công " + amount + " token!", "token_balance", user.getTokenBalance()));
+				.ok(Map.of("message", "Nạp thành công " + amount + " Credit!", "token_balance", user.getTokenBalance()));
 	}
 
 	@GetMapping("/me")

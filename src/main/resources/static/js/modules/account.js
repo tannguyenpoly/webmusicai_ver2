@@ -208,21 +208,21 @@ window.MusicAIModules.account = {
         packageBenefits(tierCode) {
             const benefits = {
                 CREATOR: [
-                    '60 token sử dụng trong 30 ngày.',
+                    '60 Credit sử dụng trong 30 ngày.',
                     'Tạo nhạc bằng AudioCraft và MusicAPI.ai.',
                     'Tạo nhạc không lời hoặc để AI gợi ý lời.',
                     'Chọn thời lượng tối đa 30 giây.',
                     'Có thể chọn giọng nam hoặc nữ khi dùng MusicAPI.ai.'
                 ],
                 PRO: [
-                    '180 token sử dụng trong 30 ngày.',
+                    '180 Credit sử dụng trong 30 ngày.',
                     'Dùng AudioCraft, MusicAPI.ai, ACE-Step và Suno.',
                     'Tự nhập lời nhạc hoặc dùng AI gợi ý lời.',
                     'Chọn thời lượng tối đa 60 giây.',
                     'Phân tích file nhạc tham khảo để gợi ý thể loại.'
                 ],
                 STUDIO: [
-                    '500 token sử dụng trong 30 ngày.',
+                    '500 Credit sử dụng trong 30 ngày.',
                     'Dùng tất cả mô hình AI hiện có.',
                     'Tự nhập lời nhạc hoặc dùng AI gợi ý lời.',
                     'Chọn thời lượng tối đa 2 phút.',

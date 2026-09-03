@@ -42,7 +42,7 @@ public class MailService {
 			message.setSubject("🎵 Chào mừng bạn đến với WebMusicAI!");
 			message.setText(
 					"Xin chào " + fullname + ",\n\n" + "Tài khoản của bạn đã được tạo thành công!\n" + "Tên đăng nhập: "
-							+ username + "\n\n" + "Bạn nhận được 15 token miễn phí để bắt đầu tạo nhạc AI.\n\n"
+                            + username + "\n\n" + "Bạn nhận được 15 Credit miễn phí để bắt đầu tạo nhạc AI.\n\n"
 							+ "Trân trọng,\n" + "Chúc bạn dùng ứng dụng vui vẻ");
 
 			mailSender.send(message);

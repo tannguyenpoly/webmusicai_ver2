@@ -9,7 +9,7 @@
         <button type="button" @click="showPromoBanner = false" class="btn-close btn-close-white position-absolute start-0 ms-3" aria-label="Đóng" style="font-size: 10px;"></button>
         <div class="text-center px-4">
             <i class="ti ti-sparkles me-1 text-dark"></i>
-            <strong>Nhận ngay 15 tín dụng miễn phí</strong> khi đăng ký, không cần thẻ. Trải nghiệm sáng tạo nhạc AI ngay lập tức!
+            <strong>Nhận ngay 15 Credit miễn phí</strong> khi đăng ký, không cần thẻ. Trải nghiệm sáng tạo nhạc AI ngay lập tức!
         </div>
     </div>
 
@@ -92,7 +92,7 @@
                     <div class="text-success fs-2"><i class="ti ti-credit-card"></i></div>
                     <div>
                         <h3 class="h6 fw-bold text mb-1">Thanh toán linh hoạt & Bảo mật</h3>
-                        <p class="text-muted-sync small mb-0">Hỗ trợ đa phương thức từ VNPay đến chuyển khoản SePay tự động quét mã QR, cộng token tức thì sau vài giây.</p>
+                        <p class="text-muted-sync small mb-0">Hỗ trợ đa phương thức từ VNPay đến chuyển khoản SePay tự động quét mã QR, cộng Credit tức thì sau vài giây.</p>
                     </div>
                 </div>
             </div>
@@ -132,7 +132,7 @@
     <section class="py-5 px-3 px-md-5">
         <div class="text-center mb-5">
             <h2 class="h3 fw-bold" style="color: var(--text-color);">Các gói sáng tạo phù hợp</h2>
-            <p class="text-muted-sync small">Khám phá các gói token ưu đãi để mở khóa trọn vẹn tiềm năng âm nhạc.</p>
+            <p class="text-muted-sync small">Khám phá các gói Credit ưu đãi để mở khóa trọn vẹn tiềm năng âm nhạc.</p>
         </div>
 
         <div v-if="isLoadingPackages" class="text-center py-4">
@@ -155,7 +155,7 @@
                         </div>
                         <div class="mb-3">
                             <span class="fw-bold text-success" style="font-size: 36px;">{{ pkg.tokens }}</span>
-                            <span class="text-muted-sync ms-1 small">token</span>
+                            <span class="text-muted-sync ms-1 small">Credit</span>
                         </div>
                         <div class="mb-4 fw-bold" style="font-size: 20px; color: var(--text-color);">{{ formatPrice(pkg.price) }}đ</div>
                         <a href="/orders" class="btn w-100 fw-semibold py-2 text-decoration-none"
@@ -188,7 +188,7 @@
                         </h2>
                         <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
                             <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
-                                Bạn chỉ mất chưa đầy 1 phút để đăng ký tài khoản bằng email hoặc Google. Hệ thống sẽ tự động cộng ngay 15 tín dụng miễn phí để bạn có thể trải nghiệm tạo nhạc ngay lập tức mà không cần cung cấp thông tin thẻ ngân hàng.
+                                Bạn chỉ mất chưa đầy 1 phút để đăng ký tài khoản bằng email hoặc Google. Hệ thống sẽ tự động cộng ngay 15 Credit miễn phí để bạn có thể trải nghiệm tạo nhạc ngay lập tức mà không cần cung cấp thông tin thẻ ngân hàng.
                             </div>
                         </div>
                     </div>
@@ -202,7 +202,7 @@
                         </h2>
                         <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
                             <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
-                                Gói miễn phí cung cấp 15 token khởi tạo giúp bạn thử nghiệm các mô hình cơ bản, khám phá kho nhạc cộng đồng, thả tim, bình luận và tự tạo playlist cá nhân.
+                                Gói miễn phí cung cấp 15 Credit khởi tạo giúp bạn thử nghiệm các mô hình cơ bản, khám phá kho nhạc cộng đồng, thả tim, bình luận và tự tạo playlist cá nhân.
                             </div>
                         </div>
                     </div>
@@ -244,7 +244,7 @@
                         </h2>
                         <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#faqAccordion">
                             <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
-                                Khi hết token, bạn có thể dễ dàng nạp thêm thông qua các gói nạp linh hoạt bằng quét mã SePay hoặc VNPay. Token mới sẽ được cộng vào tài khoản tự động chỉ trong vài giây sau khi thanh toán thành công.
+                                Khi hết Credit, bạn có thể dễ dàng nạp thêm thông qua các gói nạp linh hoạt bằng quét mã SePay hoặc VNPay. Credit mới sẽ được cộng vào tài khoản tự động chỉ trong vài giây sau khi thanh toán thành công.
                             </div>
                         </div>
                     </div>
@@ -272,7 +272,7 @@
                         </h2>
                         <div id="collapseSeven" class="accordion-collapse collapse" aria-labelledby="headingSeven" data-bs-parent="#faqAccordion">
                             <div class="accordion-body text-muted-sync small pt-0 pb-3 px-4" style="color: var(--text-color); opacity: 0.85;">
-                                Nếu giao dịch thanh toán gặp sự cố kỹ thuật (trừ tiền nhưng chưa cộng token hoặc lỗi hệ thống), đội ngũ hỗ trợ sẽ kiểm tra và hoàn tiền hoặc bù số lượng token tương ứng cho bạn trong vòng 24 giờ.
+                                Nếu giao dịch thanh toán gặp sự cố kỹ thuật (trừ tiền nhưng chưa cộng Credit hoặc lỗi hệ thống), đội ngũ hỗ trợ sẽ kiểm tra và hoàn tiền hoặc bù số lượng Credit tương ứng cho bạn trong vòng 24 giờ.
                             </div>
                         </div>
                     </div>

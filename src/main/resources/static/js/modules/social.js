@@ -270,7 +270,7 @@ window.MusicAIModules.social = {
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Thanh toán thành công',
-                                text: 'Token đã được cộng vào tài khoản.',
+                                text: 'Credit đã được cộng vào tài khoản.',
                                 confirmButtonColor: '#16a34a'
                             });
                         } else if (res.data.status === 'CANCELLED' || res.data.status === 'EXPIRED') {
@@ -279,7 +279,7 @@ window.MusicAIModules.social = {
                             Swal.fire({
                                 icon: 'info',
                                 title: res.data.status === 'EXPIRED' ? 'Đơn đã hết hạn' : 'Đơn đã được hủy',
-                                text: 'Không có token nào được cộng vào tài khoản.',
+                                text: 'Không có Credit nào được cộng vào tài khoản.',
                                 confirmButtonColor: '#16a34a'
                             });
                         } else if (res.data.status === 'REVIEW') {
@@ -340,9 +340,9 @@ window.MusicAIModules.social = {
             Swal.fire({
                 icon: 'question',
                 title: 'Dừng tạo nhạc?',
-                text: 'Tác vụ sẽ được đánh dấu đã hủy và 1 token được hoàn lại.',
+                text: 'Tác vụ sẽ được đánh dấu đã hủy và 1 Credit được hoàn lại.',
                 showCancelButton: true,
-                confirmButtonText: 'Dừng và hoàn token',
+                confirmButtonText: 'Dừng và hoàn Credit',
                 cancelButtonText: 'Tiếp tục chờ',
                 confirmButtonColor: '#dc3545'
             }).then(result => {
@@ -363,7 +363,7 @@ window.MusicAIModules.social = {
                             clearInterval(this.pollingTimer);
                             this.pollingTimer = null;
                         }
-                        this.Toast.fire({ icon: 'success', title: 'Đã dừng và hoàn lại 1 token' });
+                        this.Toast.fire({ icon: 'success', title: 'Đã dừng và hoàn lại 1 Credit' });
                     })
                     .catch(error => {
                         const message = error.response?.data?.message || 'Không thể dừng tác vụ';

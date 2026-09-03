@@ -262,7 +262,7 @@ public class SongRestController {
             if (!musicGeneratorService.isAvailable(spec.provider())) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                         .body(Map.of("message",
-                                "Hệ thống AI đang ngoại tuyến. Yêu cầu chưa được tạo và token không bị trừ."));
+                                "Hệ thống AI đang ngoại tuyến. Yêu cầu chưa được tạo và Credit không bị trừ."));
             }
             SongGenerationTicket ticket = songGenerationService.createPendingSong(
                     finalUsername, effectivePrompt, requestData.getTitle(), spec);
@@ -276,7 +276,7 @@ public class SongRestController {
             } catch (TaskRejectedException e) {
                 songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                        .body(Map.of("message", "Hệ thống AI đang bận, token đã được hoàn lại"));
+                        .body(Map.of("message", "Hệ thống AI đang bận, Credit đã được hoàn lại"));
             }
 
             return ResponseEntity.ok(Map.of(
@@ -331,7 +331,7 @@ public class SongRestController {
                 }
                 case "PENDING" -> result.put("message", "Đang xử lý, vui lòng chờ...");
                 case "FAILED" -> result.put("message", "Gen nhạc thất bại, vui lòng thử lại.");
-                case "CANCELLED" -> result.put("message", "Đã dừng tạo nhạc và hoàn lại token.");
+                case "CANCELLED" -> result.put("message", "Đã dừng tạo nhạc và hoàn lại Credit.");
                 default -> result.put("message", "Trạng thái không xác định");
             }
 
@@ -474,7 +474,7 @@ public class SongRestController {
                     songGenerationService.cancelAndRefund(id, finalUsername, isAdmin);
             boolean workerInterrupted = musicJobService.cancel(id);
             return ResponseEntity.ok(Map.of(
-                    "message", "Đã dừng tạo nhạc và hoàn lại 1 token",
+                    "message", "Đã dừng tạo nhạc và hoàn lại 1 Credit",
                     "songId", result.songId(),
                     "status", result.status(),
                     "remaining_tokens", result.remainingTokens(),
@@ -750,7 +750,7 @@ public class SongRestController {
             if (!musicGeneratorService.isAvailable(spec.provider())) {
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                         .body(Map.of("message",
-                                "Hệ thống AI đang ngoại tuyến. Yêu cầu chưa được tạo và token không bị trừ."));
+                                "Hệ thống AI đang ngoại tuyến. Yêu cầu chưa được tạo và Credit không bị trừ."));
             }
             SongGenerationTicket ticket = songGenerationService.createPendingRemix(
                     username, original, remixPrompt, customTitle, spec);
@@ -760,7 +760,7 @@ public class SongRestController {
             } catch (TaskRejectedException e) {
                 songGenerationService.failAndRefund(ticket.songId(), "Hàng đợi AI đang đầy");
                 return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                        .body(Map.of("message", "Hệ thống AI đang bận, token đã được hoàn lại"));
+                        .body(Map.of("message", "Hệ thống AI đang bận, Credit đã được hoàn lại"));
             }
             return ResponseEntity.ok(Map.of(
                     "message", "Đã nhận yêu cầu remix! AI đang xử lý...",

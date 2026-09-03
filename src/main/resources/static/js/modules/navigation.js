@@ -530,7 +530,7 @@ window.MusicAIModules.navigation = {
                     }
                 })
                 .catch(error => {
-                    console.error("Lỗi tải thông tin số dư token:", error);
+                    console.error("Lỗi tải thông tin số dư Credit:", error);
                 });
         },
 

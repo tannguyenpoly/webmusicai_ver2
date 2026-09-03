@@ -26,7 +26,7 @@ public class DatabaseCleanupTask {
 		cutoff.add(Calendar.MINUTE, -30);
 		int refunded = songGenerationService.refundStuckPendingSongs(cutoff.getTime());
 		if (refunded > 0) {
-			log.warn("Đã đánh dấu FAILED và hoàn token cho {} tác vụ PENDING quá 30 phút", refunded);
+			log.warn("Đã đánh dấu FAILED và hoàn Credit cho {} tác vụ PENDING quá 30 phút", refunded);
 		}
 		int expiredOrders = orderLifecycleService.expirePendingOrders();
 		if (expiredOrders > 0) {

@@ -9,7 +9,7 @@ public interface MusicGenerationProvider {
 
     String displayName();
 
-    /** Kiểm tra URL/key trước khi trừ token của người dùng. */
+    /** Kiểm tra URL/key trước khi trừ Credit của người dùng. */
     boolean isAvailable();
 
     default boolean supportsInstrumental() { return true; }
