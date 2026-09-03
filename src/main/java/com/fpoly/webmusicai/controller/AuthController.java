@@ -225,30 +225,30 @@ public class AuthController {
 		String newPassword = data.get("newPassword");
 
 		if (email == null || email.trim().isEmpty()) {
-			return ResponseEntity.badRequest().body("Email không được để trống!");
+			return ResponseEntity.badRequest().body(Map.of("message", "Email không được để trống!"));
 		}
 		if (otp == null || otp.trim().isEmpty()) {
-			return ResponseEntity.badRequest().body("Mã xác nhận không được để trống!");
+			return ResponseEntity.badRequest().body(Map.of("message", "Mã xác nhận không được để trống!"));
 		}
 		if (newPassword == null || newPassword.trim().isEmpty() || newPassword.length() < 6) {
-			return ResponseEntity.badRequest().body("Mật khẩu mới phải có ít nhất 6 ký tự!");
+			return ResponseEntity.badRequest().body(Map.of("message", "Mật khẩu mới phải có ít nhất 6 ký tự!"));
 		}
 
 		String key = email.trim().toLowerCase();
 		OtpData storedOtp = otpStorage.get(key);
 
 		if (storedOtp == null || !storedOtp.code.equals(otp.trim())) {
-			return ResponseEntity.badRequest().body("Mã xác nhận (OTP) không chính xác!");
+			return ResponseEntity.badRequest().body(Map.of("message", "Mã xác nhận (OTP) không chính xác!"));
 		}
 
 		if (System.currentTimeMillis() > storedOtp.expiryTime) {
 			otpStorage.remove(key);
-			return ResponseEntity.badRequest().body("Mã xác nhận (OTP) đã hết hạn! Vui lòng yêu cầu mã mới.");
+			return ResponseEntity.badRequest().body(Map.of("message", "Mã xác nhận (OTP) đã hết hạn! Vui lòng yêu cầu mã mới."));
 		}
 
 		List<User> users = userRepo.findByEmailIgnoreCase(email.trim());
 		if (users.isEmpty()) {
-			return ResponseEntity.badRequest().body("Không tìm thấy tài khoản người dùng!");
+			return ResponseEntity.badRequest().body(Map.of("message", "Không tìm thấy tài khoản người dùng!"));
 		}
 
 		String encodedPassword = passwordEncoder.encode(newPassword);
