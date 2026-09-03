@@ -89,7 +89,6 @@ public class AdminRestController {
     private PackageRepository packageRepo;
 
 
-    // ============ QUẢN LÝ USER (đã có sẵn) ============
 
     @GetMapping("/genres/summary")
     public ResponseEntity<?> getGenreSummary(@RequestParam(defaultValue = "usage_desc") String sort) {
