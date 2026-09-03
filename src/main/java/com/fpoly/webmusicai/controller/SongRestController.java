@@ -341,16 +341,33 @@ public class SongRestController {
 
     @Transactional
     @PostMapping("/{id}/play")
-    public ResponseEntity<?> incrementListenCount(@PathVariable Integer id) {
+    public ResponseEntity<?> incrementListenCount(@PathVariable Integer id, jakarta.servlet.http.HttpServletRequest request) {
         return songRepo.findById(id).map(song -> {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) ? auth.getName() : null;
+            
+            // Generate a unique identifier for the user/IP + song
+            String clientIp = request.getRemoteAddr();
+            String identifier = (username != null ? "user_" + username : "ip_" + clientIp) + "_song_" + id;
+            
+            // Check spam (2 minutes = 120,000 ms)
+            long waitSeconds = spamProtectionService.remainingSeconds(identifier, "play", 120000);
+            if (waitSeconds > 0) {
+                // If in cooldown, return current count without incrementing
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("listenCount", song.getListenCount() != null ? song.getListenCount() : 0);
+                response.put("message", "Cooldown active. Wait " + waitSeconds + "s");
+                return ResponseEntity.ok(response);
+            }
+
             int currentCount = song.getListenCount() != null ? song.getListenCount() : 0;
             song.setListenCount(currentCount + 1);
             songRepo.save(song);
 
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             User listener = null;
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-                listener = userRepo.findById(auth.getName()).orElse(null);
+            if (username != null) {
+                listener = userRepo.findById(username).orElse(null);
             }
             SongListenHistory history = new SongListenHistory();
             history.setSong(song);

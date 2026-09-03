@@ -517,6 +517,7 @@
                             <div class="mb-3">
                                 <label class="form-label small fw-medium text-white-50">Mã OTP 6 chữ số</label>
                                 <input type="text" v-model="forgotPasswordForm.otp" maxlength="6"
+                                    @input="forgotPasswordForm.otp = forgotPasswordForm.otp.replace(/[^0-9]/g, '')"
                                     class="form-control bg-dark text-white border-secondary py-2 text-center fw-bold letter-spacing-2"
                                     placeholder="123456" required>
                             </div>

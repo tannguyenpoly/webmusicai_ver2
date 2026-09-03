@@ -32,7 +32,7 @@
             --text-color: #ffffff;
             --card-bg: #111612;
             --border-color: rgba(255, 255, 255, 0.08);
-            --text-muted: rgba(255, 255, 255, 0.4);
+            --text-muted: rgba(255, 255, 255, 0.6);
             --table-hover: rgba(255, 255, 255, 0.02);
             --btn-outline-anonymous: rgba(255, 255, 255, 0.4);
             --btn-outline-anonymous-hover: rgba(255, 255, 255, 0.1);
@@ -111,6 +111,11 @@
 
         .text-muted-sync {
             color: var(--text-muted) !important;
+        }
+        
+        .custom-theme-input::placeholder {
+            color: var(--text-muted) !important;
+            opacity: 1;
         }
 
         .dropdown-item:hover,
@@ -2210,6 +2215,7 @@
                             <div class="mb-3">
                                 <label class="form-label small fw-medium text-muted-sync">Mã OTP</label>
                                 <input type="text" maxlength="6" v-model="forgotPasswordForm.otp"
+                                    @input="forgotPasswordForm.otp = forgotPasswordForm.otp.replace(/[^0-9]/g, '')"
                                     class="form-control custom-theme-input py-2" placeholder="Nhập 6 chữ số">
                             </div>
                             <div class="mb-3">
