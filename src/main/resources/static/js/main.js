@@ -91,7 +91,8 @@ new Vue({
             result: null,
             history: [],
             isLoading: false,
-            configured: false
+            configured: false,
+            showModal: false
         },
         wizardCreatorUseCases: [
             { id: 'TikTok / Reels', icon: 'ti-device-mobile', description: 'Video ngắn, bắt tai' },

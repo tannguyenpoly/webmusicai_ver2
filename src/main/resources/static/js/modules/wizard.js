@@ -309,6 +309,7 @@ window.MusicAIModules.wizard = {
             const data = new FormData();
             data.append('file', this.referenceAnalysis.file);
             this.referenceAnalysis.isLoading = true;
+            this.referenceAnalysis.showModal = true;
             axios.post('/api/music-analysis/reference', data)
                 .then(response => {
                     this.referenceAnalysis.result = response.data;
@@ -318,9 +319,14 @@ window.MusicAIModules.wizard = {
                     this.Toast.fire({ icon: 'success', title: response.data.cached ? 'Đã dùng lại kết quả đã phân tích.' : 'Đã nhận diện nhạc tham khảo.' });
                 })
                 .catch(error => {
+                    this.referenceAnalysis.showModal = false;
                     Swal.fire({ icon: 'error', title: 'Không thể phân tích', text: error.response?.data?.message || 'Vui lòng kiểm tra máy phân tích thể loại và thử lại.', confirmButtonColor: '#dc3545' });
                 })
                 .finally(() => { this.referenceAnalysis.isLoading = false; });
+        },
+
+        closeAnalysisModal() {
+            this.referenceAnalysis.showModal = false;
         },
 
         loadReferenceAnalysisHistory() {
