@@ -275,6 +275,20 @@ window.MusicAIModules.account = {
         // --- HÀM THANH TOÁN TÍCH HỢP SEPAY QR ---
         buyPackage(pkg) {
             if (!this.currentUser) { window.location.href = '/login'; return; }
+            
+            const tierRank = { FREE: 0, CREATOR: 1, PRO: 2, STUDIO: 3 };
+            const currentRank = tierRank[this.effectiveUserTier] || 0;
+            const pkgRank = tierRank[pkg.tierCode] || 0;
+            
+            if (currentRank > pkgRank) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Không thể mua gói',
+                    text: `Bạn đang sử dụng gói ${this.userTierLabel}, không thể mua gói thấp hơn.`
+                });
+                return;
+            }
+
             this.selectedPkg = pkg;
 
             Swal.fire({

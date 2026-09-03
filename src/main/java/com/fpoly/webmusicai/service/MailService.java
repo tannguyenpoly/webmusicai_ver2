@@ -68,22 +68,103 @@ public class MailService {
 			String formattedDate = dateFormatter.format(order.getCreatedAt());
 
 			// Generate PDF
+			// Replace "₫" with "VND" for PDF compatibility if necessary
+			String safePrice = formattedPrice.replace("₫", "VND");
+
+			// Generate PDF
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			Document document = new Document();
 			PdfWriter.getInstance(document, baos);
 			document.open();
 			
-			// Using basic text to avoid Vietnamese font issues in default PDF font
-			document.add(new Paragraph("HOA DON THANH TOAN WEBMUSICAI"));
-			document.add(new Paragraph("----------------------------------------"));
-			document.add(new Paragraph("Ma don hang: " + order.getOrderCode()));
-			document.add(new Paragraph("Ngay tao: " + formattedDate));
-			document.add(new Paragraph("Ten goi: " + order.getPkg().getTierCode()));
-			document.add(new Paragraph("Số Credit: +" + order.getPkg().getTokens()));
-			document.add(new Paragraph("Tong tien: " + formattedPrice));
-			document.add(new Paragraph("Trang thai: THANH TOAN THANH CONG"));
-			document.add(new Paragraph("----------------------------------------"));
-			document.add(new Paragraph("Cam on ban da su dung dich vu cua chung toi."));
+			// Fonts
+			com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 24, new java.awt.Color(34, 197, 94));
+			com.lowagie.text.Font subTitleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 12, java.awt.Color.GRAY);
+			com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 12, java.awt.Color.WHITE);
+			com.lowagie.text.Font normalFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 12, java.awt.Color.BLACK);
+			com.lowagie.text.Font boldFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 12, java.awt.Color.BLACK);
+
+			// Title
+			Paragraph title = new Paragraph("WEBMUSICAI", titleFont);
+			title.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+			document.add(title);
+			
+			Paragraph subTitle = new Paragraph("INVOICE RECEIPT", subTitleFont);
+			subTitle.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+			subTitle.setSpacingAfter(30);
+			document.add(subTitle);
+
+			// Order Info
+			com.lowagie.text.pdf.PdfPTable infoTable = new com.lowagie.text.pdf.PdfPTable(2);
+			infoTable.setWidthPercentage(100);
+			infoTable.setSpacingAfter(20);
+			
+			com.lowagie.text.pdf.PdfPCell leftCell = new com.lowagie.text.pdf.PdfPCell();
+			leftCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+			leftCell.addElement(new Paragraph("Order Code: " + order.getOrderCode(), boldFont));
+			leftCell.addElement(new Paragraph("Date: " + formattedDate, normalFont));
+			
+			com.lowagie.text.pdf.PdfPCell rightCell = new com.lowagie.text.pdf.PdfPCell();
+			rightCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+			Paragraph statusP = new Paragraph("Status: PAID SUCCESS", boldFont);
+			statusP.setAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+			rightCell.addElement(statusP);
+			
+			infoTable.addCell(leftCell);
+			infoTable.addCell(rightCell);
+			document.add(infoTable);
+
+			// Items Table
+			com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(3);
+			table.setWidthPercentage(100);
+			table.setSpacingBefore(10f);
+			table.setSpacingAfter(30f);
+
+			// Table Header
+			java.awt.Color headerColor = new java.awt.Color(34, 197, 94); // Green
+			String[] headers = {"Description", "Credit Received", "Amount"};
+			for (String h : headers) {
+				com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(h, headerFont));
+				cell.setBackgroundColor(headerColor);
+				cell.setPadding(10);
+				cell.setBorderColor(java.awt.Color.WHITE);
+				table.addCell(cell);
+			}
+			
+			// Table row
+			java.awt.Color rowColor = new java.awt.Color(245, 245, 245);
+			
+			com.lowagie.text.pdf.PdfPCell descCell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase("Package: " + order.getPkg().getTierCode(), normalFont));
+			descCell.setPadding(10);
+			descCell.setBackgroundColor(rowColor);
+			descCell.setBorderColor(java.awt.Color.WHITE);
+			table.addCell(descCell);
+			
+			com.lowagie.text.pdf.PdfPCell creditCell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase("+" + order.getPkg().getTokens(), normalFont));
+			creditCell.setPadding(10);
+			creditCell.setBackgroundColor(rowColor);
+			creditCell.setBorderColor(java.awt.Color.WHITE);
+			table.addCell(creditCell);
+			
+			com.lowagie.text.pdf.PdfPCell priceCell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(safePrice, boldFont));
+			priceCell.setPadding(10);
+			priceCell.setBackgroundColor(rowColor);
+			priceCell.setBorderColor(java.awt.Color.WHITE);
+			table.addCell(priceCell);
+			
+			document.add(table);
+			
+			// Total Section
+			Paragraph totalPara = new Paragraph("Total: " + safePrice, com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 14, java.awt.Color.BLACK));
+			totalPara.setAlignment(com.lowagie.text.Element.ALIGN_RIGHT);
+			document.add(totalPara);
+			
+			// Footer
+			Paragraph footer = new Paragraph("Thank you for your business!", com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_OBLIQUE, 12, java.awt.Color.GRAY));
+			footer.setAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+			footer.setSpacingBefore(50);
+			document.add(footer);
+			
 			document.close();
 
 			MimeMessage message = mailSender.createMimeMessage();
